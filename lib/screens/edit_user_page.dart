@@ -39,14 +39,16 @@ class _EditUserPageState extends State<EditUserPage> {
     if (!_formKey.currentState!.validate()) return;
 
     final updated = UserModel(
-      userId: widget.user.userId,
-      name: nameCtrl.text.trim(),
-      mobile: mobileCtrl.text.trim(),
-      password: passCtrl.text.trim(),
-      role: selectedRole!,
-      segment: selectedSegment!,
-      createdAt: widget.user.createdAt,
-    );
+  id: widget.user.id,                      // ⭐ VERY IMPORTANT
+  userId: widget.user.userId,
+  name: nameCtrl.text.trim(),
+  mobile: mobileCtrl.text.trim(),
+  password: passCtrl.text.trim(),
+  role: selectedRole!,
+  segment: selectedSegment!,
+  createdAt: widget.user.createdAt,
+);
+
 
     bool ok = await userService.updateUser(updated);
 

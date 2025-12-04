@@ -77,7 +77,7 @@ class _AddShopPageState extends State<AddShopPage> {
     loading = true;
     setState(() {});
 
-    final url = Uri.parse("http://192.168.159.43:5000/api/pending/add");
+    final url = Uri.parse("https://backend-abhinav-tracking.onrender.com/api/pending/add");
 
     final bytes = await imageFile!.readAsBytes();
     final base64Image = base64Encode(bytes);

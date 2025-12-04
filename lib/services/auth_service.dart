@@ -14,10 +14,7 @@ class AuthService {
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "mobile": mobile,
-          "password": password,
-        }),
+        body: jsonEncode({"mobile": mobile, "password": password}),
       );
 
       final data = jsonDecode(response.body);
@@ -26,10 +23,9 @@ class AuthService {
         token = data["token"];
         currentUser = data["user"];
         return true;
-      } else {
-        print("SERVER RESPONSE: ${response.body}");
       }
 
+      print("SERVER RESPONSE: ${response.body}");
       return false;
     } catch (e) {
       print("LOGIN ERROR: $e");

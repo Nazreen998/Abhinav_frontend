@@ -29,7 +29,7 @@ class LogModel {
 
   factory LogModel.fromJson(Map<String, dynamic> json) {
     return LogModel(
-      id: json["id"].toString(),
+      id: json["_id"].toString(),
       userId: json["userId"].toString(),
       userName: json["userName"].toString(),
       shopId: json["shopId"].toString(),

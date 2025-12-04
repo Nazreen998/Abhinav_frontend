@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class DashboardService {
-  static const baseUrl = "http://192.168.159.43:5000/api/dashboard";
+  static const baseUrl = "https://backend-abhinav-tracking.onrender.com/api/dashboard";
 
   Future getMasterDashboard() async {
     final res = await http.get(

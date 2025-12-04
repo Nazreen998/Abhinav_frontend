@@ -36,6 +36,7 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
     setState(() {});
 
     final res = await pendingService.getPendingShops();
+
     pendingShops = res.map((e) => PendingShopModel.fromJson(e)).toList();
 
     // MANAGER → segment filter

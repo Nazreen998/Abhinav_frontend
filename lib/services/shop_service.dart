@@ -4,15 +4,12 @@ import '../models/shop_model.dart';
 import '../services/auth_service.dart';
 
 class ShopService {
-  // USE YOUR REAL WORKING IP
-  static const String base = "http://192.168.159.43:5000/api";
+  static const String base =
+      "https://backend-abhinav-tracking.onrender.com/api";
 
   String get shopBaseUrl => "$base/shop";
   String get pendingBaseUrl => "$base/pending";
 
-  /// =============================
-  /// 🚀 GET ALL APPROVED SHOPS
-  /// =============================
   Future<List<ShopModel>> getShops() async {
     final res = await http.get(
       Uri.parse("$shopBaseUrl/all"),
@@ -22,16 +19,11 @@ class ShopService {
     if (res.statusCode != 200) return [];
 
     final body = jsonDecode(res.body);
-
-    // Backend response = { status: success, shops: [...] }
     final List shops = body["shops"] ?? [];
 
     return shops.map((e) => ShopModel.fromJson(e)).toList();
   }
 
-  /// =============================
-  /// 🚀 ADD PENDING SHOP (SALES)
-  /// =============================
   Future<bool> addPendingShop({
     required String name,
     required String address,
@@ -59,31 +51,21 @@ class ShopService {
     return res.statusCode == 200;
   }
 
-  /// =============================
-  /// 🚀 OLD DIRECT ADD SHOP (MASTER)
-  /// =============================
   Future<bool> addShop(ShopModel shop) async {
     final res = await http.post(
       Uri.parse("$shopBaseUrl/add"),
       headers: {
-        "Authorization": "Bearer ${AuthService.token}",
-        "Content-Type": "application/json",
-      },
+        "Authorization": "Bearer ${AuthService.token}"},
       body: jsonEncode(shop.toJson()),
     );
 
     return res.statusCode == 200;
   }
 
-  /// =============================
-  /// 🚀 APPROVE SHOP (MASTER)
-  /// =============================
   Future<bool> approveShop(String mongoId) async {
     final res = await http.post(
       Uri.parse("$pendingBaseUrl/approve/$mongoId"),
-      headers: {
-        "Authorization": "Bearer ${AuthService.token}",
-      },
+      headers: {"Authorization": "Bearer ${AuthService.token}"},
     );
 
     return res.statusCode == 200;

@@ -5,14 +5,14 @@ import '../models/user_model.dart';
 import 'auth_service.dart';
 
 class UserService {
-  static const String baseUrl = "http://192.168.159.43:5000/api/users";
+  static const String baseUrl =
+      "https://backend-abhinav-tracking.onrender.com/api/users";
 
   Map<String, String> get headers => {
         "Content-Type": "application/json",
         "Authorization": "Bearer ${AuthService.token}"
       };
 
-  /// GET ALL USERS
   Future<List<UserModel>> getUsers() async {
     final url = Uri.parse("$baseUrl/all");
 
@@ -21,13 +21,11 @@ class UserService {
     if (res.statusCode != 200) return [];
 
     final data = jsonDecode(res.body);
-
     final List list = data["users"] ?? [];
 
     return list.map((u) => UserModel.fromJson(u)).toList();
   }
 
-  /// ADD USER (MASTER ONLY)
   Future<bool> addUser(UserModel user) async {
     final url = Uri.parse("$baseUrl/addUser");
 
@@ -40,7 +38,6 @@ class UserService {
     return res.statusCode == 200;
   }
 
-  /// EDIT USER
   Future<bool> updateUser(UserModel user) async {
     final url = Uri.parse("$baseUrl/edit/${user.id}");
 
@@ -53,7 +50,6 @@ class UserService {
     return res.statusCode == 200;
   }
 
-  /// DELETE USER
   Future<bool> deleteUser(String id) async {
     final url = Uri.parse("$baseUrl/delete/$id");
 
