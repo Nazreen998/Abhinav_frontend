@@ -2,8 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AuthService {
-  static const String baseUrl =
-      "https://backend-abhinav-tracking.onrender.com/api";
+  static const String baseUrl = "https://backend-abhinav-tracking.onrender.com/api";
 
   static String? token;
   static Map<String, dynamic>? currentUser;

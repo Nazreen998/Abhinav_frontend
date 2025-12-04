@@ -5,7 +5,7 @@ import 'auth_service.dart';
 class AssignService {
   static const String baseUrl = "http://192.168.159.43:5000/api/assign";
 
-  /// Assign shops to salesman
+  /// Assign shops
   Future<bool> assignShops({
     required String userId,
     required List<String> shopIds,
@@ -28,41 +28,31 @@ class AssignService {
       body: jsonEncode(body),
     );
 
-    // BASIC NETWORK CHECK
     if (res.statusCode != 200 && res.statusCode != 201) {
       print("❌ Server Error ${res.statusCode}");
       return false;
     }
 
     final data = jsonDecode(res.body);
-
-    // SUPPORT ALL COMMON BACKEND FORMATS
-    if (data["status"] == "success") return true;
-    if (data["success"] == true) return true;
-    if (data["message"] == "assigned") return true;
-    if (data["result"] == "done") return true;
-
-    print("❌ Assignment failed response: $data");
-    return false;
+    return data["status"] == "success";
   }
 
-  /// Get next shop
-Future<Map<String, dynamic>?> getNextShop(
-    String userId, double lat, double lng) async {
-  final url = Uri.parse("$baseUrl/next/$userId?lat=$lat&lng=$lng");
+  /// Get ALL next shops sorted by distance
+  Future<List<dynamic>> getNextShops(
+      String userId, double lat, double lng) async {
+    final url = Uri.parse("$baseUrl/next/$userId?lat=$lat&lng=$lng");
 
-  final res = await http.get(
-    url,
-    headers: {"Authorization": "Bearer ${AuthService.token}"},
-  );
+    final res = await http.get(
+      url,
+      headers: {"Authorization": "Bearer ${AuthService.token}"},
+    );
 
-  if (res.statusCode != 200) {
-    print("❌ Next Shop Error ${res.statusCode}");
-    return null;
+    if (res.statusCode != 200) {
+      print("❌ Next Shop Error ${res.statusCode}");
+      return [];
+    }
+
+    final data = jsonDecode(res.body);
+    return data["shops"] ?? [];
   }
-
-  final data = jsonDecode(res.body);
-  return data["shop"];
-}
-
 }
