@@ -128,20 +128,19 @@ class _AssignShopPageState extends State<AssignShopPage> {
   return showMsg("You can assign only 5 shops at a time");
 }
 
-    for (var shop in segmentShops) {
-      if (selectedShopIds.contains(shop.shopId)) {
-        arranged.add({
-          "shop_id": shop.shopId,
-          "distance": distance(
-            userLocation!.latitude,
-            userLocation!.longitude,
-            shop.lat,
-            shop.lng,
-          ),
-        });
-      }
-    }
-
+  for (var shop in segmentShops) {
+  if (selectedShopIds.contains(shop.shopId.toString())) {
+    arranged.add({
+      "shop_id": shop.shopId.toString(),
+      "distance": distance(
+        userLocation!.latitude,
+        userLocation!.longitude,
+        shop.lat,
+        shop.lng,
+      ),
+    });
+  }
+}
     arranged.sort((a, b) => a["distance"].compareTo(b["distance"]));
 
     List<String> finalShops =

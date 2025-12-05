@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/auth_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class AddShopPage extends StatefulWidget {
@@ -19,30 +20,71 @@ class _AddShopPageState extends State<AddShopPage> {
   final addressController = TextEditingController();
 
   File? imageFile;
+  String? base64Image;
+
   double? lat;
   double? lng;
 
   bool loading = false;
 
+  // 📸 PICK PHOTO
   Future pickPhoto() async {
-    if (Platform.isWindows) {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+    // -------------------------
+    // WEB MODE
+    // -------------------------
+    if (kIsWeb) {
+      final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
+        allowMultiple: false,
+        withData: true,
       );
 
-      if (result != null) {
-        setState(() => imageFile = File(result.files.single.path!));
+      if (result != null && result.files.single.bytes != null) {
+        base64Image = base64Encode(result.files.single.bytes!);
+        setState(() {});
         getLocation();
       }
-    } else {
-      final picked = await ImagePicker().pickImage(source: ImageSource.camera);
-      if (picked != null) {
-        setState(() => imageFile = File(picked.path));
+      return;
+    }
+
+    // -------------------------
+    // WINDOWS MODE
+    // -------------------------
+    if (Platform.isWindows) {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        imageFile = File(result.files.single.path!);
+
+        final bytes = await imageFile!.readAsBytes();
+        base64Image = base64Encode(bytes);
+
+        setState(() {});
         getLocation();
       }
+      return;
+    }
+
+    // -------------------------
+    // ANDROID / IOS MODE
+    // -------------------------
+    final picked = await ImagePicker().pickImage(source: ImageSource.camera);
+
+    if (picked != null) {
+      imageFile = File(picked.path);
+
+      final bytes = await imageFile!.readAsBytes();
+      base64Image = base64Encode(bytes);
+
+      setState(() {});
+      getLocation();
     }
   }
 
+  // 📍 LOCATION
   Future getLocation() async {
     LocationPermission perm = await Geolocator.requestPermission();
 
@@ -56,20 +98,21 @@ class _AddShopPageState extends State<AddShopPage> {
 
     Position pos = await Geolocator.getCurrentPosition();
 
-    setState(() {
-      lat = pos.latitude;
-      lng = pos.longitude;
-    });
+    lat = pos.latitude;
+    lng = pos.longitude;
+
+    setState(() {});
   }
 
+  // 📤 SUBMIT SHOP
   Future submit() async {
     if (nameController.text.isEmpty ||
         addressController.text.isEmpty ||
         lat == null ||
         lng == null ||
-        imageFile == null) {
+        base64Image == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Fill all fields")),
+        const SnackBar(content: Text("Fill all fields & pick image")),
       );
       return;
     }
@@ -77,17 +120,15 @@ class _AddShopPageState extends State<AddShopPage> {
     loading = true;
     setState(() {});
 
-    final url = Uri.parse("https://backend-abhinav-tracking.onrender.com/api/pending/add");
-
-    final bytes = await imageFile!.readAsBytes();
-    final base64Image = base64Encode(bytes);
+    final url = Uri.parse(
+        "https://backend-abhinav-tracking.onrender.com/api/pending/add");
 
     final payload = {
       "shop_name": nameController.text.trim(),
       "address": addressController.text.trim(),
       "lat": lat,
       "lng": lng,
-      "image": base64Image,
+      "image": base64Image, // 🔥 FIXED FOR ALL PLATFORMS
       "segment": AuthService.currentUser?["segment"] ?? "all",
       "created_by": AuthService.currentUser?["_id"] ?? "",
     };
@@ -96,7 +137,7 @@ class _AddShopPageState extends State<AddShopPage> {
       url,
       headers: {
         "Authorization": "Bearer ${AuthService.token}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       body: jsonEncode(payload),
     );
@@ -133,11 +174,9 @@ class _AddShopPageState extends State<AddShopPage> {
             end: Alignment.bottomCenter,
           ),
         ),
-
         child: SafeArea(
           child: Column(
             children: [
-              // 🔙 Back Button + Title
               Row(
                 children: [
                   IconButton(
@@ -158,7 +197,6 @@ class _AddShopPageState extends State<AddShopPage> {
 
               const SizedBox(height: 10),
 
-              // WHITE CARD
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(20),
@@ -183,7 +221,6 @@ class _AddShopPageState extends State<AddShopPage> {
                       _input(addressController, "Address"),
                       const SizedBox(height: 20),
 
-                      // Take Photo Button
                       Center(
                         child: ElevatedButton(
                           onPressed: pickPhoto,
@@ -202,11 +239,19 @@ class _AddShopPageState extends State<AddShopPage> {
                         ),
                       ),
 
-                      if (imageFile != null) ...[
+                      if (imageFile != null && !kIsWeb) ...[
                         const SizedBox(height: 12),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: Image.file(imageFile!, height: 160),
+                        ),
+                      ],
+
+                      if (kIsWeb && base64Image != null) ...[
+                        const SizedBox(height: 12),
+                        Image.memory(
+                          base64Decode(base64Image!),
+                          height: 160,
                         ),
                       ],
 
@@ -230,8 +275,8 @@ class _AddShopPageState extends State<AddShopPage> {
                               child: ElevatedButton(
                                 onPressed: submit,
                                 style: ElevatedButton.styleFrom(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 15),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 15),
                                   backgroundColor: const Color(0xFF0066CC),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(14),
@@ -257,7 +302,6 @@ class _AddShopPageState extends State<AddShopPage> {
     );
   }
 
-  // 🔥 Unified Input UI
   Widget _input(TextEditingController c, String label) {
     return TextField(
       controller: c,
