@@ -1,23 +1,22 @@
 class LogModel {
-  final String id;
-  final String userId;
-  final String userName;
-  final String shopId;
-  final String shopName;
-  final String date;
-  final String time;
-  final String lat;
-  final String lng;
-  final String distance;
-  final String result;
-  final String segment;
+  String userId;
+  String shopId;
+  String shopName;
+  String salesman;
+  String date;
+  String time;
+  double lat;
+  double lng;
+  double distance;
+  String result;
+  String segment;
+  String photoUrl;
 
   LogModel({
-    required this.id,
     required this.userId,
-    required this.userName,
     required this.shopId,
     required this.shopName,
+    required this.salesman,
     required this.date,
     required this.time,
     required this.lat,
@@ -25,37 +24,40 @@ class LogModel {
     required this.distance,
     required this.result,
     required this.segment,
+    required this.photoUrl,
   });
 
-  factory LogModel.fromJson(Map<String, dynamic> json) {
-    return LogModel(
-      id: json["_id"].toString(),
-      userId: json["userId"].toString(),
-      userName: json["userName"].toString(),
-      shopId: json["shopId"].toString(),
-      shopName: json["shopName"].toString(),
-      date: json["date"].toString(),
-      time: json["time"].toString(),
-      lat: json["lat"].toString(),
-      lng: json["lng"].toString(),
-      distance: json["distance"].toString(),
-      result: json["result"].toString(),
-      segment: json["segment"].toString(),
-    );
+  Map<String, dynamic> toJson() {
+    return {
+      "user_id": userId,
+      "shop_id": shopId,
+      "shop_name": shopName,
+      "salesman": salesman,
+      "date": date,
+      "time": time,
+      "lat": lat,
+      "lng": lng,
+      "distance": distance,
+      "result": result,
+      "segment": segment,
+      "photo_url": photoUrl,
+    };
   }
 
-  Map<String, dynamic> toJson() => {
-        "id": id,
-        "userId": userId,
-        "userName": userName,
-        "shopId": shopId,
-        "shopName": shopName,
-        "date": date,
-        "time": time,
-        "lat": lat,
-        "lng": lng,
-        "distance": distance,
-        "result": result,
-        "segment": segment,
-      };
+  factory LogModel.fromJson(Map<String, dynamic> j) {
+    return LogModel(
+      userId: j["user_id"].toString(),
+      shopId: j["shop_id"].toString(),
+      shopName: j["shop_name"] ?? "",
+      salesman: j["salesman"] ?? "",
+      date: j["date"] ?? "",
+      time: j["time"] ?? "",
+      lat: (j["lat"] ?? 0).toDouble(),
+      lng: (j["lng"] ?? 0).toDouble(),
+      distance: (j["distance"] ?? 0).toDouble(),
+      result: j["result"] ?? "",
+      segment: j["segment"] ?? "",
+      photoUrl: j["photo_url"] ?? "",
+    );
+  }
 }

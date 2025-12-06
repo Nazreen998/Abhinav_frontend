@@ -6,46 +6,57 @@ class VisitService {
   static const baseUrl =
       "https://backend-abhinav-tracking.onrender.com/api/visit";
 
+  /// ---------------------------------------------------------
+  /// 1. UPLOAD PHOTO (base64 → URL)
+  /// ---------------------------------------------------------
   Future<String?> uploadPhoto(String base64, String filename) async {
-    final res = await http.post(
-      Uri.parse("$baseUrl/upload"),
-      headers: {
-        "Authorization": "Bearer ${AuthService.token}",
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode({
-        "image": base64,
-        "filename": filename,
-      }),
-    );
+    try {
+      final url = Uri.parse("$baseUrl/uploadPhoto");
 
-    if (res.statusCode != 200) return null;
+      final res = await http.post(
+        url,
+        headers: {
+          "Authorization": "Bearer ${AuthService.token}",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({
+          "image": base64,
+          "filename": filename,
+        }),
+      );
 
-    final data = jsonDecode(res.body);
-    return data["url"];
+      if (res.statusCode != 200) {
+        print("UPLOAD FAILED: ${res.body}");
+        return null;
+      }
+
+      return jsonDecode(res.body)["url"];
+    } catch (e) {
+      print("UPLOAD ERROR: $e");
+      return null;
+    }
   }
 
-  Future<bool> saveVisit(Map<String, dynamic> data) async {
-    final res = await http.post(
-      Uri.parse("$baseUrl/log"),
-      headers: {
-        "Authorization": "Bearer ${AuthService.token}",
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode(data),
-    );
+  /// ---------------------------------------------------------
+  /// 2. SAVE VISIT LOG
+  /// ---------------------------------------------------------
+  Future<bool> visitShop(Map<String, dynamic> payload) async {
+    try {
+      final url = Uri.parse("$baseUrl/visitShop");
 
-    return res.statusCode == 200;
-  }
+      final res = await http.post(
+        url,
+        headers: {
+          "Authorization": "Bearer ${AuthService.token}",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(payload),
+      );
 
-  Future<Map<String, dynamic>?> getNextShop(String userId) async {
-    final res = await http.get(
-      Uri.parse("$baseUrl/next/$userId"),
-      headers: {"Authorization": "Bearer ${AuthService.token}"},
-    );
-
-    if (res.statusCode != 200) return null;
-
-    return jsonDecode(res.body)["shop"];
+      return res.statusCode == 200;
+    } catch (e) {
+      print("VISIT ERROR: $e");
+      return false;
+    }
   }
 }

@@ -49,48 +49,48 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
 
     List<LogModel> filtered = all;
 
-    // SALES ONLY → Own logs
+    // SALESMAN → Only own logs
     if (role == "salesman") {
       filtered = filtered.where((l) => l.userId == userId).toList();
     }
 
-    // MANAGER → segment only
+    // MANAGER → Segment-wise
     if (role == "manager") {
       filtered = filtered.where((l) => l.segment == segment).toList();
     }
 
-    // FILTER PAGE → SEGMENT
+    // FILTER PAGE → Segment filter
     if (widget.segment != "All") {
       filtered = filtered
           .where((l) => l.segment.toUpperCase() == widget.segment.toUpperCase())
           .toList();
     }
 
-    // FILTER PAGE → RESULT
+    // FILTER PAGE → Match / Mismatch filter
     if (widget.result != "All") {
       filtered = filtered
           .where((l) => l.result.toLowerCase() == widget.result.toLowerCase())
           .toList();
     }
 
-    // FILTER PAGE → DATE RANGE
+    // DATE FILTER
     filtered = filtered.where((l) {
       try {
         final parts = l.date.split("-");
         final d = int.parse(parts[0]);
         final m = int.parse(parts[1]);
         final y = int.parse(parts[2]);
-        final dt = DateTime(y, m, d);
+        final logDate = DateTime(y, m, d);
 
-        if (widget.startDate != null && dt.isBefore(widget.startDate!)) {
+        if (widget.startDate != null && logDate.isBefore(widget.startDate!)) {
           return false;
         }
-        if (widget.endDate != null && dt.isAfter(widget.endDate!)) {
+        if (widget.endDate != null && logDate.isAfter(widget.endDate!)) {
           return false;
         }
 
         return true;
-      } catch (e) {
+      } catch (_) {
         return false;
       }
     }).toList();
@@ -102,29 +102,21 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final matched =
-        logs.where((l) => l.result.toLowerCase() == "match").length;
-    final mismatched =
-        logs.where((l) => l.result.toLowerCase() == "mismatch").length;
+    final matched = logs.where((l) => l.result == "match").length;
+    final mismatched = logs.where((l) => l.result == "mismatch").length;
 
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFF007BFF),
-              Color(0xFF66B2FF),
-              Color(0xFFB8E0FF),
-            ],
+            colors: [Color(0xFF007BFF), Color(0xFF66B2FF), Color(0xFFB8E0FF)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
         ),
-
         child: SafeArea(
           child: Column(
             children: [
-              // 🔙 BACK BUTTON + TITLE
               Row(
                 children: [
                   IconButton(
@@ -150,12 +142,10 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                   padding: const EdgeInsets.all(16),
                   decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(30),
                     ),
                   ),
-
                   child: Column(
                     children: [
                       buildSearchBar(),
@@ -172,7 +162,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     );
   }
 
-  // 🔍 SEARCH BAR
+  // SEARCH BAR
   Widget buildSearchBar() {
     return TextField(
       onChanged: (v) => setState(() => search = v),
@@ -188,7 +178,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     );
   }
 
-  // 🟢🔴 PIE CHART
+  // PIE CHART
   Widget buildPieChart(int match, int mismatch) {
     return Card(
       elevation: 5,
@@ -219,7 +209,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     );
   }
 
-  // LIST OF LOGS
+  // LOG LIST
   Widget buildList() {
     if (loading) return const Center(child: CircularProgressIndicator());
 
@@ -237,31 +227,41 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
         final log = result[i];
 
         return Card(
-          elevation: 3,
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.blue.shade100,
-              child: const Icon(Icons.store, color: Colors.blue),
-            ),
-            title: Text(
-              log.shopName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(
-              "${log.date} • ${log.time}\n${log.segment} | ${log.result}",
-            ),
-            trailing: Text(
-              "${log.distance}m",
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.deepPurple,
-              ),
-            ),
-          ),
-        );
+  elevation: 3,
+  margin: const EdgeInsets.symmetric(vertical: 6),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+  child: ListTile(
+    leading: CircleAvatar(
+      backgroundColor: log.result == "match"
+          ? Colors.green.shade200
+          : Colors.red.shade200,
+      child: Icon(
+        log.result == "match" ? Icons.check_circle : Icons.cancel,
+        color: log.result == "match" ? Colors.green : Colors.red,
+      ),
+    ),
+
+    title: Text(
+      log.shopName,
+      style: const TextStyle(fontWeight: FontWeight.bold),
+    ),
+
+    subtitle: Text(
+      "${log.date} • ${log.time}\n"
+      "Salesman: ${log.salesman}\n"
+      "Result: ${log.result.toUpperCase()}",
+    ),
+
+    trailing: Text(
+      "${log.distance.toStringAsFixed(1)} m",
+      style: const TextStyle(
+        fontWeight: FontWeight.bold,
+        color: Colors.deepPurple,
+      ),
+    ),
+  ),
+);
+
       },
     );
   }

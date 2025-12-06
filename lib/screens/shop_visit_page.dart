@@ -23,19 +23,19 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
     final now = DateTime.now();
 
     LogModel log = LogModel(
-      id: now.millisecondsSinceEpoch.toString(),
-      userId: user["user_id"].toString(),
-      userName: user["name"].toString(),
-      shopId: widget.shop.shopId,
-      shopName: widget.shop.shopName,
-      date: "${now.day}-${now.month}-${now.year}",
-      time: "${now.hour}:${now.minute}",
-      lat: widget.shop.lat.toString(),
-      lng: widget.shop.lng.toString(),
-      distance: "0",
-      result: "Visited",
-      segment: widget.shop.segment,
-    );
+    userId: user["user_id"].toString(),
+    shopId: widget.shop.shopId.toString(),
+    shopName: widget.shop.shopName,
+    salesman: user["name"].toString(),           // NEW
+    date: "${now.day}-${now.month}-${now.year}",
+    time: "${now.hour}:${now.minute}",
+    lat: widget.shop.lat,                        // double
+    lng: widget.shop.lng,                        // double
+    distance: 0.0,                               // first time 0, backend real distance
+    result: "Visited",
+    segment: widget.shop.segment,
+    photoUrl: "",                                // photo upload empty string
+  );
 
     await logService.addLog(log.toJson());
     setState(() => loading = false);
