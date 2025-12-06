@@ -2,11 +2,10 @@
 
 import 'dart:convert';
 import 'dart:math';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
 
-import '../helpers/exif_helper.dart';
 import '../services/auth_service.dart';
 import '../services/visit_service.dart';
 
@@ -24,15 +23,15 @@ class _MatchPageState extends State<MatchPage> {
 
   String? previewImageBase64;
   String? uploadedPhotoUrl;
-  double? photoLat;
-  double? photoLng;
+  double? userLat;
+  double? userLng;
   double? distanceDiff;
 
-  // -----------------------------------------------
-  // HAVERSINE DISTANCE (meters)
-  // -----------------------------------------------
+  // ---------------------------------------
+  // Haversine distance formula
+  // ---------------------------------------
   double calcDistance(double lat1, double lon1, double lat2, double lon2) {
-    const R = 6371000; // meters
+    const R = 6371000;
     final dLat = (lat2 - lat1) * pi / 180;
     final dLon = (lon2 - lon1) * pi / 180;
 
@@ -45,15 +44,15 @@ class _MatchPageState extends State<MatchPage> {
     return R * 2 * atan2(sqrt(a), sqrt(1 - a));
   }
 
-  // -----------------------------------------------
-  // CAPTURE → GPS → UPLOAD → MATCH → SAVE VISIT
-  // -----------------------------------------------
+  // ---------------------------------------
+  // CAPTURE + LIVE GPS + UPLOAD + MATCH
+  // ---------------------------------------
   Future<void> captureAndMatch() async {
     setState(() => processing = true);
 
+    // 1️⃣ Capture image
     final picker = ImagePicker();
     final img = await picker.pickImage(source: ImageSource.camera);
-
     if (img == null) {
       setState(() => processing = false);
       return;
@@ -63,49 +62,40 @@ class _MatchPageState extends State<MatchPage> {
     final bytes = await img.readAsBytes();
     previewImageBase64 = base64Encode(bytes);
 
-    // Extract EXIF GPS
-    final gps = ExifHelper.extractGPS(bytes);
-    photoLat = gps["lat"];
-    photoLng = gps["lng"];
+    // 2️⃣ GET LIVE GPS (works on Android + Web)
+    Position pos = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
 
-    if (photoLat == null || photoLng == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("❌ No GPS found in this photo. Enable Location in Camera."),
-          backgroundColor: Colors.red,
-        ),
-      );
-      setState(() => processing = false);
-      return;
-    }
+    userLat = pos.latitude;
+    userLng = pos.longitude;
 
-    // Upload image to backend
+    // 3️⃣ Upload image
     uploadedPhotoUrl = await visitService.uploadPhoto(
       previewImageBase64!,
       "visit_${DateTime.now().millisecondsSinceEpoch}.jpg",
     );
 
-    // Shop location
+    // 4️⃣ Compare distance
     double shopLat = double.tryParse(widget.shop["lat"].toString()) ?? 0.0;
     double shopLng = double.tryParse(widget.shop["lng"].toString()) ?? 0.0;
 
-    // Calculate meters
-    distanceDiff = calcDistance(shopLat, shopLng, photoLat!, photoLng!);
+    distanceDiff = calcDistance(shopLat, shopLng, userLat!, userLng!);
 
-    // 50 meters threshold
     String result = distanceDiff! <= 50 ? "match" : "mismatch";
 
-    // VISIT PAYLOAD
+    // 5️⃣ Save visit
     final payload = {
       "salesman_id": AuthService.currentUser!["user_id"],
       "shop_id": widget.shop["shop_id"],
-      "lat": photoLat,
-      "lng": photoLng,
+      "lat": userLat,
+      "lng": userLng,
       "photo_url": uploadedPhotoUrl ?? "",
     };
 
     await visitService.visitShop(payload);
 
+    // 6️⃣ Show success/fail
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -121,135 +111,66 @@ class _MatchPageState extends State<MatchPage> {
     setState(() => processing = false);
   }
 
-  // -----------------------------------------------
-  // BUILD UI
-  // -----------------------------------------------
+  // ---------------------------------------
+  // UI
+  // ---------------------------------------
   @override
   Widget build(BuildContext context) {
     final s = widget.shop;
 
-    // ❌ Web cannot capture GPS from image → Show warning
-    if (kIsWeb) {
-      return Scaffold(
-        appBar: AppBar(title: const Text("Match Shop")),
-        body: const Center(
-          child: Text(
-            "❌ MATCH feature is not supported on Web.\nPlease use Android mobile app.",
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 20, color: Colors.red),
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF007BFF),
-              Color(0xFF66B2FF),
-              Color(0xFFB8E0FF),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
+      appBar: AppBar(title: const Text("Match Shop")),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
 
-        child: SafeArea(
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back,
-                        size: 28, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const Text(
-                    "Match Shop",
-                    style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
-                  ),
-                ],
-              ),
+            Text(
+              s["shop_name"],
+              style: const TextStyle(
+                  fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            Text(s["address"] ?? ""),
+            Text("Lat: ${s["lat"]}, Lng: ${s["lng"]}"),
 
-              const SizedBox(height: 15),
+            const SizedBox(height: 20),
 
-              // -------------------------
-              // SHOP CARD
-              // -------------------------
+            if (previewImageBase64 != null)
               Container(
-                padding: const EdgeInsets.all(20),
-                margin: const EdgeInsets.symmetric(horizontal: 20),
+                height: 250,
+                width: double.infinity,
+                margin: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      s["shop_name"],
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      s["address"] ?? "",
-                      style: const TextStyle(fontSize: 15, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 5),
-                    Text("Lat: ${s["lat"]}   Lng: ${s["lng"]}"),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // PHOTO PREVIEW
-              if (previewImageBase64 != null)
-                Container(
-                  height: 260,
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    image: DecorationImage(
-                      fit: BoxFit.cover,
-                      image: MemoryImage(base64Decode(previewImageBase64!)),
-                    ),
+                  image: DecorationImage(
+                    fit: BoxFit.cover,
+                    image: MemoryImage(base64Decode(previewImageBase64!)),
                   ),
                 ),
-
-              const SizedBox(height: 20),
-
-              // DISTANCE DISPLAY
-              if (distanceDiff != null)
-                Text(
-                  "Distance: ${distanceDiff!.toStringAsFixed(1)} meters",
-                  style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
-
-              const SizedBox(height: 20),
-
-              // CAPTURE BUTTON
-              ElevatedButton.icon(
-                onPressed: processing ? null : captureAndMatch,
-                icon: const Icon(Icons.camera_alt),
-                label: Text(
-                  processing ? "Processing..." : "Capture & Match",
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                ),
               ),
-            ],
-          ),
+
+            if (distanceDiff != null)
+              Text(
+                "Distance: ${distanceDiff!.toStringAsFixed(1)} meters",
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+
+            const SizedBox(height: 20),
+
+            ElevatedButton.icon(
+              onPressed: processing ? null : captureAndMatch,
+              icon: const Icon(Icons.camera_alt),
+              label: Text(
+                processing ? "Processing..." : "Capture & Match",
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+              ),
+            ),
+          ],
         ),
       ),
     );

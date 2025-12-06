@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import 'assigned_shops_screen.dart';
 import 'shop_list_page.dart';
 import 'pending_shops_page.dart';
 import 'user_list_page.dart';
@@ -138,6 +139,14 @@ class _HomePageState extends State<HomePage>
                             builder: (_) =>
                                 LogHistoryFilterPage(user: widget.user)));
                   }),
+                  _tile(Icons.delete, "Assigned Shops", () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => AssignedShopsScreen(userId: widget.user["_id"]),
+    ),
+  );
+}),
 
                   _tile(Icons.storefront, "Shop List", () {
                     Navigator.push(
@@ -155,6 +164,18 @@ class _HomePageState extends State<HomePage>
                               builder: (_) =>
                                   PendingShopsPage(user: widget.user)));
                     }),
+                    if (isMaster || isManager)
+  _tile(Icons.list_alt, "Assigned Shops", () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AssignedShopsScreen(
+          userId: widget.user["_id"],  // <-- IMPORTANT
+        ),
+      ),
+    );
+  }),
+
 
                   if (isMaster || isManager)
                     _tile(Icons.map, "Assign Shops", () {
