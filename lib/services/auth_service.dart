@@ -21,38 +21,39 @@ class AuthService {
   }
 
   static Future<bool> login(String mobile, String password) async {
-    try {
-      final url = Uri.parse("$baseUrl/auth/login");
+  try {
+    final url = Uri.parse("$baseUrl/auth/login");
 
-      final response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "mobile": mobile,
-          "password": password,
-        }),
-      );
+    final res = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "mobile": mobile,
+        "password": password,
+      }),
+    );
 
-      final data = jsonDecode(response.body);
+    if (res.statusCode != 200) return false;
 
-      if (response.statusCode == 200 && data["status"] == "success") {
-        token = data["token"];
-        currentUser = data["user"];
+    final data = jsonDecode(res.body);
 
-        // SAVE TOKEN + USER LOCALLY
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString("token", token!);
-        await prefs.setString("user", jsonEncode(currentUser));
+    if (data["status"] != "success") return false;
 
-        return true;
-      }
+    token = data["token"];
+    currentUser = data["user"];
 
-      return false;
-    } catch (e) {
-      print("LOGIN ERROR: $e");
-      return false;
-    }
+    // Save locally
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("token", token!);
+    await prefs.setString("user", jsonEncode(currentUser));
+
+    return true;
+
+  } catch (e) {
+    print("LOGIN ERROR: $e");
+    return false;
   }
+}
 
   // LOGOUT BLOCK - DO NOT DELETE TOKEN
   static Future<void> logout() async {

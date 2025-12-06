@@ -36,8 +36,9 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
     segment: widget.shop.segment,
     photoUrl: "",                                // photo upload empty string
   );
-
-    await logService.addLog(log.toJson());
+    ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text("Visit saved")),
+  );
     setState(() => loading = false);
 
     Navigator.pop(context);

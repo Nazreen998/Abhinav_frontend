@@ -37,68 +37,70 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
   }
 
   Future<void> loadLogs() async {
-    loading = true;
-    setState(() {});
+  loading = true;
+  setState(() {});
 
-    List<dynamic> raw = await logService.getLogs();
-    List<LogModel> all = raw.map((e) => LogModel.fromJson(e)).toList();
+  final role = widget.user["role"].toString().toLowerCase();
+  final userId = widget.user["user_id"].toString();
+  final segment = widget.user["segment"].toString();
 
-    final role = widget.user["role"].toString().toLowerCase();
-    final userId = widget.user["user_id"]?.toString();
-    final segment = widget.user["segment"]?.toUpperCase();
+  // API CALL (correct backend usage)
+  List<dynamic> raw = await logService.getLogs(
+    role: role,
+    userId: userId,
+    segment: segment,
+  );
 
-    List<LogModel> filtered = all;
+  List<LogModel> all = raw.map((e) => LogModel.fromJson(e)).toList();
 
-    // SALESMAN → Only own logs
-    if (role == "salesman") {
-      filtered = filtered.where((l) => l.userId == userId).toList();
-    }
+  List<LogModel> filtered = all;
 
-    // MANAGER → Segment-wise
-    if (role == "manager") {
-      filtered = filtered.where((l) => l.segment == segment).toList();
-    }
-
-    // FILTER PAGE → Segment filter
-    if (widget.segment != "All") {
-      filtered = filtered
-          .where((l) => l.segment.toUpperCase() == widget.segment.toUpperCase())
-          .toList();
-    }
-
-    // FILTER PAGE → Match / Mismatch filter
-    if (widget.result != "All") {
-      filtered = filtered
-          .where((l) => l.result.toLowerCase() == widget.result.toLowerCase())
-          .toList();
-    }
-
-    // DATE FILTER
-    filtered = filtered.where((l) {
-      try {
-        final parts = l.date.split("-");
-        final d = int.parse(parts[0]);
-        final m = int.parse(parts[1]);
-        final y = int.parse(parts[2]);
-        final logDate = DateTime(y, m, d);
-
-        if (widget.startDate != null && logDate.isBefore(widget.startDate!)) {
-          return false;
-        }
-        if (widget.endDate != null && logDate.isAfter(widget.endDate!)) {
-          return false;
-        }
-
-        return true;
-      } catch (_) {
-        return false;
-      }
-    }).toList();
-
-    logs = filtered;
-    loading = false;
-    setState(() {});
+  // SALESMAN → only own logs
+  if (role == "salesman") {
+    filtered = filtered.where((l) => l.userId == userId).toList();
   }
+
+  // MANAGER → only segment logs
+  if (role == "manager") {
+    filtered = filtered.where((l) => l.segment == segment.toUpperCase()).toList();
+  }
+
+  // FILTER PAGE → segment filter
+  if (widget.segment != "All") {
+    filtered = filtered.where(
+      (l) => l.segment.toUpperCase() == widget.segment.toUpperCase(),
+    ).toList();
+  }
+
+  // FILTER PAGE → Match/Mismatch
+  if (widget.result != "All") {
+    filtered = filtered.where(
+      (l) => l.result.toLowerCase() == widget.result.toLowerCase(),
+    ).toList();
+  }
+
+  // DATE FILTER
+  filtered = filtered.where((l) {
+    try {
+      final parts = l.date.split("/");
+      final d = int.parse(parts[0]);
+      final m = int.parse(parts[1]);
+      final y = int.parse(parts[2]);
+      final logDate = DateTime(y, m, d);
+
+      if (widget.startDate != null && logDate.isBefore(widget.startDate!)) return false;
+      if (widget.endDate != null && logDate.isAfter(widget.endDate!)) return false;
+
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }).toList();
+
+  logs = filtered;
+  loading = false;
+  setState(() {});
+}
 
   @override
   Widget build(BuildContext context) {

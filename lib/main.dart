@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/login_page.dart';
 import 'screens/home_page.dart';
 import 'services/auth_service.dart';
+import 'screens/match_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,6 +56,9 @@ class _AbhinavAppState extends State<AbhinavApp> {
           }
           return HomePage(user: AuthService.currentUser!);
         },
+         "/match": (context) => MatchPage(
+        shop: ModalRoute.of(context)!.settings.arguments,
+      ),
       },
     );
   }

@@ -41,10 +41,14 @@ class _HomePageState extends State<HomePage>
   Widget build(BuildContext context) {
     final user = widget.user;
 
-    final name = user["name"] ?? "User";
-    final mobile = user["mobile"] ?? "-";
-    final role = user["role"]?.toString().toLowerCase() ?? "-";
-    final segment = user["segment"] ?? "-";
+    // SAFE VALUES (AVOID CRASH)
+    final name = (user["name"] ?? "User").toString();
+    final mobile = (user["mobile"] ?? "-").toString();
+    final role = (user["role"] ?? "").toString().toLowerCase();
+    final segment = (user["segment"] ?? "-").toString();
+
+    // SAFE USER ID
+    final userId = user["user_id"]?.toString() ?? "";
 
     bool isMaster = role == "master";
     bool isManager = role == "manager";
@@ -139,14 +143,6 @@ class _HomePageState extends State<HomePage>
                             builder: (_) =>
                                 LogHistoryFilterPage(user: widget.user)));
                   }),
-                  _tile(Icons.delete, "Assigned Shops", () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => AssignedShopsScreen(userId: widget.user["_id"]),
-    ),
-  );
-}),
 
                   _tile(Icons.storefront, "Shop List", () {
                     Navigator.push(
@@ -164,18 +160,18 @@ class _HomePageState extends State<HomePage>
                               builder: (_) =>
                                   PendingShopsPage(user: widget.user)));
                     }),
-                    if (isMaster || isManager)
-  _tile(Icons.list_alt, "Assigned Shops", () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AssignedShopsScreen(
-          userId: widget.user["_id"],  // <-- IMPORTANT
-        ),
-      ),
-    );
-  }),
 
+                  if (isMaster || isManager)
+                    _tile(Icons.list_alt, "Assigned Shops", () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AssignedShopsScreen(
+                            userId: userId, // FIXED SAFE ID
+                          ),
+                        ),
+                      );
+                    }),
 
                   if (isMaster || isManager)
                     _tile(Icons.map, "Assign Shops", () {
