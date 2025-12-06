@@ -41,30 +41,43 @@ class AssignService {
 
   /// Get next shops
   Future<List<dynamic>> getNextShops(
-      String userId, double lat, double lng) async {
-    final url =
-        Uri.parse("$baseUrl/next/$userId?lat=$lat&lng=$lng");
+  String userId,
+  double lat,
+  double lng,
+) async {
+  final url = Uri.parse("$baseUrl/next/$userId?lat=$lat&lng=$lng");
 
-    final res = await http.get(
-      url,
-      headers: {"Authorization": "Bearer ${AuthService.token}"},
-    );
+  final res = await http.get(
+    url,
+    headers: {"Authorization": "Bearer ${AuthService.token}"},
+  );
 
-    if (res.statusCode != 200) {
-      print("❌ Next Shop Error ${res.statusCode}");
-      return [];
-    }
-
-    final data = jsonDecode(res.body);
-    final shops = data["shops"] ?? [];
-return shops.map((s) => {
-  "shop_id": s["shop_id"],
-  "shop_name": s["shop_name"] ?? "",
-  "address": s["address"] ?? "",
-  "lat": s["lat"],
-  "lng": s["lng"],
-  "sequence": s["sequence"]
-}).toList();
-
+  if (res.statusCode != 200) {
+    print("❌ Next Shop Error ${res.statusCode}");
+    return [];
   }
+
+  final data = jsonDecode(res.body);
+  final shops = data["shops"] ?? [];
+
+  return shops.map((s) => {
+        "shop_id": s["shop_id"],
+        "shop_name": s["shop_name"] ?? "",
+        "address": s["address"] ?? "",
+        "lat": _safeDouble(s["lat"]),
+        "lng": _safeDouble(s["lng"]),
+        "sequence": s["sequence"],
+      }).toList();
+}
+
+double _safeDouble(dynamic v) {
+  if (v == null) return 0.0;
+  if (v is double) return v;
+  if (v is int) return v.toDouble();
+
+  String s = v.toString().trim();
+  if (s.isEmpty || s.toLowerCase() == "null") return 0.0;
+
+  return double.tryParse(s) ?? 0.0;
+}
 }

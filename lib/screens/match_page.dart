@@ -86,8 +86,8 @@ class _MatchPageState extends State<MatchPage> {
     );
 
     // Shop location
-    double shopLat = widget.shop["lat"] * 1.0;
-    double shopLng = widget.shop["lng"] * 1.0;
+    double shopLat = double.tryParse(widget.shop["lat"].toString()) ?? 0.0;
+    double shopLng = double.tryParse(widget.shop["lng"].toString()) ?? 0.0;
 
     // Calculate meters
     distanceDiff = calcDistance(shopLat, shopLng, photoLat!, photoLng!);

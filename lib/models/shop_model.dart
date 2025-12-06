@@ -22,11 +22,18 @@ class ShopModel {
   });
 
   static double _toDouble(dynamic v) {
-    if (v is double) return v;
-    if (v is int) return v.toDouble();
-    if (v is String) return double.tryParse(v) ?? 0.0;
-    return 0.0;
-  }
+  if (v == null) return 0.0;
+  if (v is double) return v;
+  if (v is int) return v.toDouble();
+
+  // Remove unwanted strings like "null"
+  String s = v.toString().trim();
+
+  if (s.isEmpty || s.toLowerCase() == "null") return 0.0;
+
+  return double.tryParse(s) ?? 0.0;
+}
+
 
   factory ShopModel.fromJson(Map<String, dynamic> json) {
     return ShopModel(
