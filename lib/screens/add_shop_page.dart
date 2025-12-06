@@ -4,14 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:geolocator/geolocator.dart';
-import '../services/auth_service.dart';
-import 'package:flutter/foundation.dart';
-import '../helpers/location_helper.dart';
-import '../helpers/web_location_helper.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+import '../services/auth_service.dart';
+import '../helpers/location_helper.dart';
+
+import '../helpers/web_camera_stub.dart'
+    if (dart.library.html) '../helpers/web_camera_helper.dart';
+
+import '../helpers/web_location_helper_stub.dart'
+    if (dart.library.html) '../helpers/web_location_helper.dart';
+
+import 'package:http/http.dart' as http;
 
 class AddShopPage extends StatefulWidget {
   const AddShopPage({super.key});
@@ -33,22 +37,7 @@ class _AddShopPageState extends State<AddShopPage> {
   bool loading = false;
 
   // ==========================================================
-  // CHECK IF WEB HAS CAMERA
-  // ==========================================================
-  Future<bool> hasWebCamera() async {
-    try {
-      var devices = await html.window.navigator.mediaDevices?.enumerateDevices();
-      if (devices == null) return false;
-
-      return devices.any((d) => d.kind == "videoinput");
-    } catch (e) {
-      print("Camera detection error: $e");
-      return false;
-    }
-  }
-
-  // ==========================================================
-  // POPUP → CAMERA OR GALLERY
+  // POPUP: CAMERA OR GALLERY
   // ==========================================================
   Future pickPhoto() async {
     showModalBottomSheet(
@@ -62,18 +51,6 @@ class _AddShopPageState extends State<AddShopPage> {
                 title: const Text("Camera"),
                 onTap: () async {
                   Navigator.pop(context);
-
-                  if (kIsWeb) {
-                    bool ok = await hasWebCamera();
-                    if (!ok) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("No Camera Detected")),
-                      );
-                      _pickFromGallery();
-                      return;
-                    }
-                  }
-
                   _pickFromCamera();
                 },
               ),
@@ -93,34 +70,28 @@ class _AddShopPageState extends State<AddShopPage> {
   }
 
   // ==========================================================
-  // CAMERA PICKER (WEB + MOBILE)
+  // PICK FROM CAMERA (WEB + MOBILE SAFE)
   // ==========================================================
   Future _pickFromCamera() async {
     if (kIsWeb) {
-      final html.FileUploadInputElement input = html.FileUploadInputElement();
-      input.accept = 'image/*;capture=camera';
-      input.click();
+      bool hasCam = await WebCameraHelper.hasWebCamera();
+      if (!hasCam) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No Camera Detected")),
+        );
+        return;
+      }
 
-      input.onChange.listen((event) {
-        final file = input.files!.first;
-        final reader = html.FileReader();
-
-        reader.readAsDataUrl(file);
-        reader.onLoadEnd.listen((event) {
-          base64Image = reader.result.toString().split(',').last;
-
-          imageFile = null;
-          setState(() {});
-
-          getLocation();
-        });
+      WebCameraHelper.pickFromCamera((base64) {
+        setState(() => base64Image = base64);
+        getLocation();
       });
 
       return;
     }
 
+    // MOBILE CAMERA
     final picked = await ImagePicker().pickImage(source: ImageSource.camera);
-
     if (picked != null) {
       imageFile = File(picked.path);
       base64Image = base64Encode(await imageFile!.readAsBytes());
@@ -131,19 +102,16 @@ class _AddShopPageState extends State<AddShopPage> {
   }
 
   // ==========================================================
-  // GALLERY PICKER
+  // PICK FROM GALLERY (WEB + MOBILE)
   // ==========================================================
   Future _pickFromGallery() async {
     if (kIsWeb) {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        withData: true,
-      );
+      final result =
+          await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
 
       if (result != null) {
         base64Image = base64Encode(result.files.single.bytes!);
         imageFile = null;
-
         setState(() {});
         getLocation();
       }
@@ -152,49 +120,41 @@ class _AddShopPageState extends State<AddShopPage> {
 
     if (Platform.isWindows) {
       final result = await FilePicker.platform.pickFiles(type: FileType.image);
-
       if (result != null) {
         imageFile = File(result.files.single.path!);
         base64Image = base64Encode(await imageFile!.readAsBytes());
-
         setState(() {});
         getLocation();
       }
       return;
     }
 
+    // MOBILE GALLERY
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-
     if (picked != null) {
       imageFile = File(picked.path);
       base64Image = base64Encode(await imageFile!.readAsBytes());
-
       setState(() {});
       getLocation();
     }
   }
 
   // ==========================================================
-  // GET LOCATION (WEB BLOCK DETECTION + NORMAL LOGIC)
+  // GET LOCATION (WEB BLOCK CHECK + MOBILE NORMAL)
   // ==========================================================
   Future getLocation() async {
     if (kIsWeb) {
       final blocked = await WebLocationHelper.isLocationBlocked();
       if (blocked) {
         WebLocationHelper.showLocationBlockedDialog(context);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Location blocked in browser settings")),
-        );
         return;
       }
     }
 
     final pos = await LocationHelper.getLocation();
-
     if (pos == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Turn ON location & allow permission")),
+        const SnackBar(content: Text("Enable location permission")),
       );
       return;
     }
@@ -211,9 +171,9 @@ class _AddShopPageState extends State<AddShopPage> {
   Future submit() async {
     if (nameController.text.isEmpty ||
         addressController.text.isEmpty ||
+        base64Image == null ||
         lat == null ||
-        lng == null ||
-        base64Image == null) {
+        lng == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Fill all fields & take a photo")),
       );
@@ -223,8 +183,8 @@ class _AddShopPageState extends State<AddShopPage> {
     loading = true;
     setState(() {});
 
-    final url = Uri.parse(
-        "https://backend-abhinav-tracking.onrender.com/api/pending/add");
+    final url =
+        Uri.parse("https://backend-abhinav-tracking.onrender.com/api/pending/add");
 
     final payload = {
       "shop_name": nameController.text.trim(),
@@ -251,14 +211,12 @@ class _AddShopPageState extends State<AddShopPage> {
     final data = jsonDecode(res.body);
 
     if (data["status"] == "success") {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Shop Added Successfully")),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Shop Added Successfully")));
       Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: ${data["message"]}")),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Error: ${data["message"]}")));
     }
   }
 
@@ -271,9 +229,10 @@ class _AddShopPageState extends State<AddShopPage> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-              colors: [Color(0xFF007BFF), Color(0xFF66B2FF), Color(0xFFB8E0FF)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter),
+            colors: [Color(0xFF007BFF), Color(0xFF66B2FF), Color(0xFFB8E0FF)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
         ),
         child: SafeArea(
           child: Column(
@@ -288,13 +247,13 @@ class _AddShopPageState extends State<AddShopPage> {
                   const Text(
                     "Add Shop",
                     style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
-                  )
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                 ],
               ),
-
               const SizedBox(height: 10),
 
               Expanded(
