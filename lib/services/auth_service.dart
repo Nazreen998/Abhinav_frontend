@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   static const String baseUrl =
-      "https://backend-abhinav-tracking.onrender.com/api/auth";
+      "https://abhinav-backend-production.up.railway.app/api/auth";
 
   static String? token;
   static Map<String, dynamic>? currentUser;

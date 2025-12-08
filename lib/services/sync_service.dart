@@ -13,7 +13,7 @@ class SyncService {
     for (int i = 0; i < shops.length; i++) {
       OfflineShop s = shops[i];
 
-      final url = Uri.parse("https://backend-abhinav-tracking.onrender.com/api/pending/add");
+      final url = Uri.parse("https://abhinav-backend-production.up.railway.app/api/pending/add");
 
       try {
         final res = await http.post(

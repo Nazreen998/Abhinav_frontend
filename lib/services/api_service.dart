@@ -4,7 +4,7 @@ import 'auth_service.dart';
 
 class ApiService {
   static const String baseUrl =
-      "https://backend-abhinav-tracking.onrender.com/api";
+      "https://abhinav-backend-production.up.railway.app/api";
 
   // ================================================================
   // GET ASSIGNED SHOPS LIST

@@ -4,7 +4,7 @@ import 'auth_service.dart';
 
 class DashboardService {
   static const baseUrl =
-      "https://backend-abhinav-tracking.onrender.com/api/dashboard";
+      "https://abhinav-backend-production.up.railway.app/api/dashboard";
 
   Future getMasterDashboard() async {
     final res = await http.get(

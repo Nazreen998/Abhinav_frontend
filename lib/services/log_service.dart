@@ -5,7 +5,7 @@ import '../models/log_model.dart';
 
 class LogService {
   static const String baseUrl =
-      "https://backend-abhinav-tracking.onrender.com/api";
+      "https://abhinav-backend-production.up.railway.app/api";
 
   // ---------------- SAVE VISIT LOG ----------------
   Future<bool> saveVisit(LogModel log) async {

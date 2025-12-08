@@ -4,7 +4,7 @@ import 'auth_service.dart';
 
 class AssignService {
   static const String baseUrl =
-      "https://backend-abhinav-tracking.onrender.com/api/assign";
+      "https://abhinav-backend-production.up.railway.app/api/assign";
 
   /// Assign shops
   Future<bool> assignShops({

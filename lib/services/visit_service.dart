@@ -4,7 +4,7 @@ import '../services/auth_service.dart';
 
 class VisitService {
   static const baseUrl =
-      "https://backend-abhinav-tracking.onrender.com/api/visit";
+      "https://abhinav-backend-production.up.railway.app/api/visit";
 
   /// ---------------------------------------------------------
   /// 1. UPLOAD PHOTO (base64 → URL)
