@@ -3,8 +3,11 @@ class LogModel {
   String shopId;
   String shopName;
   String salesman;
-  String date;
-  String time;
+
+  String date;     
+  String time;     
+  String datetime;
+
   double lat;
   double lng;
   double distance;
@@ -19,6 +22,7 @@ class LogModel {
     required this.salesman,
     required this.date,
     required this.time,
+    required this.datetime,
     required this.lat,
     required this.lng,
     required this.distance,
@@ -29,29 +33,23 @@ class LogModel {
 
   Map<String, dynamic> toJson() {
     return {
-      "user_id": userId,
+      "salesman_id": userId,
       "shop_id": shopId,
-      "shop_name": shopName,
-      "salesman": salesman,
-      "date": date,
-      "time": time,
       "lat": lat,
       "lng": lng,
-      "distance": distance,
-      "result": result,
-      "segment": segment,
       "photo_url": photoUrl,
     };
   }
 
   factory LogModel.fromJson(Map<String, dynamic> j) {
     return LogModel(
-      userId: j["user_id"].toString(),
-      shopId: j["shop_id"].toString(),
+      userId: j["user_id"] ?? "",
+      shopId: j["shop_id"] ?? "",
       shopName: j["shop_name"] ?? "",
       salesman: j["salesman"] ?? "",
       date: j["date"] ?? "",
       time: j["time"] ?? "",
+      datetime: j["datetime"]?.toString() ?? "",
       lat: (j["lat"] ?? 0).toDouble(),
       lng: (j["lng"] ?? 0).toDouble(),
       distance: (j["distance"] ?? 0).toDouble(),

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../services/log_service.dart';
 import '../models/log_model.dart';
+import '../services/auth_service.dart';
+import 'package:intl/intl.dart';
+import 'full_network_image_page.dart';   // 🔥 NEW IMPORT FOR PHOTO VIEW
 
 class LogHistoryPage extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -36,71 +39,93 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     loadLogs();
   }
 
+  // --------------------------------------------------------------
+  // Convert OLD DB date + time → DateTime
+  // --------------------------------------------------------------
+  DateTime parseOldDate(String date, String time) {
+    if (date.isEmpty || time.isEmpty) return DateTime(1900);
+
+    final parts = date.contains("/") ? date.split("/") : date.split("-");
+    final d = int.parse(parts[0]);
+    final m = int.parse(parts[1]);
+    final y = int.parse(parts[2]);
+
+    final t = time.split(":");
+    final hh = int.parse(t[0]);
+    final mm = int.parse(t[1]);
+    final ss = int.parse(t[2]);
+
+    return DateTime(y, m, d, hh, mm, ss);
+  }
+
+  String prettyDate(String date, String time) {
+    final dt = parseOldDate(date, time);
+    return DateFormat("dd-MM-yyyy").format(dt);
+  }
+
+  String prettyTime(String date, String time) {
+    final dt = parseOldDate(date, time);
+    return DateFormat("hh:mm a").format(dt);
+  }
+
+  // ---------------- LOAD LOGS ---------------- //
   Future<void> loadLogs() async {
-  loading = true;
-  setState(() {});
+    loading = true;
+    setState(() {});
 
-  final role = widget.user["role"].toString().toLowerCase();
-  final userId = widget.user["user_id"].toString();
-  final segment = widget.user["segment"].toString();
+    final role = widget.user["role"].toString().toLowerCase();
+    final userId = widget.user["user_id"].toString();
+    final segment = widget.user["segment"].toString();
 
-  // API CALL (correct backend usage)
-  List<dynamic> raw = await logService.getLogs(
-    role: role,
-    userId: userId,
-    segment: segment,
-  );
+    List<dynamic> raw = await logService.getLogs(
+      role: role,
+      userId: userId,
+      segment: segment,
+    );
 
-  List<LogModel> all = raw.map((e) => LogModel.fromJson(e)).toList();
+    List<LogModel> all = raw.map((e) => LogModel.fromJson(e)).toList();
+    List<LogModel> filtered = all;
 
-  List<LogModel> filtered = all;
+    // SALESMAN
+    if (role == "salesman") {
+      filtered = filtered.where((l) => l.userId == userId).toList();
+    }
 
-  // SALESMAN → only own logs
-  if (role == "salesman") {
-    filtered = filtered.where((l) => l.userId == userId).toList();
-  }
+    // MANAGER
+    if (role == "manager") {
+      filtered = filtered.where((l) => l.segment == segment.toUpperCase()).toList();
+    }
 
-  // MANAGER → only segment logs
-  if (role == "manager") {
-    filtered = filtered.where((l) => l.segment == segment.toUpperCase()).toList();
-  }
+    // FILTER → Segment
+    if (widget.segment != "All") {
+      filtered = filtered
+          .where((l) => l.segment.toUpperCase() == widget.segment.toUpperCase())
+          .toList();
+    }
 
-  // FILTER PAGE → segment filter
-  if (widget.segment != "All") {
-    filtered = filtered.where(
-      (l) => l.segment.toUpperCase() == widget.segment.toUpperCase(),
-    ).toList();
-  }
+    // FILTER → Result
+    if (widget.result != "All") {
+      filtered = filtered
+          .where((l) => l.result.toLowerCase() == widget.result.toLowerCase())
+          .toList();
+    }
 
-  // FILTER PAGE → Match/Mismatch
-  if (widget.result != "All") {
-    filtered = filtered.where(
-      (l) => l.result.toLowerCase() == widget.result.toLowerCase(),
-    ).toList();
-  }
+    // DATE FILTER
+    filtered = filtered.where((l) {
+      final dt = parseOldDate(l.date, l.time);
 
-  // DATE FILTER
-  filtered = filtered.where((l) {
-    try {
-      final parts = l.date.split("/");
-      final d = int.parse(parts[0]);
-      final m = int.parse(parts[1]);
-      final y = int.parse(parts[2]);
-      final logDate = DateTime(y, m, d);
-
-      if (widget.startDate != null && logDate.isBefore(widget.startDate!)) return false;
-      if (widget.endDate != null && logDate.isAfter(widget.endDate!)) return false;
+      if (widget.startDate != null && dt.isBefore(widget.startDate!)) return false;
+      if (widget.endDate != null && dt.isAfter(widget.endDate!)) return false;
 
       return true;
-    } catch (_) {
-      return false;
-    }
-  }).toList();
+    }).toList();
 
-  logs = filtered;
-  loading = false;
-  setState(() {});
-}
+    logs = filtered;
+    loading = false;
+    setState(() {});
+  }
+
+  // ---------------- UI SECTION ---------------- //
 
   @override
   Widget build(BuildContext context) {
@@ -126,6 +151,12 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                         size: 28, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
                   ),
+
+                  IconButton(
+                    icon: const Icon(Icons.refresh, color: Colors.white),
+                    onPressed: loadLogs,
+                  ),
+
                   const Text(
                     "Log History",
                     style: TextStyle(
@@ -144,9 +175,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                   padding: const EdgeInsets.all(16),
                   decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(30),
-                    ),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                   ),
                   child: Column(
                     children: [
@@ -164,15 +193,12 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     );
   }
 
-  // SEARCH BAR
   Widget buildSearchBar() {
     return TextField(
       onChanged: (v) => setState(() => search = v),
       decoration: InputDecoration(
         hintText: "Search shop...",
         prefixIcon: const Icon(Icons.search),
-        filled: true,
-        fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
         ),
@@ -180,7 +206,6 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     );
   }
 
-  // PIE CHART
   Widget buildPieChart(int match, int mismatch) {
     return Card(
       elevation: 5,
@@ -211,7 +236,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     );
   }
 
-  // LOG LIST
+  // ---------------- LIST ---------------- //
   Widget buildList() {
     if (loading) return const Center(child: CircularProgressIndicator());
 
@@ -219,9 +244,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
       return l.shopName.toLowerCase().contains(search.toLowerCase());
     }).toList();
 
-    if (result.isEmpty) {
-      return const Center(child: Text("No logs found"));
-    }
+    if (result.isEmpty) return const Center(child: Text("No logs found"));
 
     return ListView.builder(
       itemCount: result.length,
@@ -229,41 +252,52 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
         final log = result[i];
 
         return Card(
-  elevation: 3,
-  margin: const EdgeInsets.symmetric(vertical: 6),
-  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-  child: ListTile(
-    leading: CircleAvatar(
-      backgroundColor: log.result == "match"
-          ? Colors.green.shade200
-          : Colors.red.shade200,
-      child: Icon(
-        log.result == "match" ? Icons.check_circle : Icons.cancel,
-        color: log.result == "match" ? Colors.green : Colors.red,
-      ),
-    ),
+          elevation: 3,
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          child: ListTile(
+            leading: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => FullNetworkImagePage(
+                      imageUrl: log.photoUrl,
+                    ),
+                  ),
+                );
+              },
+              child: CircleAvatar(
+                radius: 26,
+                backgroundColor: Colors.grey.shade300,
+                backgroundImage:
+                    log.photoUrl.isNotEmpty ? NetworkImage(log.photoUrl) : null,
+                child: log.photoUrl.isEmpty
+                    ? const Icon(Icons.photo, color: Colors.black54)
+                    : null,
+              ),
+            ),
 
-    title: Text(
-      log.shopName,
-      style: const TextStyle(fontWeight: FontWeight.bold),
-    ),
+            title: Text(
+              log.shopName,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
 
-    subtitle: Text(
-      "${log.date} • ${log.time}\n"
-      "Salesman: ${log.salesman}\n"
-      "Result: ${log.result.toUpperCase()}",
-    ),
+            subtitle: Text(
+              "${prettyDate(log.date, log.time)} • ${prettyTime(log.date, log.time)}\n"
+              "Salesman: ${log.salesman}\n"
+              "Result: ${log.result.toUpperCase()}",
+            ),
 
-    trailing: Text(
-      "${log.distance.toStringAsFixed(1)} m",
-      style: const TextStyle(
-        fontWeight: FontWeight.bold,
-        color: Colors.deepPurple,
-      ),
-    ),
-  ),
-);
-
+            trailing: Text(
+              "${log.distance.toStringAsFixed(1)} m",
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.deepPurple,
+              ),
+            ),
+          ),
+        );
       },
     );
   }

@@ -85,16 +85,16 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
                         margin: const EdgeInsets.only(bottom: 14),
                         child: ListTile(
                           title: Text(
-                            s["shop_name"] ?? "",
+                            (s["shop_name"] ?? "Unknown Shop"),
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           subtitle: Text(
-                            "Segment: ${s["segment"]}\nSequence: ${s["sequence"]}",
-                          ),
-
+  "Segment: ${(s["segment"] ?? "N/A")}\n"
+  "Sequence: ${s["sequence"] ?? '-'}",
+),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [

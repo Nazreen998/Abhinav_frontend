@@ -4,62 +4,99 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   static const String baseUrl =
-      "https://backend-abhinav-tracking.onrender.com/api";
+      "https://backend-abhinav-tracking.onrender.com/api/auth";
 
   static String? token;
   static Map<String, dynamic>? currentUser;
 
-  // Load token at app start
+  // -------------------------------------------------------
+  // LOAD SAVED USER + TOKEN
+  // -------------------------------------------------------
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    token = prefs.getString("token");
-    final userJson = prefs.getString("user");
 
+    token = prefs.getString("token");
+
+    final userJson = prefs.getString("user");
     if (userJson != null) {
       currentUser = jsonDecode(userJson);
     }
   }
 
+  // -------------------------------------------------------
+  // LOGIN (WITH SINGLE-DEVICE SECURITY)
+  // -------------------------------------------------------
   static Future<bool> login(String mobile, String password) async {
-  try {
-    final url = Uri.parse("$baseUrl/auth/login");
+    try {
+      final url = Uri.parse("$baseUrl/login");
 
-    final res = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "mobile": mobile,
-        "password": password,
-      }),
-    );
+      final res = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "mobile": mobile,
+          "password": password,
+        }),
+      );
 
-    if (res.statusCode != 200) return false;
+      print("LOGIN RESPONSE: ${res.body}");
 
-    final data = jsonDecode(res.body);
+      if (res.statusCode != 200) return false;
 
-    if (data["status"] != "success") return false;
+      final data = jsonDecode(res.body);
 
-    token = data["token"];
-    currentUser = data["user"];
+      // MULTI LOGIN BLOCK (BACKEND ERROR MESSAGE)
+      if (data["status"] != "success") {
+        print("LOGIN ERROR: ${data["message"]}");
+        return false;
+      }
 
-    // Save locally
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString("token", token!);
-    await prefs.setString("user", jsonEncode(currentUser));
+      // SAVE DATA
+      token = data["token"];
+      currentUser = data["user"];
 
-    return true;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString("token", token!);
+      await prefs.setString("user", jsonEncode(currentUser));
 
-  } catch (e) {
-    print("LOGIN ERROR: $e");
-    return false;
+      return true;
+
+    } catch (e) {
+      print("LOGIN EXCEPTION: $e");
+      return false;
+    }
   }
-}
 
-  // LOGOUT BLOCK - DO NOT DELETE TOKEN
+  // -------------------------------------------------------
+  // LOGOUT (RELEASE ACTIVE SESSION FROM BACKEND)
+  // -------------------------------------------------------
   static Future<void> logout() async {
-    // token should NOT be removed
+    try {
+      if (currentUser == null) return;
+
+      final url = Uri.parse("$baseUrl/logout");
+
+      await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "user_id": currentUser!["user_id"],
+        }),
+      );
+
+    } catch (e) {
+      print("LOGOUT ERROR: $e");
+    }
+
+    // CLEAR LOCAL STORAGE ALWAYS
     final prefs = await SharedPreferences.getInstance();
-    // Comment below line:
-    // await prefs.remove("currentUser");
+    await prefs.remove("token");
+    await prefs.remove("user");
+
+    token = null;
+    currentUser = null;
   }
 }

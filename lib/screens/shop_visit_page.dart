@@ -1,4 +1,7 @@
+import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/log_service.dart';
 import '../models/log_model.dart';
 import '../models/shop_model.dart';
@@ -15,60 +18,124 @@ class ShopVisitPage extends StatefulWidget {
 class _ShopVisitPageState extends State<ShopVisitPage> {
   final logService = LogService();
   bool loading = false;
+  File? selectedImage; // CAMERA OR GALLERY IMAGE
 
+  final ImagePicker picker = ImagePicker();
+
+  // -------------------------------------------------------------
+  // PICK IMAGE FROM CAMERA
+  // -------------------------------------------------------------
+  Future pickFromCamera() async {
+    final XFile? img = await picker.pickImage(source: ImageSource.camera);
+    if (img != null) {
+      setState(() => selectedImage = File(img.path));
+    }
+  }
+
+  // -------------------------------------------------------------
+  // PICK IMAGE FROM GALLERY
+  // -------------------------------------------------------------
+  Future pickFromGallery() async {
+    final XFile? img = await picker.pickImage(source: ImageSource.gallery);
+    if (img != null) {
+      setState(() => selectedImage = File(img.path));
+    }
+  }
+
+  // -------------------------------------------------------------
+  // SAVE VISIT
+  // -------------------------------------------------------------
   Future<void> saveVisit() async {
+    if (selectedImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please take photo before submitting")),
+      );
+      return;
+    }
+
     setState(() => loading = true);
 
     final user = AuthService.currentUser!;
     final now = DateTime.now();
 
-    LogModel log = LogModel(
-    userId: user["user_id"].toString(),
-    shopId: widget.shop.shopId.toString(),
-    shopName: widget.shop.shopName,
-    salesman: user["name"].toString(),           // NEW
-    date: "${now.day}-${now.month}-${now.year}",
-    time: "${now.hour}:${now.minute}",
-    lat: widget.shop.lat,                        // double
-    lng: widget.shop.lng,                        // double
-    distance: 0.0,                               // first time 0, backend real distance
-    result: "Visited",
-    segment: widget.shop.segment,
-    photoUrl: "",                                // photo upload empty string
-  );
-    ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text("Visit saved")),
-  );
-    setState(() => loading = false);
+    // Date + Time Strings
+    final dateStr =
+        "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}";
+    final timeStr =
+        "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
 
+    // -------------------------------------------------------------
+    // FIRST UPLOAD IMAGE TO SERVER
+    // -------------------------------------------------------------
+    final bytes = await selectedImage!.readAsBytes();
+    final base64Image = base64Encode(bytes);
+
+    final uploadedUrl = await logService.uploadPhoto(
+      base64Image,
+      "visit_${now.millisecondsSinceEpoch}.jpg",
+    );
+
+    if (uploadedUrl == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Photo upload failed")));
+      setState(() => loading = false);
+      return;
+    }
+
+    // -------------------------------------------------------------
+    // BUILD FULL LOG OBJECT
+    // -------------------------------------------------------------
+    LogModel log = LogModel(
+      userId: user["user_id"],
+      shopId: widget.shop.shopId,
+      shopName: widget.shop.shopName,
+      salesman: user["name"],
+      date: dateStr,
+      time: timeStr,
+      datetime: now.toIso8601String(),
+      lat: widget.shop.lat,
+      lng: widget.shop.lng,
+      distance: 0.0,
+      result: "Visited",
+      segment: widget.shop.segment,
+      photoUrl: uploadedUrl, // 🔥 IMPORTANT
+    );
+
+    // -------------------------------------------------------------
+    // SEND LOG TO SERVER
+    // -------------------------------------------------------------
+    await logService.saveVisit(log);
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text("Visit saved successfully")));
+
+    setState(() => loading = false);
     Navigator.pop(context);
   }
 
+  // -------------------------------------------------------------
+  // UI
+  // -------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFF007BFF),
-              Color(0xFF66B2FF),
-              Color(0xFFB8E0FF),
-            ],
+            colors: [Color(0xFF007BFF), Color(0xFF66B2FF), Color(0xFFB8E0FF)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
         ),
-
         child: SafeArea(
           child: Column(
             children: [
-              // 🔙 BACK + TITLE
+              // Back Button + Title
               Row(
                 children: [
                   IconButton(
-                    icon:
-                        const Icon(Icons.arrow_back, size: 28, color: Colors.white),
+                    icon: const Icon(Icons.arrow_back,
+                        size: 28, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
                   ),
                   Expanded(
@@ -86,53 +153,51 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
 
               const SizedBox(height: 20),
 
-              // MAIN CARD
               Expanded(
                 child: Container(
-                  margin: const EdgeInsets.all(18),
-                  padding: const EdgeInsets.all(22),
+                  padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.95),
                     borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      )
-                    ],
                   ),
-
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Shop Address",
-                        style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.black87,
-                            fontWeight: FontWeight.bold),
+                      // PHOTO PREVIEW
+                      Container(
+                        height: 200,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.grey.shade200,
+                          image: selectedImage != null
+                              ? DecorationImage(
+                                  image: FileImage(selectedImage!),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: selectedImage == null
+                            ? const Center(
+                                child: Text("No photo selected",
+                                    style: TextStyle(color: Colors.black54)),
+                              )
+                            : null,
                       ),
 
-                      const SizedBox(height: 8),
-                      Text(
-                        widget.shop.address,
-                        style: const TextStyle(
-                            fontSize: 16, color: Colors.black54),
-                      ),
-
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 15),
 
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          const Icon(Icons.location_on, color: Colors.blue),
-                          const SizedBox(width: 8),
-                          Text(
-                            "Lat: ${widget.shop.lat} | Lng: ${widget.shop.lng}",
-                            style: const TextStyle(
-                              color: Colors.black54,
-                              fontSize: 15,
-                            ),
+                          ElevatedButton.icon(
+                            onPressed: pickFromCamera,
+                            icon: const Icon(Icons.camera_alt),
+                            label: const Text("Camera"),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: pickFromGallery,
+                            icon: const Icon(Icons.photo),
+                            label: const Text("Gallery"),
                           ),
                         ],
                       ),
@@ -140,26 +205,12 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
                       const Spacer(),
 
                       loading
-                          ? const Center(
-                              child: CircularProgressIndicator(),
-                            )
+                          ? const CircularProgressIndicator()
                           : SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
                                 onPressed: saveVisit,
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 15),
-                                  backgroundColor: const Color(0xFF0066CC),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                                child: const Text(
-                                  "Mark as Visited",
-                                  style: TextStyle(
-                                      color: Colors.white, fontSize: 18),
-                                ),
+                                child: const Text("Submit Visit"),
                               ),
                             ),
                     ],
