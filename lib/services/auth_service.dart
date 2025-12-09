@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
+  // 🔥 Your Render backend URL
   static const String baseUrl =
       "https://abhinav-backend-4.onrender.com/api/auth";
 
@@ -32,7 +33,10 @@ class AuthService {
 
       final res = await http.post(
         url,
-        headers: {"Content-Type": "application/json"},
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json", // ⭐ REQUIRED FOR CORS
+        },
         body: jsonEncode({
           "mobile": mobile,
           "password": password,
@@ -80,13 +84,13 @@ class AuthService {
         url,
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json", // ⭐ REQUIRED FOR CORS
           "Authorization": "Bearer $token",
         },
         body: jsonEncode({
           "user_id": currentUser!["user_id"],
         }),
       );
-
     } catch (e) {
       print("LOGOUT ERROR: $e");
     }
