@@ -18,13 +18,13 @@ class ShopVisitPage extends StatefulWidget {
 class _ShopVisitPageState extends State<ShopVisitPage> {
   final logService = LogService();
   bool loading = false;
-  File? selectedImage; // CAMERA OR GALLERY IMAGE
+  File? selectedImage;
 
   final ImagePicker picker = ImagePicker();
 
-  // -------------------------------------------------------------
+  // ------------------------------
   // PICK IMAGE FROM CAMERA
-  // -------------------------------------------------------------
+  // ------------------------------
   Future pickFromCamera() async {
     final XFile? img = await picker.pickImage(source: ImageSource.camera);
     if (img != null) {
@@ -32,9 +32,9 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
     }
   }
 
-  // -------------------------------------------------------------
+  // ------------------------------
   // PICK IMAGE FROM GALLERY
-  // -------------------------------------------------------------
+  // ------------------------------
   Future pickFromGallery() async {
     final XFile? img = await picker.pickImage(source: ImageSource.gallery);
     if (img != null) {
@@ -42,13 +42,13 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
     }
   }
 
-  // -------------------------------------------------------------
-  // SAVE VISIT
-  // -------------------------------------------------------------
+  // ------------------------------
+  // SAVE VISIT LOG
+  // ------------------------------
   Future<void> saveVisit() async {
     if (selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please take photo before submitting")),
+        const SnackBar(content: Text("Please take a photo before submitting")),
       );
       return;
     }
@@ -58,15 +58,17 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
     final user = AuthService.currentUser!;
     final now = DateTime.now();
 
-    // Date + Time Strings
+    // ---------------------------------------------
+    // Create date & time strings
+    // ---------------------------------------------
     final dateStr =
         "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}";
     final timeStr =
         "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
 
-    // -------------------------------------------------------------
-    // FIRST UPLOAD IMAGE TO SERVER
-    // -------------------------------------------------------------
+    // ---------------------------------------------
+    // Upload image to backend
+    // ---------------------------------------------
     final bytes = await selectedImage!.readAsBytes();
     final base64Image = base64Encode(bytes);
 
@@ -82,9 +84,9 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
       return;
     }
 
-    // -------------------------------------------------------------
-    // BUILD FULL LOG OBJECT
-    // -------------------------------------------------------------
+    // ---------------------------------------------
+    // Create Log Model (FULL CORRECT DATA)
+    // ---------------------------------------------
     LogModel log = LogModel(
       userId: user["user_id"],
       shopId: widget.shop.shopId,
@@ -93,36 +95,47 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
       date: dateStr,
       time: timeStr,
       datetime: now.toIso8601String(),
-      lat: widget.shop.lat,
+      lat: widget.shop.lat, // (Replace with GPS later if needed)
       lng: widget.shop.lng,
       distance: 0.0,
-      result: "Visited",
-      segment: widget.shop.segment,
-      photoUrl: uploadedUrl, // 🔥 IMPORTANT
+      result: "match", // result MUST BE match/mismatch
+      segment: widget.shop.segment.toLowerCase(),
+      photoUrl: uploadedUrl,
     );
 
-    // -------------------------------------------------------------
-    // SEND LOG TO SERVER
-    // -------------------------------------------------------------
-    await logService.saveVisit(log);
+    // ---------------------------------------------
+    // SEND TO SERVER
+    // ---------------------------------------------
+    final ok = await logService.saveVisit(log);
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text("Visit saved successfully")));
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Visit saved successfully")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to save visit")),
+      );
+    }
 
     setState(() => loading = false);
     Navigator.pop(context);
   }
 
-  // -------------------------------------------------------------
-  // UI
-  // -------------------------------------------------------------
+  // ------------------------------
+  // UI SECTION
+  // ------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF007BFF), Color(0xFF66B2FF), Color(0xFFB8E0FF)],
+            colors: [
+              Color(0xFF007BFF),
+              Color(0xFF66B2FF),
+              Color(0xFFB8E0FF),
+            ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -130,7 +143,7 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
         child: SafeArea(
           child: Column(
             children: [
-              // Back Button + Title
+              // ------------------- HEADER -------------------
               Row(
                 children: [
                   IconButton(
@@ -153,6 +166,7 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
 
               const SizedBox(height: 20),
 
+              // ------------------- BODY -------------------
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(18),
@@ -162,7 +176,7 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
                   ),
                   child: Column(
                     children: [
-                      // PHOTO PREVIEW
+                      // -------------- PHOTO PREVIEW --------------
                       Container(
                         height: 200,
                         width: double.infinity,
@@ -178,14 +192,17 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
                         ),
                         child: selectedImage == null
                             ? const Center(
-                                child: Text("No photo selected",
-                                    style: TextStyle(color: Colors.black54)),
+                                child: Text(
+                                  "No photo selected",
+                                  style: TextStyle(color: Colors.black54),
+                                ),
                               )
                             : null,
                       ),
 
                       const SizedBox(height: 15),
 
+                      // -------------- CAMERA / GALLERY BUTTONS --------------
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -204,6 +221,7 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
 
                       const Spacer(),
 
+                      // -------------- SUBMIT LOG BUTTON --------------
                       loading
                           ? const CircularProgressIndicator()
                           : SizedBox(

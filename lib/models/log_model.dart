@@ -34,23 +34,21 @@ class LogModel {
 
   // ⭐ When sending log to backend (rare case)
   Map<String, dynamic> toJson() {
-    return {
-      "user_id": userId,
-      "shop_id": shopId,
-      "shop_name": shopName,
-      "salesman_name": salesman,
-      "lat": lat,
-      "lng": lng,
-      "date": date,
-      "time": time,
-      "datetime": datetime,
-      "distance": distance,
-      "result": result,
-      "segment": segment,
-      "image_url": photoUrl, // ⭐ corrected
-    };
-  }
-
+  return {
+    "user_id": userId,
+    "salesman_name": salesman,
+    "shop_id": shopId,
+    "shop_name": shopName,
+    "lat": lat,
+    "lng": lng,
+    "date": date,
+    "time": time,
+    "distance": distance,
+    "result": result.toLowerCase(),
+    "segment": segment.toLowerCase(),
+    "image_url": photoUrl,
+  };
+}
   // ⭐ When receiving logs from backend
   factory LogModel.fromJson(Map<String, dynamic> j) {
     return LogModel(
