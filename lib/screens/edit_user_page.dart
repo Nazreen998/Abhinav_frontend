@@ -16,12 +16,9 @@ class _EditUserPageState extends State<EditUserPage> {
 
   late TextEditingController nameCtrl;
   late TextEditingController mobileCtrl;
-  late TextEditingController passCtrl;
 
   String? selectedRole;
   String? selectedSegment;
-
-  bool showPass = false;
 
   @override
   void initState() {
@@ -29,7 +26,6 @@ class _EditUserPageState extends State<EditUserPage> {
 
     nameCtrl = TextEditingController(text: widget.user.name);
     mobileCtrl = TextEditingController(text: widget.user.mobile);
-    passCtrl = TextEditingController(text: widget.user.password);
 
     selectedRole = widget.user.role.trim().toLowerCase();
     selectedSegment = widget.user.segment.trim().toLowerCase();
@@ -39,16 +35,15 @@ class _EditUserPageState extends State<EditUserPage> {
     if (!_formKey.currentState!.validate()) return;
 
     final updated = UserModel(
-  id: widget.user.id,                      // ⭐ VERY IMPORTANT
-  userId: widget.user.userId,
-  name: nameCtrl.text.trim(),
-  mobile: mobileCtrl.text.trim(),
-  password: passCtrl.text.trim(),
-  role: selectedRole!,
-  segment: selectedSegment!,
-  createdAt: widget.user.createdAt,
-);
-
+      id: widget.user.id,
+      userId: widget.user.userId,
+      name: nameCtrl.text.trim(),
+      mobile: mobileCtrl.text.trim(),
+      role: selectedRole!,
+      password: widget.user.password, // KEEP OLD PASSWORD
+      segment: selectedSegment!,
+      createdAt: widget.user.createdAt,
+    );
 
     bool ok = await userService.updateUser(updated);
 
@@ -79,11 +74,9 @@ class _EditUserPageState extends State<EditUserPage> {
             end: Alignment.bottomCenter,
           ),
         ),
-
         child: SafeArea(
           child: Column(
             children: [
-              // 🔙 BACK BUTTON + HEADER
               Row(
                 children: [
                   IconButton(
@@ -121,40 +114,10 @@ class _EditUserPageState extends State<EditUserPage> {
                       children: [
                         textField(nameCtrl, "Name"),
                         const SizedBox(height: 15),
-
                         textField(mobileCtrl, "Mobile",
                             keyboardType: TextInputType.phone),
                         const SizedBox(height: 15),
 
-                        // 🔐 PASSWORD + TOGGLE
-                        TextFormField(
-                          controller: passCtrl,
-                          obscureText: !showPass,
-                          decoration: InputDecoration(
-                            labelText: "Password",
-                            filled: true,
-                            fillColor: Colors.white,
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                showPass
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
-                                color: Colors.blue,
-                              ),
-                              onPressed: () =>
-                                  setState(() => showPass = !showPass),
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          validator: (v) =>
-                              v!.isEmpty ? "Enter Password" : null,
-                        ),
-
-                        const SizedBox(height: 15),
-
-                        // ROLE
                         DropdownButtonFormField<String>(
                           value: selectedRole,
                           decoration: dropdownDecor("Role"),
@@ -172,7 +135,6 @@ class _EditUserPageState extends State<EditUserPage> {
 
                         const SizedBox(height: 15),
 
-                        // SEGMENT
                         DropdownButtonFormField<String>(
                           value: selectedSegment,
                           decoration: dropdownDecor("Segment"),
@@ -188,16 +150,9 @@ class _EditUserPageState extends State<EditUserPage> {
 
                         const SizedBox(height: 22),
 
-                        // SAVE BUTTON
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
                             onPressed: save,
                             child: const Text(
                               "Save Changes",
@@ -217,7 +172,6 @@ class _EditUserPageState extends State<EditUserPage> {
     );
   }
 
-  // ⭐ Modern TextField
   Widget textField(TextEditingController ctrl, String label,
       {TextInputType keyboardType = TextInputType.text}) {
     return TextFormField(
@@ -235,7 +189,6 @@ class _EditUserPageState extends State<EditUserPage> {
     );
   }
 
-  // ⭐ Modern Dropdown Decoration
   InputDecoration dropdownDecor(String label) {
     return InputDecoration(
       labelText: label,

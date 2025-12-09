@@ -26,20 +26,19 @@ class _AddUserPageState extends State<AddUserPage> {
 
     setState(() => loading = true);
 
-    final String userId = DateTime.now().millisecondsSinceEpoch.toString();
-
-    final String autoPassword =
+    // AUTO PASSWORD
+    final autoPassword =
         mobileCtrl.text.substring(mobileCtrl.text.length - 4) +
             "@${role.toLowerCase()}";
 
     UserModel u = UserModel(
-      id: "",
-      userId: userId,
+      id: null,
+      userId: "",
       name: nameCtrl.text.trim(),
       mobile: mobileCtrl.text.trim(),
       role: role,
       password: autoPassword,
-      createdAt: DateTime.now().toIso8601String(),
+      createdAt: "",
       segment: segment,
     );
 
@@ -63,7 +62,6 @@ class _AddUserPageState extends State<AddUserPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        // BLUE GRADIENT BACKGROUND
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -75,7 +73,6 @@ class _AddUserPageState extends State<AddUserPage> {
             end: Alignment.bottomCenter,
           ),
         ),
-
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.all(20),
@@ -83,15 +80,11 @@ class _AddUserPageState extends State<AddUserPage> {
               const Text(
                 "Add User",
                 style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
               ),
-
               const SizedBox(height: 25),
-
-              // WHITE CARD CONTAINER
               Container(
                 padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
@@ -99,13 +92,11 @@ class _AddUserPageState extends State<AddUserPage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: const [
                     BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    )
+                        color: Colors.black26,
+                        blurRadius: 10,
+                        offset: Offset(0, 4))
                   ],
                 ),
-
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -113,12 +104,9 @@ class _AddUserPageState extends State<AddUserPage> {
                       TextFormField(
                         controller: nameCtrl,
                         decoration: customInput("Name"),
-                        validator: (v) =>
-                            v!.isEmpty ? "Enter name" : null,
+                        validator: (v) => v!.isEmpty ? "Enter name" : null,
                       ),
-
                       const SizedBox(height: 20),
-
                       TextFormField(
                         controller: mobileCtrl,
                         keyboardType: TextInputType.phone,
@@ -126,28 +114,21 @@ class _AddUserPageState extends State<AddUserPage> {
                         validator: (v) =>
                             v!.length != 10 ? "Enter 10 digit mobile" : null,
                       ),
-
                       const SizedBox(height: 20),
-
                       DropdownButtonFormField(
                         value: role,
                         decoration: customInput("Role"),
                         items: const [
                           DropdownMenuItem(
-                              value: "master",
-                              child: Text("Master")),
+                              value: "master", child: Text("Master")),
                           DropdownMenuItem(
-                              value: "manager",
-                              child: Text("Manager")),
+                              value: "manager", child: Text("Manager")),
                           DropdownMenuItem(
-                              value: "salesman",
-                              child: Text("Salesman")),
+                              value: "salesman", child: Text("Salesman")),
                         ],
                         onChanged: (v) => setState(() => role = v.toString()),
                       ),
-
                       const SizedBox(height: 20),
-
                       DropdownButtonFormField(
                         value: segment,
                         decoration: customInput("Segment"),
@@ -157,11 +138,10 @@ class _AddUserPageState extends State<AddUserPage> {
                           DropdownMenuItem(
                               value: "pipes", child: Text("PIPES")),
                         ],
-                        onChanged: (v) => setState(() => segment = v.toString()),
+                        onChanged: (v) =>
+                            setState(() => segment = v.toString()),
                       ),
-
                       const SizedBox(height: 28),
-
                       loading
                           ? const CircularProgressIndicator()
                           : SizedBox(
@@ -185,7 +165,6 @@ class _AddUserPageState extends State<AddUserPage> {
     );
   }
 
-  // --- COMMON INPUT DECORATION (MATCHES THEME) ---
   InputDecoration customInput(String label) {
     return InputDecoration(
       labelText: label,
@@ -195,15 +174,6 @@ class _AddUserPageState extends State<AddUserPage> {
           const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Colors.blueAccent),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide:
-            const BorderSide(color: Colors.deepPurple, width: 2),
       ),
     );
   }

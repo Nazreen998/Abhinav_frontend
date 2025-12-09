@@ -14,37 +14,54 @@ class UserListPage extends StatefulWidget {
 
 class _UserListPageState extends State<UserListPage> {
   final UserService userService = UserService();
+
   List<UserModel> allUsers = [];
   List<UserModel> filteredUsers = [];
+
+  final TextEditingController searchCtrl = TextEditingController();
   bool loading = true;
 
   @override
   void initState() {
     super.initState();
     loadUsers();
+
+    // Real-time search listener
+    searchCtrl.addListener(() {
+      searchFilter(searchCtrl.text.trim());
+    });
   }
 
   Future<void> loadUsers() async {
     setState(() => loading = true);
 
     allUsers = await userService.getUsers();
+    allUsers.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
     filteredUsers = allUsers;
 
     setState(() => loading = false);
   }
 
+  // 🔎 SUPER-FAST SEARCH FILTER
   void searchFilter(String text) {
-    text = text.toLowerCase();
+    final q = text.toLowerCase();
+
     setState(() {
-      filteredUsers = allUsers.where((u) {
-        return u.name.toLowerCase().contains(text) ||
-            u.mobile.toLowerCase().contains(text) ||
-            u.role.toLowerCase().contains(text) ||
-            u.segment.toLowerCase().contains(text);
-      }).toList();
+      if (q.isEmpty) {
+        filteredUsers = allUsers;
+      } else {
+        filteredUsers = allUsers.where((u) {
+          return u.name.toLowerCase().contains(q) ||
+              u.mobile.toLowerCase().contains(q) ||
+              u.role.toLowerCase().contains(q) ||
+              u.segment.toLowerCase().contains(q);
+        }).toList();
+      }
     });
   }
 
+  // ❌ DELETE USER WITH CONFIRMATION
   Future<void> deleteUser(UserModel u) async {
     final confirm = await showDialog(
       context: context,
@@ -54,11 +71,13 @@ class _UserListPageState extends State<UserListPage> {
         content: Text("Delete user '${u.name}'?"),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: const Text("Cancel")),
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text("Cancel"),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(c, true),
-              child: const Text("Delete", style: TextStyle(color: Colors.red))),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
@@ -68,13 +87,16 @@ class _UserListPageState extends State<UserListPage> {
     final ok = await userService.deleteUser(u.id.toString());
 
     if (!mounted) return;
+
     if (ok) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("User deleted")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("User deleted")),
+      );
       loadUsers();
     } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Delete failed")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Delete failed")),
+      );
     }
   }
 
@@ -129,14 +151,23 @@ class _UserListPageState extends State<UserListPage> {
 
               const SizedBox(height: 10),
 
-              // SEARCH BAR
+              // 🔎 SEARCH BAR WITH CLEAR BUTTON
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: TextField(
-                  onChanged: searchFilter,
+                  controller: searchCtrl,
                   decoration: InputDecoration(
-                    hintText: "Search users...",
+                    hintText: "Search by name, mobile, role, segment...",
                     prefixIcon: const Icon(Icons.search),
+                    suffixIcon: searchCtrl.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              searchCtrl.clear();
+                              searchFilter("");
+                            },
+                          )
+                        : null,
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
@@ -151,21 +182,29 @@ class _UserListPageState extends State<UserListPage> {
               Expanded(
                 child: loading
                     ? const Center(child: CircularProgressIndicator())
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: filteredUsers.length,
-                        itemBuilder: (_, i) {
-                          final u = filteredUsers[i];
-                          return _userCard(u);
-                        },
-                      ),
+                    : filteredUsers.isEmpty
+                        ? const Center(
+                            child: Text(
+                              "No users found",
+                              style:
+                                  TextStyle(fontSize: 18, color: Colors.black54),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: filteredUsers.length,
+                            itemBuilder: (_, i) {
+                              final u = filteredUsers[i];
+                              return _userCard(u);
+                            },
+                          ),
               ),
             ],
           ),
         ),
       ),
 
-      // ADD USER BUTTON
+      // ➕ ADD USER BUTTON
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF0066CC),
         child: const Icon(Icons.add, color: Colors.white),
@@ -179,7 +218,7 @@ class _UserListPageState extends State<UserListPage> {
     );
   }
 
-  // ⭐ USER CARD
+  // ⭐ STYLISH USER CARD
   Widget _userCard(UserModel u) {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -205,9 +244,12 @@ class _UserListPageState extends State<UserListPage> {
               fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          "Mobile: ${u.mobile}\nRole: ${u.role}\nSegment: ${u.segment}",
+          "Mobile: ${u.mobile}"
+          "\nRole: ${u.role}"
+          "\nSegment: ${u.segment}",
           style: const TextStyle(color: Colors.black54),
         ),
+
         trailing: PopupMenuButton(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           icon: const Icon(Icons.more_vert, color: Color(0xFF003366)),
@@ -222,9 +264,13 @@ class _UserListPageState extends State<UserListPage> {
           },
           itemBuilder: (_) => const [
             PopupMenuItem(
-                value: "edit", child: Text("Edit", style: TextStyle(color: Colors.blue))),
+              value: "edit",
+              child: Text("Edit", style: TextStyle(color: Colors.blue)),
+            ),
             PopupMenuItem(
-                value: "delete", child: Text("Delete", style: TextStyle(color: Colors.red))),
+              value: "delete",
+              child: Text("Delete", style: TextStyle(color: Colors.red)),
+            ),
           ],
         ),
       ),

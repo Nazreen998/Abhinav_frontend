@@ -35,6 +35,8 @@ class UserService {
       body: jsonEncode(user.toJson()),
     );
 
+    print("ADD USER RESPONSE: ${res.body}");
+
     return res.statusCode == 200;
   }
 
@@ -44,8 +46,15 @@ class UserService {
     final res = await http.put(
       url,
       headers: headers,
-      body: jsonEncode(user.toJson()),
+      body: jsonEncode({
+        "name": user.name,
+        "mobile": user.mobile,
+        "role": user.role,
+        "segment": user.segment,
+      }),
     );
+
+    print("UPDATE RESPONSE: ${res.body}");
 
     return res.statusCode == 200;
   }
@@ -54,6 +63,8 @@ class UserService {
     final url = Uri.parse("$baseUrl/delete/$id");
 
     final res = await http.delete(url, headers: headers);
+
+    print("DELETE RESPONSE: ${res.body}");
 
     return res.statusCode == 200;
   }
