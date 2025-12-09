@@ -4,7 +4,7 @@ import '../services/auth_service.dart';
 
 class PendingShopService {
   static const String base =
-      "https://abhinav-backend-production.up.railway.app/api";
+      "https://abhinav-backend-4.onrender.com/api";
 
   /// Get all pending shops for a user
   Future<List<dynamic>> getPendingShops() async {

@@ -184,7 +184,7 @@ class _AddShopPageState extends State<AddShopPage> {
     setState(() {});
 
     final url =
-        Uri.parse("https://abhinav-backend-production.up.railway.app/api/pending/add");
+        Uri.parse("https://abhinav-backend-4.onrender.com/api/pending/add");
 
     final payload = {
       "shop_name": nameController.text.trim(),

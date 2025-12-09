@@ -6,7 +6,7 @@ import 'auth_service.dart';
 
 class UserService {
   static const String baseUrl =
-      "https://abhinav-backend-production.up.railway.app/api/users";
+      "https://abhinav-backend-4.onrender.com/api/users";
 
   Map<String, String> get headers => {
         "Content-Type": "application/json",

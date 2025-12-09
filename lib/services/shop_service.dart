@@ -5,7 +5,7 @@ import '../services/auth_service.dart';
 
 class ShopService {
   static const String base =
-      "https://abhinav-backend-production.up.railway.app/api";
+      "https://abhinav-backend-4.onrender.com/api";
 
   String get shopBaseUrl => "$base/shop";
   String get pendingBaseUrl => "$base/pending";
