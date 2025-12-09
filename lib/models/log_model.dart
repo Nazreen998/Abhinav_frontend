@@ -4,16 +4,17 @@ class LogModel {
   String shopName;
   String salesman;
 
-  String date;     
-  String time;     
+  String date;
+  String time;
   String datetime;
 
   double lat;
   double lng;
-  double distance;
-  String result;
+  double distance;   // ⭐ used for shop distance match
+  String result;     // ⭐ Inside / Outside
   String segment;
-  String photoUrl;
+
+  String photoUrl;   // ⭐ backend key: image_url or photo_url
 
   LogModel({
     required this.userId,
@@ -31,22 +32,32 @@ class LogModel {
     required this.photoUrl,
   });
 
+  // ⭐ When sending log to backend (rare case)
   Map<String, dynamic> toJson() {
     return {
-      "salesman_id": userId,
+      "user_id": userId,
       "shop_id": shopId,
+      "shop_name": shopName,
+      "salesman_name": salesman,
       "lat": lat,
       "lng": lng,
-      "photo_url": photoUrl,
+      "date": date,
+      "time": time,
+      "datetime": datetime,
+      "distance": distance,
+      "result": result,
+      "segment": segment,
+      "image_url": photoUrl, // ⭐ corrected
     };
   }
 
+  // ⭐ When receiving logs from backend
   factory LogModel.fromJson(Map<String, dynamic> j) {
     return LogModel(
       userId: j["user_id"] ?? "",
       shopId: j["shop_id"] ?? "",
       shopName: j["shop_name"] ?? "",
-      salesman: j["salesman"] ?? "",
+      salesman: j["salesman_name"] ?? j["salesman"] ?? "",
       date: j["date"] ?? "",
       time: j["time"] ?? "",
       datetime: j["datetime"]?.toString() ?? "",
@@ -55,7 +66,7 @@ class LogModel {
       distance: (j["distance"] ?? 0).toDouble(),
       result: j["result"] ?? "",
       segment: j["segment"] ?? "",
-      photoUrl: j["photo_url"] ?? "",
+      photoUrl: j["image_url"] ?? j["photo_url"] ?? "",
     );
   }
 }

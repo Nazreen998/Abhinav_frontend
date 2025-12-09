@@ -165,37 +165,65 @@ class _AddShopPageState extends State<AddShopPage> {
     setState(() {});
   }
 
-  // ==========================================================
-  // SUBMIT SHOP
-  // ==========================================================
   Future submit() async {
-    if (nameController.text.isEmpty ||
-        addressController.text.isEmpty ||
-        base64Image == null ||
-        lat == null ||
-        lng == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Fill all fields & take a photo")),
-      );
-      return;
-    }
+  // ================================
+  // FRONT CHECKS (PREVENT CRASH)
+  // ================================
+  if (nameController.text.trim().isEmpty) {
+    return _error("Enter shop name");
+  }
 
-    loading = true;
-    setState(() {});
+  if (addressController.text.trim().isEmpty) {
+    return _error("Enter address");
+  }
 
-    final url =
-        Uri.parse("https://abhinav-backend-4.onrender.com/api/pending/add");
+  if (base64Image == null) {
+    return _error("Please take/select a photo");
+  }
 
-    final payload = {
-      "shop_name": nameController.text.trim(),
-      "address": addressController.text.trim(),
-      "lat": lat,
-      "lng": lng,
-      "image": base64Image,
-      "segment": AuthService.currentUser?["segment"] ?? "all",
-      "created_by": AuthService.currentUser?["_id"] ?? "",
-    };
+  if (lat == null || lng == null) {
+    return _error("Location not detected. Enable GPS.");
+  }
 
+  // ================================
+  // USER CHECK
+  // ================================
+  final user = AuthService.currentUser;
+  if (user == null) {
+    return _error("User session expired. Login again.");
+  }
+
+  final createdBy = user["user_id"] ?? "";
+
+  if (createdBy.isEmpty) {
+    return _error("Invalid user ID");
+  }
+
+  // ================================
+  // PREPARE PAYLOAD (SAFE)
+  // ================================
+  final payload = {
+    "shop_name": nameController.text.trim(),
+    "address": addressController.text.trim(),
+    "lat": lat,
+    "lng": lng,
+    "image": base64Image,
+    "segment": user["segment"] ?? "all",
+    "created_by": createdBy, // AUTO FIX
+  };
+
+  print("======== ADD SHOP PAYLOAD ========");
+  print(payload);
+
+  // ================================
+  // LOADING
+  // ================================
+  setState(() => loading = true);
+
+  final url = Uri.parse(
+      "https://abhinav-backend-4.onrender.com/api/pending/add");
+
+  try {
     final res = await http.post(
       url,
       headers: {
@@ -205,20 +233,32 @@ class _AddShopPageState extends State<AddShopPage> {
       body: jsonEncode(payload),
     );
 
-    loading = false;
-    setState(() {});
+    setState(() => loading = false);
 
+    // ================================
+    // HANDLE SERVER RESPONSE
+    // ================================
     final data = jsonDecode(res.body);
 
     if (data["status"] == "success") {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Shop Added Successfully")));
+      _success("Shop added successfully");
       Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Error: ${data["message"]}")));
+      _error(data["message"] ?? "Something went wrong");
     }
+  } catch (e) {
+    setState(() => loading = false);
+    _error("Network Error: $e");
   }
+}
+
+void _error(String msg) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+}
+
+void _success(String msg) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+}
 
   // ==========================================================
   // UI

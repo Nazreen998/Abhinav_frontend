@@ -34,12 +34,13 @@ class UserModel {
 
   // SEND ONLY WHAT BACKEND NEEDS FOR ADD USER
   Map<String, dynamic> toJson() {
-    return {
-      "name": name,
-      "mobile": mobile,
-      "role": role,
-      "password": password,
-      "segment": segment,
-    };
-  }
+  return {
+    "name": name,
+    "mobile": mobile,
+    "role": role,
+    "password": password,
+    "segment": segment,
+  };
+}
+
 }

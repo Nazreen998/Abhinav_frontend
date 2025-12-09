@@ -36,10 +36,11 @@ class _AddUserPageState extends State<AddUserPage> {
       userId: "",
       name: nameCtrl.text.trim(),
       mobile: mobileCtrl.text.trim(),
-      role: role,
+      role: role.toLowerCase(),
       password: autoPassword,
       createdAt: "",
-      segment: segment,
+      segment: segment.toLowerCase(),
+
     );
 
     bool ok = await userService.addUser(u);
