@@ -41,30 +41,20 @@ class _LoginPageState extends State<LoginPage>
 
   setState(() => loading = true);
 
-  final ok = await AuthService.login(
-    mobileCtrl.text.trim(),      // user_id
-    passCtrl.text.trim(),        // password
-  );
+  final result = await AuthService.login(mobileCtrl.text, passCtrl.text);
 
-  setState(() => loading = false);
+if (result["status"] != "success") {
+  _msg(result["message"] ?? "Login failed");
+  return;
+}
 
-  if (!ok) {
-    _msg("Invalid User ID or Password");
-    return;
-  }
+// Save user
+AuthService.currentUser = result["user"];
+Navigator.pushReplacement(
+  context,
+  MaterialPageRoute(builder: (_) => HomePage(user: result["user"])),
+);
 
-  // ✔ Now login success & currentUser is ready
-  if (AuthService.currentUser == null) {
-    _msg("Login failed: No user data received");
-    return;
-  }
-
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(
-      builder: (_) => HomePage(user: AuthService.currentUser!),
-    ),
-  );
 }
 
   void _msg(String txt) {

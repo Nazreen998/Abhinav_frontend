@@ -42,32 +42,29 @@ class AuthService {
   // -------------------------------------------------------
   // LOGIN
   // -------------------------------------------------------
-static Future<bool> login(String userId, String password) async {
+static Future<Map<String, dynamic>> login(String mobile, String password) async {
   try {
     final url = Uri.parse("https://abhinav-backend-4.onrender.com/api/auth/login");
 
     final res = await http.post(
       url,
-      headers: {"Content-Type": "application/json"},
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: jsonEncode({
-        "user_id": userId,       // ✔ IMPORTANT FIX
-        "password": password,    // ✔ SAME
+        "mobile": mobile.trim(),
+        "password": password.trim(),
       }),
     );
 
-    final data = jsonDecode(res.body);
+    print("🔥 LOGIN REQUEST SENT = $mobile / $password");
+    print("🔥 LOGIN RAW RESPONSE = ${res.body}");
 
-    if (data["status"] == "success") {
-      currentUser = data["user"];
-      return true;
-    }
-
-    print("LOGIN FAILED: ${data["message"]}");
-    return false;
+    return jsonDecode(res.body);
 
   } catch (e) {
-    print("LOGIN ERROR: $e");
-    return false;
+    print("🔥 LOGIN ERROR: $e");
+    return {"status": "error", "message": e.toString()};
   }
 }
 
