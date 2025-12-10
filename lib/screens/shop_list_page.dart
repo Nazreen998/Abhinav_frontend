@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import '../services/auth_service.dart';
 
 class ShopListPage extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -44,7 +43,7 @@ class _ShopListPageState extends State<ShopListPage>
   }
 
   // -------------------------------------------------------------------
-  // LOAD SHOPS CORRECTLY BASED ON ROLE
+  // LOAD SHOPS BASED ON ROLE
   // -------------------------------------------------------------------
   Future<void> loadShops() async {
     if (!mounted) return;
@@ -53,11 +52,21 @@ class _ShopListPageState extends State<ShopListPage>
     List<dynamic> res = [];
 
     if (role == "master") {
-      // MASTER → GET ALL SHOPS
-      res = await ApiService.getShops(role, segment);
+      // MASTER → ALL SHOPS
+      res = await ApiService.getShops();
     } else {
-      // SALESMAN → GET ONLY ASSIGNED SHOPS
-      res = await ApiService.getAssignedShops(role, segment, userId);
+      // SALESMAN → ONLY ASSIGNED SHOPS
+      final assigned = await ApiService.getAssignedShops(userId);
+
+      // Map assigned data into unified format
+      res = assigned.map((s) {
+        return {
+          "shop_id": s["shop_id"] ?? "",
+          "shop_name": s["shop_name"] ?? "",
+          "address": s["address"] ?? "",
+          "segment": s["segment"] ?? "",
+        };
+      }).toList();
     }
 
     shops = res;
@@ -70,7 +79,7 @@ class _ShopListPageState extends State<ShopListPage>
   }
 
   // -------------------------------------------------------------------
-  // APPLY FILTERS BASED ON ROLE + SEGMENT
+  // APPLY ROLE-BASED FILTERS
   // -------------------------------------------------------------------
   void applyFilters() {
     if (role == "master") {
@@ -78,9 +87,8 @@ class _ShopListPageState extends State<ShopListPage>
     } else {
       filtered = shops.where((shop) {
         return shop["segment"]
-                .toString()
-                .toLowerCase() ==
-            segment.toLowerCase();
+            .toString()
+            .toLowerCase() == segment.toLowerCase();
       }).toList();
     }
   }
@@ -89,11 +97,10 @@ class _ShopListPageState extends State<ShopListPage>
   // SEARCH FILTER
   // -------------------------------------------------------------------
   List get searchResult {
+    final q = search.toLowerCase();
     return filtered.where((shop) {
       final name = shop["shop_name"].toString().toLowerCase();
       final address = shop["address"].toString().toLowerCase();
-      final q = search.toLowerCase();
-
       return name.contains(q) || address.contains(q);
     }).toList();
   }
@@ -138,6 +145,7 @@ class _ShopListPageState extends State<ShopListPage>
                   ),
                 ],
               ),
+
               const SizedBox(height: 10),
 
               // SEARCH BOX
@@ -234,11 +242,14 @@ class _ShopListPageState extends State<ShopListPage>
               fontWeight: FontWeight.bold,
             ),
           ),
+
           const SizedBox(height: 6),
+
           Text(
             shop["address"],
             style: const TextStyle(color: Colors.black54, fontSize: 15),
           ),
+
           const SizedBox(height: 10),
 
           // SEGMENT BADGE

@@ -4,96 +4,93 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+class AuthResponse {
+  final bool success;
+  final String message;
+  final Map<String, dynamic>? user;
+
+  AuthResponse({
+    required this.success,
+    required this.message,
+    this.user,
+  });
+}
+
 class AuthService {
-  static const String baseUrl =
-      "https://abhinav-backend-4.onrender.com/api/auth";
+  // 🔥 BASE URL (CHANGE THIS ONLY)
+  static const String baseApi = "https://abhinav-backend-4.onrender.com/api";
+  // Local testing:
+  // static const String baseApi = "http://192.168.1.2:5000/api";
 
   static String? token;
   static Map<String, dynamic>? currentUser;
 
   // -------------------------------------------------------
-  // INIT (LOAD SAVED SESSION)
+  // INIT (LOAD SESSION)
   // -------------------------------------------------------
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
 
     token = prefs.getString("token");
 
-    final userJson = prefs.getString("user");
-    if (userJson != null) {
-      currentUser = jsonDecode(userJson);
+    final savedUser = prefs.getString("user");
+    if (savedUser != null) {
+      currentUser = jsonDecode(savedUser);
     }
   }
 
   // -------------------------------------------------------
   // LOGIN
   // -------------------------------------------------------
-  static Future<bool> login(String mobile, String password) async {
-    try {
-      final url = Uri.parse("$baseUrl/login");
+static Future<bool> login(String userId, String password) async {
+  try {
+    final url = Uri.parse("https://abhinav-backend-4.onrender.com/api/auth/login");
 
-      final res = await http.post(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-        body: jsonEncode({
-          "mobile": mobile,
-          "password": password,
-        }),
-      );
+    final res = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "user_id": userId,       // ✔ IMPORTANT FIX
+        "password": password,    // ✔ SAME
+      }),
+    );
 
-      print("LOGIN RESPONSE: ${res.body}");
+    final data = jsonDecode(res.body);
 
-      if (res.statusCode != 200) return false;
-
-      final data = jsonDecode(res.body);
-
-      if (data["status"] != "success") {
-        print("LOGIN ERROR: ${data["message"]}");
-        return false;
-      }
-
-      // Save token + user
-      token = data["token"];
+    if (data["status"] == "success") {
       currentUser = data["user"];
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString("token", token ?? "");
-      await prefs.setString("user", jsonEncode(currentUser));
-
       return true;
-
-    } catch (e) {
-      print("LOGIN EXCEPTION: $e");
-      return false;
     }
+
+    print("LOGIN FAILED: ${data["message"]}");
+    return false;
+
+  } catch (e) {
+    print("LOGIN ERROR: $e");
+    return false;
   }
+}
 
   // -------------------------------------------------------
   // LOGOUT
   // -------------------------------------------------------
   static Future<void> logout() async {
     try {
-      if (currentUser == null) return;
+      if (currentUser != null) {
+        final url = Uri.parse("$baseApi/auth/logout");
 
-      final url = Uri.parse("$baseUrl/logout");
-
-      await http.post(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "Authorization": "Bearer $token",
-        },
-        body: jsonEncode({
-          "user_id": currentUser!["user_id"],
-        }),
-      );
-    } catch (e) {
-      print("LOGOUT ERROR: $e");
-    }
+        await http.post(
+          url,
+          headers: {
+            "Content-Type": "application/json",
+            if (token != null) "Authorization": "Bearer $token",
+          },
+          body: jsonEncode({
+            "user_id": currentUser!["user_id"],
+          }),
+        );
+      }
+    } catch (_) {}
 
     // CLEAR LOCAL STORAGE
     final prefs = await SharedPreferences.getInstance();

@@ -34,43 +34,43 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Future<void> loginUser() async {
-    if (mobileCtrl.text.isEmpty || passCtrl.text.isEmpty) {
-      _msg("Enter all fields");
-      return;
-    }
-
-    setState(() => loading = true);
-
-    final ok = await AuthService.login(
-      mobileCtrl.text.trim(),
-      passCtrl.text.trim(),
-    );
-
-    setState(() => loading = false);
-
-    if (!ok) {
-      _msg("Invalid credentials");
-      return;
-    }
-
-    if (AuthService.currentUser == null) {
-      _msg("Something went wrong. Try again.");
-      return;
-    }
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => HomePage(user: AuthService.currentUser!),
-      ),
-    );
+  if (mobileCtrl.text.isEmpty || passCtrl.text.isEmpty) {
+    _msg("User ID and Password are required");
+    return;
   }
+
+  setState(() => loading = true);
+
+  final ok = await AuthService.login(
+    mobileCtrl.text.trim(),      // user_id
+    passCtrl.text.trim(),        // password
+  );
+
+  setState(() => loading = false);
+
+  if (!ok) {
+    _msg("Invalid User ID or Password");
+    return;
+  }
+
+  // ✔ Now login success & currentUser is ready
+  if (AuthService.currentUser == null) {
+    _msg("Login failed: No user data received");
+    return;
+  }
+
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (_) => HomePage(user: AuthService.currentUser!),
+    ),
+  );
+}
 
   void _msg(String txt) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(txt)));
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

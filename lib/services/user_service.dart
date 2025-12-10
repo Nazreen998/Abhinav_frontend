@@ -5,67 +5,118 @@ import '../models/user_model.dart';
 import 'auth_service.dart';
 
 class UserService {
+  // 🔥 BASE URL (correct)
   static const String baseUrl =
       "https://abhinav-backend-4.onrender.com/api/users";
+  // Local testing:
+  // static const String baseUrl = "http://192.168.1.2:5000/api/users";
 
+  // -------------------------------------------------------
+  // HEADERS
+  // -------------------------------------------------------
   Map<String, String> get headers => {
         "Content-Type": "application/json",
-        "Authorization": "Bearer ${AuthService.token}"
+        if (AuthService.token != null)
+          "Authorization": "Bearer ${AuthService.token}",
       };
 
+  // -------------------------------------------------------
+  // GET ALL USERS  (Master & Manager)
+  // -------------------------------------------------------
   Future<List<UserModel>> getUsers() async {
-    final url = Uri.parse("$baseUrl/all");
+    try {
+      final url = Uri.parse("$baseUrl/all");
 
-    final res = await http.get(url, headers: headers);
+      final res = await http.get(url, headers: headers);
 
-    if (res.statusCode != 200) return [];
+      if (res.statusCode != 200) return [];
 
-    final data = jsonDecode(res.body);
-    final List list = data["users"] ?? [];
+      final data = jsonDecode(res.body);
 
-    return list.map((u) => UserModel.fromJson(u)).toList();
+      if (data["status"] != "success") return [];
+
+      final List list = data["users"] ?? [];
+
+      return list.map((u) => UserModel.fromJson(u)).toList();
+    } catch (e) {
+      print("GET USERS ERROR: $e");
+      return [];
+    }
   }
 
+  // -------------------------------------------------------
+  // ADD USER  (Master only)
+  // -------------------------------------------------------
   Future<bool> addUser(UserModel user) async {
-    final url = Uri.parse("$baseUrl/addUser");
+    try {
+      final url = Uri.parse("$baseUrl/addUser");
 
-    final res = await http.post(
-      url,
-      headers: headers,
-      body: jsonEncode(user.toJson()),
-    );
+      final res = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode(user.toJson()),
+      );
 
-    print("ADD USER RESPONSE: ${res.body}");
+      print("ADD USER RESPONSE: ${res.body}");
 
-    return res.statusCode == 200;
+      if (res.statusCode != 200) return false;
+
+      final data = jsonDecode(res.body);
+      return data["status"] == "success";
+    } catch (e) {
+      print("ADD USER ERROR: $e");
+      return false;
+    }
   }
 
+  // -------------------------------------------------------
+  // UPDATE USER
+  // -------------------------------------------------------
   Future<bool> updateUser(UserModel user) async {
-    final url = Uri.parse("$baseUrl/edit/${user.id}");
+    try {
+      final url = Uri.parse("$baseUrl/edit/${user.id}");
 
-    final res = await http.put(
-      url,
-      headers: headers,
-      body: jsonEncode({
-        "name": user.name,
-        "mobile": user.mobile,
-        "role": user.role,
-        "segment": user.segment,
-      }),
-    );
+      final res = await http.put(
+        url,
+        headers: headers,
+        body: jsonEncode({
+          "name": user.name,
+          "mobile": user.mobile,
+          "role": user.role,
+          "segment": user.segment,
+        }),
+      );
 
-    print("UPDATE RESPONSE: ${res.body}");
+      print("UPDATE USER RESPONSE: ${res.body}");
 
-    return res.statusCode == 200;
+      if (res.statusCode != 200) return false;
+
+      final data = jsonDecode(res.body);
+      return data["status"] == "success";
+    } catch (e) {
+      print("UPDATE USER ERROR: $e");
+      return false;
+    }
   }
 
+  // -------------------------------------------------------
+  // DELETE USER
+  // -------------------------------------------------------
   Future<bool> deleteUser(String id) async {
-    final url = Uri.parse("$baseUrl/delete/$id");
+    try {
+      final url = Uri.parse("$baseUrl/delete/$id");
 
-    final res = await http.delete(url, headers: headers);
+      final res = await http.delete(url, headers: headers);
 
-    print("DELETE RESPONSE: ${res.body}");
+      print("DELETE USER RESPONSE: ${res.body}");
 
-    return res.statusCode == 200;
+      if (res.statusCode != 200) return false;
+
+      final data = jsonDecode(res.body);
+      return data["status"] == "success";
+    } catch (e) {
+      print("DELETE USER ERROR: $e");
+      return false;
+    }
   }
 }

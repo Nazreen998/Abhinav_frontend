@@ -19,8 +19,11 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
   List<PendingShopModel> pendingShops = [];
   bool loading = true;
 
-  bool get isMaster => widget.user["role"].toString().toLowerCase() == "master";
-  bool get isManager => widget.user["role"].toString().toLowerCase() == "manager";
+  bool get isMaster =>
+      widget.user["role"].toString().toLowerCase() == "master";
+
+  bool get isManager =>
+      widget.user["role"].toString().toLowerCase() == "manager";
 
   @override
   void initState() {
@@ -35,12 +38,15 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
     setState(() => loading = true);
 
     final res = await pendingService.getPendingShops();
+
     pendingShops = res.map((e) => PendingShopModel.fromJson(e)).toList();
 
     // MANAGER → filter by segment
     if (isManager) {
       final seg = widget.user["segment"].toString().toUpperCase();
-      pendingShops = pendingShops.where((s) => s.segment.toUpperCase() == seg).toList();
+      pendingShops = pendingShops
+          .where((s) => s.segment.toUpperCase() == seg)
+          .toList();
     }
 
     setState(() => loading = false);
@@ -91,7 +97,6 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
             end: Alignment.bottomCenter,
           ),
         ),
-
         child: SafeArea(
           child: Column(
             children: [
@@ -162,7 +167,6 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
           )
         ],
       ),
-
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -226,8 +230,8 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text("Approve",
-                      style: TextStyle(color: Colors.white)),
+                  child:
+                      const Text("Approve", style: TextStyle(color: Colors.white)),
                 ),
                 ElevatedButton(
                   onPressed: () => rejectShop(shop.mongoId),
@@ -239,8 +243,8 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text("Reject",
-                      style: TextStyle(color: Colors.white)),
+                  child:
+                      const Text("Reject", style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),

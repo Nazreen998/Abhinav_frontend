@@ -40,7 +40,7 @@ class _ModifyAssignedPageState extends State<ModifyAssignedPage> {
   Future<void> loadShops() async {
     setState(() => loading = true);
 
-    allShops = await api.ApiService.getShops(role, segment);
+      allShops = await api.ApiService.getShops();
 
     setState(() => loading = false);
   }

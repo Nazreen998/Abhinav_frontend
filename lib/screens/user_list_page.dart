@@ -26,30 +26,30 @@ class _UserListPageState extends State<UserListPage> {
     super.initState();
     loadUsers();
 
-    // Live search filter listener
     searchCtrl.addListener(() {
       searchFilter(searchCtrl.text.trim());
     });
   }
 
   // ------------------------------------------------------
-  // LOAD USERS FROM BACKEND
+  // LOAD USERS
   // ------------------------------------------------------
   Future<void> loadUsers() async {
     setState(() => loading = true);
 
-    allUsers = await userService.getUsers();
+    final users = await userService.getUsers(); // corrected API call
 
-    // Sort alphabetically
+    allUsers = users;
     allUsers.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-
     filteredUsers = allUsers;
 
-    setState(() => loading = false);
+    if (mounted) {
+      setState(() => loading = false);
+    }
   }
 
   // ------------------------------------------------------
-  // SEARCH FILTER
+  // SEARCH
   // ------------------------------------------------------
   void searchFilter(String text) {
     final q = text.toLowerCase();
@@ -79,13 +79,12 @@ class _UserListPageState extends State<UserListPage> {
         content: Text("Delete user '${u.name}'?"),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text("Cancel"),
-          ),
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text("Cancel")),
           TextButton(
             onPressed: () => Navigator.pop(c, true),
             child: const Text("Delete", style: TextStyle(color: Colors.red)),
-          ),
+          )
         ],
       ),
     );
@@ -124,7 +123,11 @@ class _UserListPageState extends State<UserListPage> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF007BFF), Color(0xFF66B2FF), Color(0xFFB8E0FF)],
+            colors: [
+              Color(0xFF007BFF),
+              Color(0xFF66B2FF),
+              Color(0xFFB8E0FF)
+            ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -222,7 +225,7 @@ class _UserListPageState extends State<UserListPage> {
   }
 
   // ------------------------------------------------------
-  // USER CARD WIDGET
+  // USER CARD
   // ------------------------------------------------------
   Widget _userCard(UserModel u) {
     return Container(
@@ -263,7 +266,8 @@ class _UserListPageState extends State<UserListPage> {
             if (v == "edit") {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => EditUserPage(user: u)),
+                MaterialPageRoute(
+                    builder: (_) => EditUserPage(user: u)),
               ).then((_) => loadUsers());
             }
             if (v == "delete") deleteUser(u);

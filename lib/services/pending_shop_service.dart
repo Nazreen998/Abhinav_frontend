@@ -3,51 +3,59 @@ import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
 
 class PendingShopService {
-  static const String base =
-      "https://abhinav-backend-4.onrender.com/api";
+  static const String base = "https://abhinav-backend-4.onrender.com/api";
 
-  /// Get all pending shops for a user
+  Map<String, String> get headers => {
+        "Content-Type": "application/json",
+        if (AuthService.token != null)
+          "Authorization": "Bearer ${AuthService.token}",
+      };
+
+  // -------------------------------------------------------
+  // GET ALL PENDING SHOPS
+  // -------------------------------------------------------
   Future<List<dynamic>> getPendingShops() async {
-  final url = Uri.parse("$base/pending/all");
 
-  final res = await http.get(
-    url,
-    headers: {
-      "Authorization": "Bearer ${AuthService.token}",
-    },
-  );
+    final url = Uri.parse("$base/pending/all");
 
-  final data = jsonDecode(res.body);
+    final res = await http.get(url, headers: headers);
 
-  if (data["status"] == "success") {
-    return data["shops"];
+    if (res.statusCode != 200) return [];
+
+    final data = jsonDecode(res.body);
+
+    if (data["status"] == "success") {
+      return data["shops"] ?? [];
+    }
+
+    return [];
   }
 
-  return [];
-}
-
-
-  /// Approve shop
+  // -------------------------------------------------------
+  // APPROVE SHOP
+  // -------------------------------------------------------
   Future<bool> approveShop(String id) async {
-    final res = await http.post(
-      Uri.parse("$base/pending/approve/$id"),
-      headers: {
-        "Authorization": "Bearer ${AuthService.token}",
-      },
-    );
+    final url = Uri.parse("$base/pending/approve/$id");
 
-    return res.statusCode == 200;
+    final res = await http.post(url, headers: headers);
+
+    if (res.statusCode != 200) return false;
+
+    final data = jsonDecode(res.body);
+    return data["status"] == "success";
   }
 
-  /// Reject shop
+  // -------------------------------------------------------
+  // REJECT SHOP
+  // -------------------------------------------------------
   Future<bool> rejectShop(String id) async {
-    final res = await http.delete(
-      Uri.parse("$base/pending/reject/$id"),
-      headers: {
-        "Authorization": "Bearer ${AuthService.token}",
-      },
-    );
+    final url = Uri.parse("$base/pending/reject/$id");
 
-    return res.statusCode == 200;
+    final res = await http.delete(url, headers: headers);
+
+    if (res.statusCode != 200) return false;
+
+    final data = jsonDecode(res.body);
+    return data["status"] == "success";
   }
 }

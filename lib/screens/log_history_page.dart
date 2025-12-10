@@ -45,7 +45,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     final segment = widget.user["segment"];
 
     // ******** GET FROM REAL API ******** //
-    List<dynamic> raw = await ApiService.getLogs(role, segment, userId);
+    List<dynamic> raw = await ApiService.getLogs();
 
     // ******** MAP TO APP FORMAT ******** //
     List<dynamic> all = raw.map((l) {

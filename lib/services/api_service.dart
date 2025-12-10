@@ -1,43 +1,47 @@
 // ------------------------------------------------------------
-// API SERVICE (FULLY MATCHED TO YOUR NODE BACKEND)
+// API SERVICE (MATCHED EXACTLY TO YOUR NODE BACKEND)
 // ------------------------------------------------------------
 
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart' as auth;
 
 class ApiService {
-  static const String baseUrl = "https://abhinav-backend-4.onrender.com";
+  static const String baseUrl = "https://abhinav-backend-4.onrender.com/api";
+  // LOCAL TESTING:
+  // static const String baseUrl = "http://192.168.1.2:5000/api";
 
-
+  // --------------------------------------------------------
   // COMMON HEADERS
+  // --------------------------------------------------------
   static Map<String, String> get headers => {
         "Content-Type": "application/json",
-        "Accept": "application/json",
         if (auth.AuthService.token != null)
-          "Authorization": "Bearer ${auth.AuthService.token}"
+          "Authorization": "Bearer ${auth.AuthService.token}",
       };
 
-
   // --------------------------------------------------------
-  // LOGIN
+  // LOGIN (BACKEND EXPECTS user_id + password)
   // --------------------------------------------------------
-  static Future<Map<String, dynamic>> login(String mobile, String password) async {
+  static Future<Map<String, dynamic>> login(String userId, String password) async {
     final res = await http.post(
-      Uri.parse("$baseUrl/api/auth/login"),
+      Uri.parse("$baseUrl/auth/login"),
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"mobile": mobile, "password": password}),
+      body: jsonEncode({
+        "user_id": userId,
+        "password": password,
+      }),
     );
+
     return jsonDecode(res.body);
   }
 
   // --------------------------------------------------------
-  // GET ALL SHOPS  ✔ Backend route = /api/shop/all
+  // GET ALL SHOPS ✔ Correct backend path: /api/shop/all
   // --------------------------------------------------------
-  static Future<List<dynamic>> getShops(String role, String segment) async {
+  static Future<List<dynamic>> getShops() async {
     final res = await http.get(
-      Uri.parse("$baseUrl/api/shop/all"),
+      Uri.parse("$baseUrl/shop/all"),
       headers: headers,
     );
 
@@ -48,29 +52,33 @@ class ApiService {
   }
 
   // --------------------------------------------------------
-  // GET ASSIGNED SHOPS ✔ Backend route = /api/assigned/list/:salesmanId
+  // GET ASSIGNED SHOPS ✔ Correct backend path: /api/assigned/:salesmanId
   // --------------------------------------------------------
-  static Future<List<dynamic>> getAssignedShops(
-      String role, String segment, String salesmanId) async {
+ static Future<List<dynamic>> getAssignedShops(String salesmanId) async {
+  final res = await http.get(
+    Uri.parse("$baseUrl/assigned/$salesmanId"),
+    headers: headers,
+  );
 
-    final res = await http.get(
-      Uri.parse("$baseUrl/api/assigned/list/$salesmanId"),
-      headers: headers,
-    );
+  print("ASSIGNED RESPONSE = ${res.body}");
 
-    if (res.statusCode != 200) return [];
+  if (res.statusCode != 200) return [];
 
-    final body = jsonDecode(res.body);
-    return body["assigned"] ?? [];
-  }
+  final body = jsonDecode(res.body);
+
+  return body["shops"] ?? []; // ✔ matches updated backend
+}
 
   // --------------------------------------------------------
-  // REMOVE ASSIGNED SHOP ✔ Backend expects (shopId, salesmanId)
+  // REMOVE ASSIGNED SHOP ❗ NEEDS CORRECT BACKEND ROUTE
   // --------------------------------------------------------
   static Future<Map<String, dynamic>> removeAssignedShop(
       String shopId, String salesmanId) async {
+
+    final url = Uri.parse("$baseUrl/assign/remove"); // ❗ backend missing this route
+
     final res = await http.post(
-      Uri.parse("$baseUrl/api/assign/remove"),
+      url,
       headers: headers,
       body: jsonEncode({
         "shopId": shopId,
@@ -78,17 +86,16 @@ class ApiService {
       }),
     );
 
+    print("REMOVE ASSIGN RESPONSE = ${res.body}");
     return jsonDecode(res.body);
   }
 
   // --------------------------------------------------------
-  // GET LOGS ✔ Backend route = /api/logs
+  // GET VISIT LOGS ✔ Correct backend path: /api/logs
   // --------------------------------------------------------
-  static Future<List<dynamic>> getLogs(
-      String role, String segment, String userId) async {
-
+  static Future<List<dynamic>> getLogs() async {
     final res = await http.get(
-      Uri.parse("$baseUrl/api/logs"),
+      Uri.parse("$baseUrl/logs"),
       headers: headers,
     );
 
@@ -97,27 +104,25 @@ class ApiService {
     final json = jsonDecode(res.body);
     return json["logs"] ?? [];
   }
+
   // --------------------------------------------------------
-// ASSIGN SHOP TO SALESMAN
-// --------------------------------------------------------
-static Future<bool> assignShop(
-    String shopId, String salesmanId, String assignedBy) async {
-  
-  final url = Uri.parse("$baseUrl/api/assign/add");
+  // ASSIGN SHOP ✔ Backend path: /api/assign/add
+  // --------------------------------------------------------
+  static Future<bool> assignShop(
+      String shopId, String salesmanId, String assignedBy) async {
+    final res = await http.post(
+      Uri.parse("$baseUrl/assign/add"),
+      headers: headers,
+      body: jsonEncode({
+        "shopId": shopId,
+        "salesmanId": salesmanId,
+        "assignedBy": assignedBy,
+      }),
+    );
 
-  final res = await http.post(
-    url,
-    headers: headers,
-    body: jsonEncode({
-      "shopId": shopId,
-      "salesmanId": salesmanId,
-      "assignedBy": assignedBy,
-    }),
-  );
+    print("ASSIGN SHOP RESPONSE = ${res.body}");
 
-  print("ASSIGN SHOP RESPONSE = ${res.body}");
-
-  return res.statusCode == 200;
-}
-
+    final data = jsonDecode(res.body);
+    return data["status"] == "success";
+  }
 }
