@@ -1,9 +1,10 @@
+// 📌 auth_service.dart
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  // 🔥 Your Render backend URL
   static const String baseUrl =
       "https://abhinav-backend-4.onrender.com/api/auth";
 
@@ -11,7 +12,7 @@ class AuthService {
   static Map<String, dynamic>? currentUser;
 
   // -------------------------------------------------------
-  // LOAD SAVED USER + TOKEN
+  // INIT (LOAD SAVED SESSION)
   // -------------------------------------------------------
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -25,7 +26,7 @@ class AuthService {
   }
 
   // -------------------------------------------------------
-  // LOGIN (WITH SINGLE-DEVICE SECURITY)
+  // LOGIN
   // -------------------------------------------------------
   static Future<bool> login(String mobile, String password) async {
     try {
@@ -35,7 +36,7 @@ class AuthService {
         url,
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json", // ⭐ REQUIRED FOR CORS
+          "Accept": "application/json",
         },
         body: jsonEncode({
           "mobile": mobile,
@@ -49,18 +50,17 @@ class AuthService {
 
       final data = jsonDecode(res.body);
 
-      // MULTI LOGIN BLOCK (BACKEND ERROR MESSAGE)
       if (data["status"] != "success") {
         print("LOGIN ERROR: ${data["message"]}");
         return false;
       }
 
-      // SAVE DATA
+      // Save token + user
       token = data["token"];
       currentUser = data["user"];
 
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString("token", token!);
+      await prefs.setString("token", token ?? "");
       await prefs.setString("user", jsonEncode(currentUser));
 
       return true;
@@ -72,7 +72,7 @@ class AuthService {
   }
 
   // -------------------------------------------------------
-  // LOGOUT (RELEASE ACTIVE SESSION FROM BACKEND)
+  // LOGOUT
   // -------------------------------------------------------
   static Future<void> logout() async {
     try {
@@ -84,7 +84,7 @@ class AuthService {
         url,
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json", // ⭐ REQUIRED FOR CORS
+          "Accept": "application/json",
           "Authorization": "Bearer $token",
         },
         body: jsonEncode({
@@ -95,10 +95,10 @@ class AuthService {
       print("LOGOUT ERROR: $e");
     }
 
-    // CLEAR LOCAL STORAGE ALWAYS
+    // CLEAR LOCAL STORAGE
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove("token");
-    await prefs.remove("user");
+    prefs.remove("token");
+    prefs.remove("user");
 
     token = null;
     currentUser = null;

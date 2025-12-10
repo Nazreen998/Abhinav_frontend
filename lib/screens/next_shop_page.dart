@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
-
+import 'match_page.dart';
 import '../models/shop_model.dart';
 import '../services/assign_service.dart';
 import '../services/auth_service.dart';
@@ -16,37 +16,59 @@ class NextShopPage extends StatefulWidget {
 class _NextShopPageState extends State<NextShopPage> {
   final AssignService assignService = AssignService();
   List<ShopModel> shops = [];
+
   bool loading = true;
 
   @override
   void initState() {
     super.initState();
-    loadShops();
+    loadAssignedShops();
   }
 
-  Future<void> loadShops() async {
-    setState(() => loading = true);
+  // ---------------------------------------------------------
+  // LOAD NEXT SHOPS (distance sorted)
+  // ---------------------------------------------------------
+  Future<void> loadAssignedShops() async {
+    loading = true;
+    setState(() {});
 
     final user = AuthService.currentUser;
     if (user == null) {
-      setState(() => loading = false);
+      loading = false;
+      setState(() {});
       return;
     }
 
-    Position pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+    Position position;
+    try {
+      position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Enable location: $e")),
+      );
+      loading = false;
+      setState(() {});
+      return;
+    }
 
-    final data = await assignService.getNextShops(
+    // API → /assign/next/:userId
+    final result = await assignService.getNextShops(
       user["user_id"],
-      pos.latitude,
-      pos.longitude,
+      position.latitude,
+      position.longitude,
     );
 
-    shops = data.map((e) => ShopModel.fromJson(e)).toList();
+    shops = result.map((e) => ShopModel.fromJson(e)).toList();
 
-    setState(() => loading = false);
+    loading = false;
+    setState(() {});
   }
 
+  // ---------------------------------------------------------
+  // OPEN GOOGLE MAPS
+  // ---------------------------------------------------------
   Future<void> openMaps(double lat, double lng) async {
     final Uri url = Uri.parse(
         "https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving");
@@ -78,111 +100,129 @@ class _NextShopPageState extends State<NextShopPage> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.arrow_back,
-                              color: Colors.white, size: 28),
+                              size: 28, color: Colors.white),
                           onPressed: () => Navigator.pop(context),
                         ),
                         const Text(
                           "Next Shops",
                           style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white),
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ],
                     ),
+
                     const SizedBox(height: 10),
 
-                    // IF NO SHOPS
+                    // NO SHOPS
                     if (shops.isEmpty)
                       const Expanded(
                         child: Center(
                           child: Text(
-                            "No shops assigned",
+                            "No assigned shops found",
                             style: TextStyle(
-                                fontSize: 20,
                                 color: Colors.white,
+                                fontSize: 20,
                                 fontWeight: FontWeight.bold),
                           ),
                         ),
                       )
                     else
-                      // SHOW LIST
+                      // SHOPS LIST
                       Expanded(
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: shops.length,
-                          itemBuilder: (context, i) {
-                            final s = shops[i];
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(18),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black26,
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 3),
-                                  )
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    s.shopName,
-                                    style: const TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF003366),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(s.address,
-                                      style: const TextStyle(
-                                          fontSize: 15, color: Colors.black54)),
-
-                                  const SizedBox(height: 12),
-                                  Text("Lat: ${s.lat}, Lng: ${s.lng}"),
-
-                                  const SizedBox(height: 20),
-
-                                  // OPEN IN MAP
-                                  ElevatedButton(
-                                    onPressed: () =>
-                                        openMaps(s.lat, s.lng),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blue,
-                                    ),
-                                    child: const Text("Open in Google Maps"),
-                                  ),
-
-                                  const SizedBox(height: 10),
-
-                                  // MATCH BUTTON
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.pushNamed(
-                                        context,
-                                        "/match",
-                                        arguments: s.toJson(),
-                                      );
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
-                                    ),
-                                    child: const Text("MATCH"),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
+                        child: RefreshIndicator(
+                          onRefresh: loadAssignedShops,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(14),
+                            itemCount: shops.length,
+                            itemBuilder: (_, i) {
+                              final s = shops[i];
+                              return shopCard(s);
+                            },
+                          ),
                         ),
                       ),
                   ],
                 ),
         ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------
+  // SHOP CARD UI
+  // ---------------------------------------------------------
+  Widget shopCard(ShopModel s) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          )
+        ],
+      ),
+
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            s.shopName,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF003366),
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(
+            s.address,
+            style: const TextStyle(color: Colors.black54, fontSize: 15),
+          ),
+
+          const SizedBox(height: 10),
+
+          Text("Lat: ${s.lat}, Lng: ${s.lng}",
+              style: const TextStyle(color: Colors.black87)),
+
+          const SizedBox(height: 18),
+
+          // OPEN MAPS BUTTON
+          ElevatedButton(
+            onPressed: () => openMaps(s.lat, s.lng),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueAccent,
+            ),
+            child: const Text("Open in Google Maps"),
+          ),
+
+          const SizedBox(height: 10),
+
+          // MATCH PAGE BUTTON
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+               context,
+                MaterialPageRoute(
+                builder: (_) => MatchPage(shop: s.toJson()),
+  ),
+);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+            ),
+            child: const Text("MATCH"),
+          ),
+        ],
       ),
     );
   }

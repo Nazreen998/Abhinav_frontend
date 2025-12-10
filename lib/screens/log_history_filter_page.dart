@@ -26,6 +26,7 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
     final role = widget.user["role"].toString().toLowerCase();
     final segment = widget.user["segment"].toString().toUpperCase();
 
+    // ---------- SEGMENT OPTIONS ----------
     if (role == "manager") {
       segmentOptions = ["All", segment];
     } else if (role == "salesman") {
@@ -36,6 +37,7 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
     }
   }
 
+  // ----------------- DATE PICKERS -----------------
   Future<void> pickStart() async {
     final d = await showDatePicker(
       context: context,
@@ -43,7 +45,6 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
       firstDate: DateTime(2022),
       lastDate: DateTime.now(),
     );
-
     if (d != null) setState(() => startDate = d);
   }
 
@@ -54,18 +55,33 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
       firstDate: DateTime(2022),
       lastDate: DateTime.now(),
     );
-
     if (d != null) setState(() => endDate = d);
   }
 
+  // ----------------- APPLY FILTERS -----------------
   void applyFilters() {
+    // FIX: Result -> correct values for backend matching
+    String resultMapped = resultFilter == "All"
+        ? "All"
+        : (resultFilter == "Match" ? "match" : "mismatch");
+
+    // FIX: Avoid invalid date ranges
+    if (startDate != null && endDate != null) {
+      if (endDate!.isBefore(startDate!)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("End date cannot be before Start date")),
+        );
+        return;
+      }
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => LogHistoryPage(
           user: widget.user,
-          segment: segmentFilter,
-          result: resultFilter,
+          segment: segmentFilter.toUpperCase(),
+          result: resultMapped,
           startDate: startDate,
           endDate: endDate,
         ),
@@ -93,7 +109,7 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🔙 BACK BUTTON + HEADING
+              // HEADER
               Row(
                 children: [
                   IconButton(
@@ -114,7 +130,7 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
 
               const SizedBox(height: 10),
 
-              // WHITE CARD
+              // CONTENT
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(18),
@@ -133,27 +149,27 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
                         decoration: inputDecor("Segment"),
                         value: segmentFilter,
                         items: segmentOptions
-                            .map((e) =>
-                                DropdownMenuItem(value: e, child: Text(e)))
+                            .map((e) => DropdownMenuItem(
+                                value: e, child: Text(e)))
                             .toList(),
                         onChanged: (v) => setState(() => segmentFilter = v!),
                       ),
 
                       const SizedBox(height: 18),
 
+                      // RESULT DROPDOWN
                       DropdownButtonFormField(
                         decoration: inputDecor("Result"),
                         value: resultFilter,
                         items: resultOptions
-                            .map((e) =>
-                                DropdownMenuItem(value: e, child: Text(e)))
+                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                             .toList(),
                         onChanged: (v) => setState(() => resultFilter = v!),
                       ),
 
                       const SizedBox(height: 25),
 
-                      // DATE ROW
+                      // DATE BUTTONS
                       Row(
                         children: [
                           Expanded(
@@ -184,7 +200,7 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
 
                       const Spacer(),
 
-                      // SHOW LOGS BUTTON
+                      // APPLY FILTERS BUTTON
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -213,7 +229,7 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
     );
   }
 
-  // TEXT FIELD / DROPDOWN DECORATION
+  // ---------- INPUT DECOR ----------
   InputDecoration inputDecor(String label) {
     return InputDecoration(
       labelText: label,
@@ -233,7 +249,7 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
     );
   }
 
-  // DATE BUTTON STYLE
+  // ---------- DATE BUTTON ----------
   ButtonStyle dateBtn() {
     return ElevatedButton.styleFrom(
       backgroundColor: Colors.blue.shade100,

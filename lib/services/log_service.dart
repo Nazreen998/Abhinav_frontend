@@ -1,81 +1,15 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../services/auth_service.dart';
-import '../models/log_model.dart';
+import 'auth_service.dart';
 
 class LogService {
   static const String baseUrl =
       "https://abhinav-backend-4.onrender.com/api";
 
-  // ---------------- SAVE VISIT LOG ----------------
-  Future<bool> saveVisit(LogModel log) async {
-    try {
-      final url = Uri.parse("$baseUrl/visitShop"); // CORRECT ROUTE
-
-      final res = await http.post(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${AuthService.token}",
-        },
-        body: jsonEncode(log.toJson()),
-      );
-
-      print("SAVE VISIT RESPONSE = ${res.body}");
-
-      return res.statusCode == 200;
-
-    } catch (e) {
-      print("Save Visit Error: $e");
-      return false;
-    }
-  }
-
-  // ---------------- FETCH LOGS ----------------
-  Future<List<dynamic>> getLogs({
-    required String role,
-    required String userId,
-    required String segment,
-  }) async {
-    try {
-      final url = Uri.parse("$baseUrl/logs/filter");
-
-      final body = {
-        "role": role,
-        "user_id": userId,
-        "segment": segment,
-        "filterSegment": "All",
-        "result": "All",
-        "startDate": null,
-        "endDate": null,
-      };
-
-      final res = await http.post(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer ${AuthService.token}",
-        },
-        body: jsonEncode(body),
-      );
-
-      print("LOG RESPONSE = ${res.body}");
-
-      if (res.statusCode != 200) return [];
-
-      return jsonDecode(res.body);
-
-    } catch (e) {
-      print("Log Fetch Error: $e");
-      return [];
-    }
-  }
+  // ---------------- UPLOAD PHOTO ----------------
   Future<String?> uploadPhoto(String base64, String filename) async {
-  try {
-    final url = Uri.parse("$baseUrl/uploadPhoto");
-
     final res = await http.post(
-      url,
+      Uri.parse("$baseUrl/uploadPhoto"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer ${AuthService.token}",
@@ -86,15 +20,21 @@ class LogService {
       }),
     );
 
-    final data = jsonDecode(res.body);
-
-    if (data["status"] == "success") return data["url"];
-    return null;
-
-  } catch (e) {
-    print("Upload error: $e");
-    return null;
+    final json = jsonDecode(res.body);
+    return json["url"]; // {status, url}
   }
-}
 
+  // ---------------- SAVE VISIT ----------------
+  Future<bool> saveVisit(Map<String, dynamic> payload) async {
+    final res = await http.post(
+      Uri.parse("$baseUrl/visit"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${AuthService.token}",
+      },
+      body: jsonEncode(payload),
+    );
+
+    return res.statusCode == 200;
+  }
 }

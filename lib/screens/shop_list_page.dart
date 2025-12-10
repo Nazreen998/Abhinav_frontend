@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/shop_service.dart';
+import '../services/api_service.dart';
 import '../services/auth_service.dart';
-
-import '../models/shop_model.dart';
 
 class ShopListPage extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -14,91 +12,98 @@ class ShopListPage extends StatefulWidget {
 
 class _ShopListPageState extends State<ShopListPage>
     with SingleTickerProviderStateMixin {
-  final ShopService shopService = ShopService();
+  List shops = [];
+  List filtered = [];
 
-  List<ShopModel> shops = [];
-  List<ShopModel> filteredShops = [];
-
-  String searchQuery = "";
   bool loading = true;
+  String search = "";
 
   late AnimationController controller;
   late Animation<double> fadeAnim;
+
+  String role = "";
+  String segment = "";
+  String userId = "";
 
   @override
   void initState() {
     super.initState();
 
-    controller =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    role = widget.user["role"].toString().toLowerCase();
+    segment = widget.user["segment"] ?? "";
+    userId = widget.user["user_id"] ?? "";
+
+    controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
     fadeAnim = CurvedAnimation(parent: controller, curve: Curves.easeIn);
 
-    _loadShops();
+    loadShops();
   }
 
-  Future<void> _loadShops() async {
-  setState(() => loading = true);
+  // -------------------------------------------------------------------
+  // LOAD SHOPS CORRECTLY BASED ON ROLE
+  // -------------------------------------------------------------------
+  Future<void> loadShops() async {
+    if (!mounted) return;
+    setState(() => loading = true);
 
-  // Ensure token is loaded
-  if (AuthService.token == null) {
-    await AuthService.init();
+    List<dynamic> res = [];
+
+    if (role == "master") {
+      // MASTER → GET ALL SHOPS
+      res = await ApiService.getShops(role, segment);
+    } else {
+      // SALESMAN → GET ONLY ASSIGNED SHOPS
+      res = await ApiService.getAssignedShops(role, segment, userId);
+    }
+
+    shops = res;
+    applyFilters();
+
+    controller.forward();
+
+    if (!mounted) return;
+    setState(() => loading = false);
   }
 
-  final data = await shopService.getShops();
-  shops = data;
-  _applyRoleFilters();
-
-  controller.forward();
-  setState(() => loading = false);
-}
-
-
-  void _applyRoleFilters() {
-  String role = widget.user["role"] ?? "";
-  String segment = widget.user["segment"] ?? "";
-
-  if (role.toLowerCase() == "master") {
-    filteredShops = shops;       // MASTER sees all shops
-  } else {
-    filteredShops = shops.where(
-      (s) => s.segment.trim().toLowerCase() == segment.trim().toLowerCase()
-    ).toList();
+  // -------------------------------------------------------------------
+  // APPLY FILTERS BASED ON ROLE + SEGMENT
+  // -------------------------------------------------------------------
+  void applyFilters() {
+    if (role == "master") {
+      filtered = shops;
+    } else {
+      filtered = shops.where((shop) {
+        return shop["segment"]
+                .toString()
+                .toLowerCase() ==
+            segment.toLowerCase();
+      }).toList();
+    }
   }
-}
 
+  // -------------------------------------------------------------------
+  // SEARCH FILTER
+  // -------------------------------------------------------------------
+  List get searchResult {
+    return filtered.where((shop) {
+      final name = shop["shop_name"].toString().toLowerCase();
+      final address = shop["address"].toString().toLowerCase();
+      final q = search.toLowerCase();
 
-  List<ShopModel> _searchFiltered() {
-    return filteredShops.where((shop) {
-      return shop.shopName.toLowerCase().contains(searchQuery.toLowerCase()) ||
-          shop.address.toLowerCase().contains(searchQuery.toLowerCase());
+      return name.contains(q) || address.contains(q);
     }).toList();
   }
 
-  Color _getSegmentColor(String segment) {
-    switch (segment.toUpperCase()) {
-      case "FMCG":
-        return Colors.blue.shade800;
-      case "PIPES":
-        return Colors.orange.shade800;
-      default:
-        return Colors.purple.shade700;
-    }
-  }
-
-  Color _getSegmentBG(String segment) {
-    switch (segment.toUpperCase()) {
-      case "FMCG":
-        return Colors.blue.shade100;
-      case "PIPES":
-        return Colors.orange.shade100;
-      default:
-        return Colors.purple.shade100;
-    }
-  }
-
+  // -------------------------------------------------------------------
+  // UI STARTS
+  // -------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
-    final result = _searchFiltered();
+    final listToShow = searchResult;
 
     return Scaffold(
       body: Container(
@@ -113,16 +118,14 @@ class _ShopListPageState extends State<ShopListPage>
             end: Alignment.bottomCenter,
           ),
         ),
-
         child: SafeArea(
           child: Column(
             children: [
-              // BACK BUTTON + TITLE
               Row(
                 children: [
                   IconButton(
-                    icon:
-                        const Icon(Icons.arrow_back, size: 28, color: Colors.white),
+                    icon: const Icon(Icons.arrow_back,
+                        size: 28, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
                   ),
                   const Text(
@@ -132,17 +135,16 @@ class _ShopListPageState extends State<ShopListPage>
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
-                  )
+                  ),
                 ],
               ),
-
               const SizedBox(height: 10),
 
-              // SEARCH BAR
+              // SEARCH BOX
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: TextField(
-                  onChanged: (v) => setState(() => searchQuery = v),
+                  onChanged: (v) => setState(() => search = v),
                   decoration: InputDecoration(
                     hintText: "Search shops...",
                     prefixIcon: const Icon(Icons.search),
@@ -157,18 +159,18 @@ class _ShopListPageState extends State<ShopListPage>
 
               const SizedBox(height: 10),
 
-              // SHOP LIST
               Expanded(
                 child: loading
                     ? const Center(child: CircularProgressIndicator())
-                    : result.isEmpty
+                    : listToShow.isEmpty
                         ? const Center(
                             child: Text(
                               "No shops found",
                               style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold),
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           )
                         : FadeTransition(
@@ -176,10 +178,9 @@ class _ShopListPageState extends State<ShopListPage>
                             child: ListView.builder(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: result.length,
-                              itemBuilder: (context, index) {
-                                return _shopCard(result[index]);
-                              },
+                              itemCount: listToShow.length,
+                              itemBuilder: (_, i) =>
+                                  buildShopCard(listToShow[i]),
                             ),
                           ),
               ),
@@ -190,7 +191,24 @@ class _ShopListPageState extends State<ShopListPage>
     );
   }
 
-  Widget _shopCard(ShopModel shop) {
+  // -------------------------------------------------------------------
+  // SHOP CARD
+  // -------------------------------------------------------------------
+  Widget buildShopCard(Map shop) {
+    final seg = shop["segment"].toString().toUpperCase();
+
+    Color segColor = seg == "FMCG"
+        ? Colors.blue
+        : seg == "PIPES"
+            ? Colors.orange
+            : Colors.purple;
+
+    Color segBG = seg == "FMCG"
+        ? Colors.blue.shade100
+        : seg == "PIPES"
+            ? Colors.orange.shade100
+            : Colors.purple.shade100;
+
     return Container(
       padding: const EdgeInsets.all(18),
       margin: const EdgeInsets.only(bottom: 14),
@@ -205,31 +223,22 @@ class _ShopListPageState extends State<ShopListPage>
           )
         ],
       ),
-
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Shop Name
           Text(
-            shop.shopName,
+            shop["shop_name"],
             style: const TextStyle(
               color: Color(0xFF003366),
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 6),
-
-          // Address
           Text(
-            shop.address,
-            style: const TextStyle(
-              color: Colors.black54,
-              fontSize: 15,
-            ),
+            shop["address"],
+            style: const TextStyle(color: Colors.black54, fontSize: 15),
           ),
-
           const SizedBox(height: 10),
 
           // SEGMENT BADGE
@@ -237,13 +246,13 @@ class _ShopListPageState extends State<ShopListPage>
             padding:
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: _getSegmentBG(shop.segment),
+              color: segBG,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              shop.segment.toUpperCase(),
+              seg,
               style: TextStyle(
-                color: _getSegmentColor(shop.segment),
+                color: segColor,
                 fontWeight: FontWeight.bold,
               ),
             ),

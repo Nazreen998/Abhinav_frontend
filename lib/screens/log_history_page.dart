@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../services/log_service.dart';
-import '../models/log_model.dart';
-import '../services/auth_service.dart';
 import 'package:intl/intl.dart';
-import 'full_network_image_page.dart';   // 🔥 NEW IMPORT FOR PHOTO VIEW
+import '../services/api_service.dart';
+import 'full_network_image_page.dart';
 
 class LogHistoryPage extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -27,10 +25,8 @@ class LogHistoryPage extends StatefulWidget {
 }
 
 class _LogHistoryPageState extends State<LogHistoryPage> {
-  final logService = LogService();
-  List<LogModel> logs = [];
+  List<dynamic> logs = [];
   bool loading = true;
-
   String search = "";
 
   @override
@@ -39,98 +35,94 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     loadLogs();
   }
 
-  // --------------------------------------------------------------
-  // Convert OLD DB date + time → DateTime
-  // --------------------------------------------------------------
-  DateTime parseOldDate(String date, String time) {
-    if (date.isEmpty || time.isEmpty) return DateTime(1900);
-
-    final parts = date.contains("/") ? date.split("/") : date.split("-");
-    final d = int.parse(parts[0]);
-    final m = int.parse(parts[1]);
-    final y = int.parse(parts[2]);
-
-    final t = time.split(":");
-    final hh = int.parse(t[0]);
-    final mm = int.parse(t[1]);
-    final ss = int.parse(t[2]);
-
-    return DateTime(y, m, d, hh, mm, ss);
-  }
-
-  String prettyDate(String date, String time) {
-    final dt = parseOldDate(date, time);
-    return DateFormat("dd-MM-yyyy").format(dt);
-  }
-
-  String prettyTime(String date, String time) {
-    final dt = parseOldDate(date, time);
-    return DateFormat("hh:mm a").format(dt);
-  }
-
   // ---------------- LOAD LOGS ---------------- //
   Future<void> loadLogs() async {
-    loading = true;
-    setState(() {});
+    if (!mounted) return;
+    setState(() => loading = true);
 
     final role = widget.user["role"].toString().toLowerCase();
-    final userId = widget.user["user_id"].toString();
-    final segment = widget.user["segment"].toString();
+    final userId = widget.user["user_id"];
+    final segment = widget.user["segment"];
 
-    List<dynamic> raw = await logService.getLogs(
-      role: role,
-      userId: userId,
-      segment: segment,
-    );
+    // ******** GET FROM REAL API ******** //
+    List<dynamic> raw = await ApiService.getLogs(role, segment, userId);
 
-    List<LogModel> all = raw.map((e) => LogModel.fromJson(e)).toList();
-    List<LogModel> filtered = all;
+    // ******** MAP TO APP FORMAT ******** //
+    List<dynamic> all = raw.map((l) {
+      DateTime dt = DateTime.parse(l["created_at"]);
 
-    // SALESMAN
-    if (role == "salesman") {
-      filtered = filtered.where((l) => l.userId == userId).toList();
-    }
-
-    // MANAGER
-    if (role == "manager") {
-      filtered = filtered.where((l) => l.segment == segment.toUpperCase()).toList();
-    }
-
-    // FILTER → Segment
-    if (widget.segment != "All") {
-      filtered = filtered
-          .where((l) => l.segment.toUpperCase() == widget.segment.toUpperCase())
-          .toList();
-    }
-
-    // FILTER → Result
-    if (widget.result != "All") {
-      filtered = filtered
-          .where((l) => l.result.toLowerCase() == widget.result.toLowerCase())
-          .toList();
-    }
-
-    // DATE FILTER
-    filtered = filtered.where((l) {
-      final dt = parseOldDate(l.date, l.time);
-
-      if (widget.startDate != null && dt.isBefore(widget.startDate!)) return false;
-      if (widget.endDate != null && dt.isAfter(widget.endDate!)) return false;
-
-      return true;
+      return {
+        "shopName": l["shop_name"] ?? "",
+        "salesman": l["salesman_name"] ?? "",
+        "photoUrl": l["imageUrl"] ?? "",
+        "match": l["match"] == true,
+        "distance": (l["distance"] ?? 0).toDouble(),
+        "date": DateFormat("dd-MM-yyyy").format(dt),
+        "time": DateFormat("hh:mm a").format(dt),
+        "segment": l["segment"] ?? "",
+      };
     }).toList();
 
+    // --------------------------------------------------------------------
+    // ROLE BASED FILTERING
+    // --------------------------------------------------------------------
+    List<dynamic> filtered = all;
+
+    if (role == "salesman") {
+      filtered = filtered.where((l) => l["salesman"] == widget.user["name"]).toList();
+    }
+
+    if (role == "manager") {
+      filtered = filtered.where((l) =>
+          l["segment"].toString().toLowerCase() ==
+              segment.toLowerCase()).toList();
+    }
+
+    // --------------------------------------------------------------------
+    // FILTER BY SEGMENT (from filter screen)
+    // --------------------------------------------------------------------
+    if (widget.segment != "All") {
+      filtered = filtered.where((l) =>
+          l["segment"].toString().toUpperCase() ==
+              widget.segment.toUpperCase()).toList();
+    }
+
+    // --------------------------------------------------------------------
+    // FILTER BY RESULT (match/mismatch)
+    // --------------------------------------------------------------------
+    if (widget.result != "All") {
+      bool wantMatch = widget.result.toLowerCase() == "match";
+      filtered = filtered.where((l) => l["match"] == wantMatch).toList();
+    }
+
+    // --------------------------------------------------------------------
+    // FILTER BY DATE RANGE
+    // --------------------------------------------------------------------
+    if (widget.startDate != null || widget.endDate != null) {
+      filtered = filtered.where((l) {
+        DateTime dt = DateFormat("dd-MM-yyyy").parse(l["date"]);
+
+        if (widget.startDate != null && dt.isBefore(widget.startDate!)) return false;
+        if (widget.endDate != null && dt.isAfter(widget.endDate!)) return false;
+
+        return true;
+      }).toList();
+    }
+
     logs = filtered;
-    loading = false;
-    setState(() {});
+
+    if (!mounted) return;
+    setState(() => loading = false);
   }
 
-  // ---------------- UI SECTION ---------------- //
+  // --------------------------------------------------------------------
+  // UI STARTS
+  // --------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
-    final matched = logs.where((l) => l.result == "match").length;
-    final mismatched = logs.where((l) => l.result == "mismatch").length;
+    final matched = logs.where((l) => l["match"] == true).length;
+    final mismatched = logs.where((l) => l["match"] == false).length;
 
     return Scaffold(
       body: Container(
@@ -151,12 +143,10 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                         size: 28, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
                   ),
-
                   IconButton(
                     icon: const Icon(Icons.refresh, color: Colors.white),
                     onPressed: loadLogs,
                   ),
-
                   const Text(
                     "Log History",
                     style: TextStyle(
@@ -167,8 +157,6 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                   ),
                 ],
               ),
-
-              const SizedBox(height: 10),
 
               Expanded(
                 child: Container(
@@ -236,12 +224,11 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     );
   }
 
-  // ---------------- LIST ---------------- //
   Widget buildList() {
     if (loading) return const Center(child: CircularProgressIndicator());
 
     final result = logs.where((l) {
-      return l.shopName.toLowerCase().contains(search.toLowerCase());
+      return l["shopName"].toLowerCase().contains(search.toLowerCase());
     }).toList();
 
     if (result.isEmpty) return const Center(child: Text("No logs found"));
@@ -250,6 +237,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
       itemCount: result.length,
       itemBuilder: (_, i) {
         final log = result[i];
+        final isMatch = log["match"] == true;
 
         return Card(
           elevation: 3,
@@ -262,7 +250,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => FullNetworkImagePage(
-                      imageUrl: log.photoUrl,
+                      imageUrl: log["photoUrl"],
                     ),
                   ),
                 );
@@ -271,26 +259,28 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                 radius: 26,
                 backgroundColor: Colors.grey.shade300,
                 backgroundImage:
-                    log.photoUrl.isNotEmpty ? NetworkImage(log.photoUrl) : null,
-                child: log.photoUrl.isEmpty
+                    log["photoUrl"] != "" ? NetworkImage(log["photoUrl"]) : null,
+                child: log["photoUrl"] == ""
                     ? const Icon(Icons.photo, color: Colors.black54)
                     : null,
               ),
             ),
 
             title: Text(
-              log.shopName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              "${log["shopName"]} (${isMatch ? "MATCH" : "MISMATCH"})",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isMatch ? Colors.green : Colors.red,
+              ),
             ),
 
             subtitle: Text(
-              "${prettyDate(log.date, log.time)} • ${prettyTime(log.date, log.time)}\n"
-              "Salesman: ${log.salesman}\n"
-              "Result: ${log.result.toUpperCase()}",
+              "${log["date"]} @ ${log["time"]}\n"
+              "Salesman: ${log["salesman"]}",
             ),
 
             trailing: Text(
-              "${log.distance.toStringAsFixed(1)} m",
+              "${log["distance"].toStringAsFixed(1)} m",
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.deepPurple,

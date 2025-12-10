@@ -12,7 +12,8 @@ import '../services/auth_service.dart';
 import '../services/visit_service.dart';
 
 class MatchPage extends StatefulWidget {
-  final dynamic shop;
+  final dynamic shop; // Map shop data from assigned list
+
   const MatchPage({super.key, required this.shop});
 
   @override
@@ -21,34 +22,42 @@ class MatchPage extends StatefulWidget {
 
 class _MatchPageState extends State<MatchPage> {
   final VisitService visitService = VisitService();
-  bool processing = false;
 
-  String? previewImageBase64;
-  String? uploadedPhotoUrl;
+  bool processing = false;
+  String? previewBase64;
+  String? uploadedUrl;
+
+  double? distanceMeters;
   double? userLat;
   double? userLng;
-  double? distanceDiff;
 
-  // Distance formula
+  // ---------------------------
+  // Distance Calculation (meters)
+  // ---------------------------
   double calcDistance(double lat1, double lon1, double lat2, double lon2) {
-    const R = 6371000;
+    const R = 6371000; // meters
     final dLat = (lat2 - lat1) * pi / 180;
     final dLon = (lon2 - lon1) * pi / 180;
+
     final a = sin(dLat / 2) * sin(dLat / 2) +
         cos(lat1 * pi / 180) *
             cos(lat2 * pi / 180) *
             sin(dLon / 2) *
             sin(dLon / 2);
+
     return R * 2 * atan2(sqrt(a), sqrt(1 - a));
   }
 
+  // ---------------------------
+  // CAPTURE → GPS → MATCH
+  // ---------------------------
   Future<void> captureAndMatch() async {
     setState(() => processing = true);
 
     final picker = ImagePicker();
     XFile? img;
 
-    // Laptop & Web → file picker only
+    // Web / Laptop → gallery only
     if (kIsWeb || Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       img = await picker.pickImage(source: ImageSource.gallery);
     } else {
@@ -60,46 +69,55 @@ class _MatchPageState extends State<MatchPage> {
       return;
     }
 
+    // IMAGE → BASE64
     final bytes = await img.readAsBytes();
-    previewImageBase64 = base64Encode(bytes);
+    previewBase64 = base64Encode(bytes);
 
-    // Get Live GPS
+    // GET LIVE GPS
     Position pos = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
-
     userLat = pos.latitude;
     userLng = pos.longitude;
 
-    uploadedPhotoUrl = await visitService.uploadPhoto(
-      previewImageBase64!,
+    // UPLOAD PHOTO
+    uploadedUrl = await visitService.uploadPhoto(
+      previewBase64!,
       "visit_${DateTime.now().millisecondsSinceEpoch}.jpg",
     );
 
+    // CALCULATE DISTANCE
     double shopLat = double.tryParse(widget.shop["lat"].toString()) ?? 0.0;
     double shopLng = double.tryParse(widget.shop["lng"].toString()) ?? 0.0;
 
-    distanceDiff = calcDistance(shopLat, shopLng, userLat!, userLng!);
-    String result = distanceDiff! <= 50 ? "match" : "mismatch";
+    distanceMeters = calcDistance(userLat!, userLng!, shopLat, shopLng);
 
+    bool isMatch = distanceMeters! <= 50;
+
+    // SEND VISIT TO BACKEND (NEW FORMAT)
     final payload = {
-  "salesman_id": AuthService.currentUser!["user_id"],
-  "shop_id": widget.shop["shop_id"],
-  "lat": double.parse(userLat!.toString()),
-  "lng": double.parse(userLng!.toString()),
-  "photo_url": uploadedPhotoUrl ?? "",
-};
+      "salesman_id": AuthService.currentUser!["user_id"],
+      "shop_id": widget.shop["shop_id"],
+      "shop_name": widget.shop["shop_name"],
+      "photo_url": uploadedUrl ?? "",
+      "lat": userLat,
+      "lng": userLng,
+      "distance": distanceMeters!.toStringAsFixed(1),
+      "match": isMatch ? "match" : "mismatch",
+      "segment": widget.shop["segment"] ?? "",
+    };
 
     await visitService.visitShop(payload);
 
+    // SHOW RESULT
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          result == "match"
+          isMatch
               ? "MATCH ✔ Within 50 meters"
-              : "MISMATCH ❌ Outside 50 meters",
+              : "MISMATCH ❌ Too far from shop",
         ),
-        backgroundColor: result == "match" ? Colors.green : Colors.red,
+        backgroundColor: isMatch ? Colors.green : Colors.red,
       ),
     );
 
@@ -107,6 +125,9 @@ class _MatchPageState extends State<MatchPage> {
     setState(() => processing = false);
   }
 
+  // ---------------------------
+  // UI
+  // ---------------------------
   @override
   Widget build(BuildContext context) {
     final s = widget.shop;
@@ -131,8 +152,7 @@ class _MatchPageState extends State<MatchPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
-              // TOP BAR
+              // BACK BUTTON + TITLE
               Row(
                 children: [
                   IconButton(
@@ -144,19 +164,19 @@ class _MatchPageState extends State<MatchPage> {
                     "Match Shop",
                     style: TextStyle(
                       fontSize: 26,
-                      fontWeight: FontWeight.bold,
                       color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
-                  )
+                  ),
                 ],
               ),
 
-              const SizedBox(height: 15),
+              const SizedBox(height: 20),
 
-              // WHITE CARD (same as Next Shops UI)
+              // SHOP DETAILS CARD
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 20),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
@@ -168,16 +188,15 @@ class _MatchPageState extends State<MatchPage> {
                     )
                   ],
                 ),
-
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       s["shop_name"],
                       style: const TextStyle(
+                        color: Color(0xFF003366),
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF003366),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -194,51 +213,51 @@ class _MatchPageState extends State<MatchPage> {
               const SizedBox(height: 20),
 
               // PHOTO PREVIEW
-              if (previewImageBase64 != null)
+              if (previewBase64 != null)
                 Container(
                   height: 250,
                   margin: const EdgeInsets.symmetric(horizontal: 20),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(18),
                     image: DecorationImage(
+                      image: MemoryImage(base64Decode(previewBase64!)),
                       fit: BoxFit.cover,
-                      image: MemoryImage(base64Decode(previewImageBase64!)),
                     ),
                   ),
                 ),
 
               const SizedBox(height: 20),
 
-              // DISTANCE
-              if (distanceDiff != null)
+              // DISTANCE DISPLAY
+              if (distanceMeters != null)
                 Center(
                   child: Text(
-                    "Distance: ${distanceDiff!.toStringAsFixed(1)} meters",
+                    "Distance: ${distanceMeters!.toStringAsFixed(1)} meters",
                     style: const TextStyle(
-                      fontSize: 18,
                       color: Colors.white,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 25),
 
-              // MATCH BUTTON (same design as Next Shops)
+              // MATCH BUTTON
               Center(
                 child: ElevatedButton(
                   onPressed: processing ? null : captureAndMatch,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 40, vertical: 14),
+                        horizontal: 45, vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
                   child: Text(
                     processing ? "Processing..." : "Capture & Match",
-                    style: const TextStyle(fontSize: 16),
+                    style: const TextStyle(fontSize: 17),
                   ),
                 ),
               ),

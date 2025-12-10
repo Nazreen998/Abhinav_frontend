@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/user_service.dart';
-import '../services/auth_service.dart';
+import '../services/auth_service.dart' as auth;
 import 'add_user_page.dart';
 import 'edit_user_page.dart';
 
@@ -26,16 +26,21 @@ class _UserListPageState extends State<UserListPage> {
     super.initState();
     loadUsers();
 
-    // Real-time search listener
+    // Live search filter listener
     searchCtrl.addListener(() {
       searchFilter(searchCtrl.text.trim());
     });
   }
 
+  // ------------------------------------------------------
+  // LOAD USERS FROM BACKEND
+  // ------------------------------------------------------
   Future<void> loadUsers() async {
     setState(() => loading = true);
 
     allUsers = await userService.getUsers();
+
+    // Sort alphabetically
     allUsers.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
     filteredUsers = allUsers;
@@ -43,7 +48,9 @@ class _UserListPageState extends State<UserListPage> {
     setState(() => loading = false);
   }
 
-  // 🔎 SUPER-FAST SEARCH FILTER
+  // ------------------------------------------------------
+  // SEARCH FILTER
+  // ------------------------------------------------------
   void searchFilter(String text) {
     final q = text.toLowerCase();
 
@@ -61,12 +68,13 @@ class _UserListPageState extends State<UserListPage> {
     });
   }
 
-  // ❌ DELETE USER WITH CONFIRMATION
+  // ------------------------------------------------------
+  // DELETE USER
+  // ------------------------------------------------------
   Future<void> deleteUser(UserModel u) async {
     final confirm = await showDialog(
       context: context,
       builder: (c) => AlertDialog(
-        backgroundColor: Colors.white,
         title: const Text("Confirm Delete"),
         content: Text("Delete user '${u.name}'?"),
         actions: [
@@ -89,20 +97,19 @@ class _UserListPageState extends State<UserListPage> {
     if (!mounted) return;
 
     if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("User deleted")),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("User deleted")));
       loadUsers();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Delete failed")),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Delete failed")));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (AuthService.currentUser?["role"] != "master") {
+    // MASTER ONLY ACCESS
+    if (auth.AuthService.currentUser?["role"]?.toLowerCase() != "master") {
       return const Scaffold(
         body: Center(
           child: Text(
@@ -117,11 +124,7 @@ class _UserListPageState extends State<UserListPage> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFF007BFF),
-              Color(0xFF66B2FF),
-              Color(0xFFB8E0FF),
-            ],
+            colors: [Color(0xFF007BFF), Color(0xFF66B2FF), Color(0xFFB8E0FF)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -130,7 +133,7 @@ class _UserListPageState extends State<UserListPage> {
         child: SafeArea(
           child: Column(
             children: [
-              // 🔙 BACK BUTTON + TITLE
+              // ---------------- HEADER ----------------
               Row(
                 children: [
                   IconButton(
@@ -151,7 +154,7 @@ class _UserListPageState extends State<UserListPage> {
 
               const SizedBox(height: 10),
 
-              // 🔎 SEARCH BAR WITH CLEAR BUTTON
+              // ---------------- SEARCH BAR ----------------
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: TextField(
@@ -179,6 +182,7 @@ class _UserListPageState extends State<UserListPage> {
 
               const SizedBox(height: 12),
 
+              // ---------------- USER LIST ----------------
               Expanded(
                 child: loading
                     ? const Center(child: CircularProgressIndicator())
@@ -194,8 +198,7 @@ class _UserListPageState extends State<UserListPage> {
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             itemCount: filteredUsers.length,
                             itemBuilder: (_, i) {
-                              final u = filteredUsers[i];
-                              return _userCard(u);
+                              return _userCard(filteredUsers[i]);
                             },
                           ),
               ),
@@ -204,7 +207,7 @@ class _UserListPageState extends State<UserListPage> {
         ),
       ),
 
-      // ➕ ADD USER BUTTON
+      // ---------------- ADD USER BUTTON ----------------
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF0066CC),
         child: const Icon(Icons.add, color: Colors.white),
@@ -218,7 +221,9 @@ class _UserListPageState extends State<UserListPage> {
     );
   }
 
-  // ⭐ STYLISH USER CARD
+  // ------------------------------------------------------
+  // USER CARD WIDGET
+  // ------------------------------------------------------
   Widget _userCard(UserModel u) {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -239,9 +244,10 @@ class _UserListPageState extends State<UserListPage> {
         title: Text(
           u.name,
           style: const TextStyle(
-              color: Color(0xFF003366),
-              fontSize: 18,
-              fontWeight: FontWeight.bold),
+            color: Color(0xFF003366),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         subtitle: Text(
           "Mobile: ${u.mobile}"

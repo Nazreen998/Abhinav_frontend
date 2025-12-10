@@ -11,6 +11,7 @@ import 'add_shop_page.dart';
 
 class HomePage extends StatefulWidget {
   final Map<String, dynamic> user;
+
   const HomePage({super.key, required this.user});
 
   @override
@@ -22,18 +23,22 @@ class _HomePageState extends State<HomePage>
   static const Color darkBlue = Color(0xFF002D62);
 
   late AnimationController _controller;
-  late Animation<double> fadeAnimation;
+  late Animation<double> fadeAnim;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 700));
-    fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+
+    fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+
     _controller.forward();
   }
 
   Future<void> logout() async {
+    AuthService.logout(); // ensure token cleared
     Navigator.pushNamedAndRemoveUntil(context, "/login", (_) => false);
   }
 
@@ -41,18 +46,15 @@ class _HomePageState extends State<HomePage>
   Widget build(BuildContext context) {
     final user = widget.user;
 
-    // SAFE VALUES (AVOID CRASH)
-    final name = (user["name"] ?? "User").toString();
-    final mobile = (user["mobile"] ?? "-").toString();
-    final role = (user["role"] ?? "").toString().toLowerCase();
-    final segment = (user["segment"] ?? "-").toString();
+    final String name = user["name"]?.toString() ?? "User";
+    final String mobile = user["mobile"]?.toString() ?? "-";
+    final String role = user["role"]?.toString().toLowerCase() ?? "";
+    final String segment = user["segment"]?.toString() ?? "-";
+    final String userId = user["user_id"]?.toString() ?? "";
 
-    // SAFE USER ID
-    final userId = user["user_id"]?.toString() ?? "";
-
-    bool isMaster = role == "master";
-    bool isManager = role == "manager";
-    bool isSalesman = role == "salesman";
+    final bool isMaster = role == "master";
+    final bool isManager = role == "manager";
+    final bool isSalesman = role == "salesman";
 
     return Scaffold(
       appBar: AppBar(
@@ -63,7 +65,7 @@ class _HomePageState extends State<HomePage>
           IconButton(
             onPressed: logout,
             icon: const Icon(Icons.logout, color: darkBlue, size: 28),
-          )
+          ),
         ],
       ),
       extendBodyBehindAppBar: true,
@@ -82,12 +84,13 @@ class _HomePageState extends State<HomePage>
         ),
 
         child: FadeTransition(
-          opacity: fadeAnimation,
+          opacity: fadeAnim,
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
               const SizedBox(height: 70),
 
+              // ---------------- WELCOME CARD ----------------
               Container(
                 padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
@@ -98,28 +101,33 @@ class _HomePageState extends State<HomePage>
                       color: Colors.blueAccent.withOpacity(0.25),
                       blurRadius: 12,
                       offset: const Offset(0, 6),
-                    ),
+                    )
                   ],
                 ),
 
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Welcome",
-                        style: TextStyle(color: darkBlue, fontSize: 14)),
+                    const Text(
+                      "Welcome",
+                      style: TextStyle(color: darkBlue, fontSize: 14),
+                    ),
                     const SizedBox(height: 5),
 
-                    Text(name,
-                        style: const TextStyle(
-                            color: darkBlue,
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold)),
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        color: darkBlue,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
 
                     const SizedBox(height: 10),
 
                     Text("Mobile: $mobile",
                         style: const TextStyle(color: darkBlue)),
-                    Text("Role: $role",
+                    Text("Role: ${role.toUpperCase()}",
                         style: const TextStyle(color: darkBlue)),
                     Text("Segment: $segment",
                         style: const TextStyle(color: darkBlue)),
@@ -129,80 +137,93 @@ class _HomePageState extends State<HomePage>
 
               const SizedBox(height: 25),
 
+              // ---------------- HOME GRID ----------------
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisSpacing: 18,
                 mainAxisSpacing: 18,
+
                 children: [
+                  // HISTORY
                   _tile(Icons.history, "History Log", () {
                     Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                LogHistoryFilterPage(user: widget.user)));
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => LogHistoryFilterPage(user: widget.user),
+                      ),
+                    );
                   }),
 
+                  // SHOP LIST
                   _tile(Icons.storefront, "Shop List", () {
                     Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                ShopListPage(user: widget.user)));
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ShopListPage(user: widget.user),
+                      ),
+                    );
                   }),
 
+                  // PENDING SHOPS (Managers + Masters)
                   if (isMaster || isManager)
                     _tile(Icons.pending_actions, "Pending Shops", () {
                       Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) =>
-                                  PendingShopsPage(user: widget.user)));
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PendingShopsPage(user: widget.user),
+                        ),
+                      );
                     }),
 
+                  // ASSIGNED SHOPS LIST
                   if (isMaster || isManager)
                     _tile(Icons.list_alt, "Assigned Shops", () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => AssignedShopsScreen(
-                            userId: userId, // FIXED SAFE ID
+                           user: widget.user,   // ✅ CORRECT
                           ),
                         ),
                       );
                     }),
 
+                  // ASSIGN SHOPS PAGE
                   if (isMaster || isManager)
                     _tile(Icons.map, "Assign Shops", () {
                       Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const AssignShopPage()));
+                        context,
+                        MaterialPageRoute(builder: (_) => const AssignShopPage()),
+                      );
                     }),
 
+                  // USER LIST (Master Only)
                   if (isMaster)
                     _tile(Icons.people_alt, "User List", () {
                       Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const UserListPage()));
+                        context,
+                        MaterialPageRoute(builder: (_) => const UserListPage()),
+                      );
                     }),
 
+                  // ADD SHOP (Salesman Only)
                   if (isSalesman)
                     _tile(Icons.add_business, "Add Shop", () {
                       Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const AddShopPage()));
+                        context,
+                        MaterialPageRoute(builder: (_) => const AddShopPage()),
+                      );
                     }),
 
+                  // NEXT SHOP (Salesman Only)
                   if (isSalesman)
                     _tile(Icons.directions_walk, "Next Shop", () {
                       Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => NextShopPage()));
+                        context,
+                        MaterialPageRoute(builder: (_) => NextShopPage()),
+                      );
                     }),
                 ],
               ),
@@ -213,9 +234,11 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  // ------------------- GRID TILE WIDGET -------------------
   Widget _tile(IconData icon, String title, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
+
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
@@ -226,7 +249,7 @@ class _HomePageState extends State<HomePage>
               color: Colors.blueAccent.withOpacity(0.28),
               blurRadius: 10,
               offset: const Offset(0, 5),
-            ),
+            )
           ],
         ),
 
@@ -235,13 +258,15 @@ class _HomePageState extends State<HomePage>
           children: [
             Icon(icon, size: 40, color: darkBlue),
             const SizedBox(height: 10),
+
             Text(
               title,
-              style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: darkBlue),
               textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: darkBlue,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),

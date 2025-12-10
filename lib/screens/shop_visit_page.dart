@@ -1,11 +1,15 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
+
 import '../services/log_service.dart';
-import '../models/log_model.dart';
-import '../models/shop_model.dart';
 import '../services/auth_service.dart';
+import '../models/shop_model.dart';
+import '../models/log_model.dart';
 
 class ShopVisitPage extends StatefulWidget {
   final ShopModel shop;
@@ -21,54 +25,115 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
   File? selectedImage;
 
   final ImagePicker picker = ImagePicker();
+  Position? currentPos;
 
-  // ------------------------------
-  // PICK IMAGE FROM CAMERA
-  // ------------------------------
+  // -------------------------------------------------------
+  // CAMERA
+  // -------------------------------------------------------
   Future pickFromCamera() async {
     final XFile? img = await picker.pickImage(source: ImageSource.camera);
     if (img != null) {
+      if (!mounted) return;
       setState(() => selectedImage = File(img.path));
     }
   }
 
-  // ------------------------------
-  // PICK IMAGE FROM GALLERY
-  // ------------------------------
+  // -------------------------------------------------------
+  // GALLERY
+  // -------------------------------------------------------
   Future pickFromGallery() async {
     final XFile? img = await picker.pickImage(source: ImageSource.gallery);
     if (img != null) {
+      if (!mounted) return;
       setState(() => selectedImage = File(img.path));
     }
   }
 
-  // ------------------------------
-  // SAVE VISIT LOG
-  // ------------------------------
+  // -------------------------------------------------------
+  // LOCATION
+  // -------------------------------------------------------
+  Future<bool> getCurrentLocation() async {
+    try {
+      final enabled = await Geolocator.isLocationServiceEnabled();
+      if (!enabled) return false;
+
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+        if (perm == LocationPermission.denied) return false;
+      }
+
+      currentPos =
+          await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // -------------------------------------------------------
+  // DISTANCE (meters)
+  // -------------------------------------------------------
+  double _distanceMeters(double lat1, double lon1, double lat2, double lon2) {
+    const R = 6371000;
+    final dLat = (lat2 - lat1) * pi / 180;
+    final dLon = (lon2 - lon1) * pi / 180;
+
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(lat1 * pi / 180) *
+            cos(lat2 * pi / 180) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return R * c;
+  }
+
+  // -------------------------------------------------------
+  // SAVE VISIT
+  // -------------------------------------------------------
   Future<void> saveVisit() async {
     if (selectedImage == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please take a photo before submitting")),
       );
       return;
     }
 
+    if (!mounted) return;
     setState(() => loading = true);
 
     final user = AuthService.currentUser!;
     final now = DateTime.now();
 
-    // ---------------------------------------------
-    // Create date & time strings
-    // ---------------------------------------------
     final dateStr =
         "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}";
     final timeStr =
         "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
 
-    // ---------------------------------------------
-    // Upload image to backend
-    // ---------------------------------------------
+    // 1) Location
+    final gotLocation = await getCurrentLocation();
+    if (!mounted) return;
+
+    if (!gotLocation || currentPos == null) {
+      setState(() => loading = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Unable to get GPS location")));
+      return;
+    }
+
+    // 2) Distance
+    final dist = _distanceMeters(
+      currentPos!.latitude,
+      currentPos!.longitude,
+      widget.shop.lat,
+      widget.shop.lng,
+    );
+
+    final result = dist <= 200 ? "match" : "mismatch";
+
+    // 3) Upload Image
     final bytes = await selectedImage!.readAsBytes();
     final base64Image = base64Encode(bytes);
 
@@ -77,17 +142,17 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
       "visit_${now.millisecondsSinceEpoch}.jpg",
     );
 
+    if (!mounted) return;
+
     if (uploadedUrl == null) {
+      setState(() => loading = false);
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text("Photo upload failed")));
-      setState(() => loading = false);
       return;
     }
 
-    // ---------------------------------------------
-    // Create Log Model (FULL CORRECT DATA)
-    // ---------------------------------------------
-    LogModel log = LogModel(
+    // 4) Build LogModel + convert to JSON
+    final log = LogModel(
       userId: user["user_id"],
       shopId: widget.shop.shopId,
       shopName: widget.shop.shopName,
@@ -95,36 +160,38 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
       date: dateStr,
       time: timeStr,
       datetime: now.toIso8601String(),
-      lat: widget.shop.lat, // (Replace with GPS later if needed)
-      lng: widget.shop.lng,
-      distance: 0.0,
-      result: "match", // result MUST BE match/mismatch
+      lat: currentPos!.latitude,
+      lng: currentPos!.longitude,
+      distance: dist,
+      result: result,
       segment: widget.shop.segment.toLowerCase(),
       photoUrl: uploadedUrl,
     );
 
-    // ---------------------------------------------
-    // SEND TO SERVER
-    // ---------------------------------------------
-    final ok = await logService.saveVisit(log);
+    // 🔥 FIX: Convert LogModel → JSON before sending
+    final ok = await logService.saveVisit(log.toJson());
+
+    if (!mounted) return;
+    setState(() => loading = false);
 
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Visit saved successfully")),
+        SnackBar(
+          content: Text(result == "match"
+              ? "Visit saved (MATCH)"
+              : "Outside shop location (MISMATCH)"),
+        ),
       );
+      Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to save visit")),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Failed to save visit")));
     }
-
-    setState(() => loading = false);
-    Navigator.pop(context);
   }
 
-  // ------------------------------
-  // UI SECTION
-  // ------------------------------
+  // -------------------------------------------------------
+  // UI
+  // -------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -143,7 +210,6 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
         child: SafeArea(
           child: Column(
             children: [
-              // ------------------- HEADER -------------------
               Row(
                 children: [
                   IconButton(
@@ -163,10 +229,7 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 20),
-
-              // ------------------- BODY -------------------
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(18),
@@ -176,7 +239,6 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
                   ),
                   child: Column(
                     children: [
-                      // -------------- PHOTO PREVIEW --------------
                       Container(
                         height: 200,
                         width: double.infinity,
@@ -199,10 +261,8 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
                               )
                             : null,
                       ),
-
                       const SizedBox(height: 15),
 
-                      // -------------- CAMERA / GALLERY BUTTONS --------------
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -221,7 +281,6 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
 
                       const Spacer(),
 
-                      // -------------- SUBMIT LOG BUTTON --------------
                       loading
                           ? const CircularProgressIndicator()
                           : SizedBox(

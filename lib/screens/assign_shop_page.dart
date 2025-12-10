@@ -7,11 +7,11 @@ import 'package:geolocator/geolocator.dart';
 
 import '../models/user_model.dart';
 import '../models/shop_model.dart';
-
 import '../services/user_service.dart';
 import '../services/shop_service.dart';
-import '../services/assign_service.dart';
 import '../services/auth_service.dart';
+import '../services/api_service.dart'as api;
+
 import 'home_page.dart';
 
 class AssignShopPage extends StatefulWidget {
@@ -22,10 +22,6 @@ class AssignShopPage extends StatefulWidget {
 }
 
 class _AssignShopPageState extends State<AssignShopPage> {
-  final userService = UserService();
-  final shopService = ShopService();
-  final assignService = AssignService();
-
   List<UserModel> users = [];
   List<ShopModel> allShops = [];
   List<ShopModel> segmentShops = [];
@@ -44,23 +40,19 @@ class _AssignShopPageState extends State<AssignShopPage> {
     loadInitial();
   }
 
-  // -----------------------------
-  // INITIAL DATA LOAD
-  // -----------------------------
   Future<void> loadInitial() async {
     setState(() => loading = true);
-
-    if (AuthService.token == null) {
-      await AuthService.init();
-    }
 
     String role = AuthService.currentUser?["role"] ?? "";
     String segment = AuthService.currentUser?["segment"] ?? "";
 
-    users = await userService.getUsers();
-    allShops = await shopService.getShops();
+    // FETCH USERS
+    users = await UserService().getUsers();
 
-    // Manager sees only their segment
+    // FETCH SHOPS
+    allShops = await ShopService().getShops();
+
+    // SEGMENT FILTER FOR MANAGER
     if (role == "manager") {
       users = users.where((u) => u.segment.toLowerCase() == segment.toLowerCase()).toList();
       allShops = allShops.where((s) => s.segment.toLowerCase() == segment.toLowerCase()).toList();
@@ -69,22 +61,31 @@ class _AssignShopPageState extends State<AssignShopPage> {
     setState(() => loading = false);
   }
 
-  // -----------------------------
-  // SAFE LOCATION HANDLER (WEB + MOBILE)
-  // -----------------------------
+  // FILTER SHOPS FOR SELECTED USER'S SEGMENT
+  void filterShops() {
+    if (selectedUser == null) return;
+
+    setState(() {
+      segmentShops = allShops
+          .where((s) => s.segment.toLowerCase() == selectedUser!.segment.toLowerCase())
+          .toList();
+
+      selectedShopIds.clear();
+    });
+  }
+
+  // GET LOCATION
   Future<void> getUserLocation() async {
-    // WEB MODE
     if (kIsWeb) {
       try {
         userLocation = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.low,
         );
       } catch (e) {
-        print("WEB Location Blocked, Using fallback");
-
+        print("WEB Location Blocked → fallback 0,0");
         userLocation = Position(
-          latitude: 0.0,
-          longitude: 0.0,
+          latitude: 0,
+          longitude: 0,
           timestamp: DateTime.now(),
           accuracy: 0,
           altitude: 0,
@@ -98,7 +99,7 @@ class _AssignShopPageState extends State<AssignShopPage> {
       return;
     }
 
-    // MOBILE / WINDOWS MODE
+    // MOBILE / WINDOWS
     bool service = await Geolocator.isLocationServiceEnabled();
     if (!service) return showMsg("Enable Location");
 
@@ -115,11 +116,10 @@ class _AssignShopPageState extends State<AssignShopPage> {
         desiredAccuracy: LocationAccuracy.high,
       );
     } catch (e) {
-      print("Mobile Location Error, using fallback");
-
+      print("Mobile Location Error, fallback 0,0");
       userLocation = Position(
-        latitude: 0.0,
-        longitude: 0.0,
+        latitude: 0,
+        longitude: 0,
         timestamp: DateTime.now(),
         accuracy: 0,
         altitude: 0,
@@ -132,24 +132,7 @@ class _AssignShopPageState extends State<AssignShopPage> {
     }
   }
 
-  // -----------------------------
-  // FILTER SHOPS BY USER SEGMENT
-  // -----------------------------
-  void filterShops() {
-    if (selectedUser == null) return;
-
-    setState(() {
-      segmentShops = allShops
-          .where((s) => s.segment.toLowerCase() == selectedUser!.segment.toLowerCase())
-          .toList();
-
-      selectedShopIds.clear();
-    });
-  }
-
-  // -----------------------------
-  // DISTANCE CALCULATION
-  // -----------------------------
+  // DISTANCE LOGIC (still used for sorting)
   double distance(double lat1, double lon1, double lat2, double lon2) {
     const R = 6371;
     final dLat = (lat2 - lat1) * pi / 180;
@@ -164,26 +147,22 @@ class _AssignShopPageState extends State<AssignShopPage> {
     return R * 2 * atan2(sqrt(a), sqrt(1 - a));
   }
 
-  // -----------------------------
-  // ASSIGN SHOPS CLICK
-  // -----------------------------
+  // ASSIGN SHOPS (NEW BACKEND)
   Future<void> assignShopsToSalesman() async {
-    if (selectedUser == null) return showMsg("Select a user");
-
-    if (userLocation == null) return showMsg("Tap Assign Again to fetch location");
+    if (selectedUser == null) return showMsg("Select a user first");
 
     if (selectedShopIds.isEmpty) return showMsg("Select at least one shop");
 
-    if (selectedShopIds.length > 5) {
-      return showMsg("You can assign only 5 shops");
-    }
+    await getUserLocation();
+
+    String assignerId = AuthService.currentUser?["user_id"] ?? "";
 
     List<Map<String, dynamic>> arranged = [];
 
     for (var shop in segmentShops) {
       if (selectedShopIds.contains(shop.shopId.toString())) {
         arranged.add({
-          "shop_id": shop.shopId.toString(),
+          "shopId": shop.shopId.toString(),
           "distance": distance(
             userLocation!.latitude,
             userLocation!.longitude,
@@ -196,36 +175,31 @@ class _AssignShopPageState extends State<AssignShopPage> {
 
     arranged.sort((a, b) => a["distance"].compareTo(b["distance"]));
 
-    List<String> finalShops = arranged.map((e) => e["shop_id"].toString()).toList();
+    // NEW BACKEND → assign ONE shop at a time
+    for (var s in arranged) {
+      await api.ApiService.assignShop(
+  s["shopId"],
+  selectedUser!.userId,
+  assignerId,
+);
 
-    bool ok = await assignService.assignShops(
-      userId: selectedUser!.userId,
-      shopIds: finalShops,
-      lat: userLocation!.latitude,
-      lng: userLocation!.longitude,
-    );
-
-    if (ok) {
-      showMsg("Shops Assigned Successfully!");
-
-      Future.delayed(const Duration(milliseconds: 400), () {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => HomePage(user: AuthService.currentUser!)),
-        );
-      });
-    } else {
-      showMsg("Failed! Try again.");
     }
+
+    showMsg("Assigned Successfully!");
+
+    Future.delayed(const Duration(milliseconds: 400), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => HomePage(user: AuthService.currentUser!)),
+      );
+    });
   }
 
   void showMsg(String t) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
   }
 
-  // -----------------------------
-  // UI STARTS HERE
-  // -----------------------------
+  // UI
   @override
   Widget build(BuildContext context) {
     String role = AuthService.currentUser?["role"] ?? "";
@@ -242,9 +216,9 @@ class _AssignShopPageState extends State<AssignShopPage> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF007BFF), Color(0xFF66B2FF), Color(0xFFB8E0FF)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter),
+              colors: [Color(0xFF007BFF), Color(0xFF66B2FF), Color(0xFFB8E0FF)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter),
         ),
         child: SafeArea(
           child: loading
@@ -288,7 +262,6 @@ class _AssignShopPageState extends State<AssignShopPage> {
 
                             const SizedBox(height: 15),
 
-                            // SEARCH BOX
                             TextField(
                               controller: searchCtrl,
                               decoration: InputDecoration(
@@ -305,8 +278,7 @@ class _AssignShopPageState extends State<AssignShopPage> {
 
                                 setState(() {
                                   segmentShops = allShops
-                                      .where((s) =>
-                                          s.segment.toLowerCase() ==
+                                      .where((s) => s.segment.toLowerCase() ==
                                           selectedUser!.segment.toLowerCase())
                                       .where((s) =>
                                           s.shopName.toLowerCase().contains(txt.toLowerCase()) ||
@@ -336,10 +308,6 @@ class _AssignShopPageState extends State<AssignShopPage> {
                                       onChanged: (v) {
                                         setState(() {
                                           if (v == true) {
-                                            if (selectedShopIds.length >= 5) {
-                                              showMsg("Maximum 5 shops allowed");
-                                              return;
-                                            }
                                             selectedShopIds.add(shop.shopId.toString());
                                           } else {
                                             selectedShopIds.remove(shop.shopId.toString());
@@ -355,10 +323,7 @@ class _AssignShopPageState extends State<AssignShopPage> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: () async {
-                                  await getUserLocation();
-                                  await assignShopsToSalesman();
-                                },
+                                onPressed: assignShopsToSalesman,
                                 style: ElevatedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(vertical: 14),
                                   shape: RoundedRectangleBorder(

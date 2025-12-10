@@ -4,37 +4,43 @@ import '../models/shop_model.dart';
 import '../services/auth_service.dart';
 
 class ShopService {
+  // ✔ FIXED BACKEND URL
   static const String base =
       "https://abhinav-backend-4.onrender.com/api";
 
   String get shopBaseUrl => "$base/shop";
   String get pendingBaseUrl => "$base/pending";
 
+  // --------------------------------------------------------
+  // GET ALL SHOPS
+  // --------------------------------------------------------
   Future<List<ShopModel>> getShops() async {
-  // WAIT until token is loaded
-  if (AuthService.token == null) {
-    await AuthService.init();
+    // Load token if needed
+    if (AuthService.token == null) {
+      await AuthService.init();
+    }
+
+    final res = await http.get(
+      Uri.parse("$shopBaseUrl"),
+      headers: {
+        "Authorization": "Bearer ${AuthService.token ?? ''}",
+      },
+    );
+
+    if (res.statusCode != 200) {
+      print("❌ SHOP ERROR: ${res.body}");
+      return [];
+    }
+
+    final body = jsonDecode(res.body);
+    final List shops = body["shops"] ?? [];
+
+    return shops.map((e) => ShopModel.fromJson(e)).toList();
   }
 
-  final res = await http.get(
-    Uri.parse("$shopBaseUrl/all"),
-    headers: {
-      "Authorization": "Bearer ${AuthService.token ?? ''}",
-    },
-  );
-
-  if (res.statusCode != 200) {
-    print("SHOP ERROR: ${res.body}");
-    return [];
-  }
-
-  final body = jsonDecode(res.body);
-  final List shops = body["shops"] ?? [];
-
-  return shops.map((e) => ShopModel.fromJson(e)).toList();
-}
-
-
+  // --------------------------------------------------------
+  // ADD PENDING SHOP
+  // --------------------------------------------------------
   Future<bool> addPendingShop({
     required String name,
     required String address,
@@ -62,17 +68,9 @@ class ShopService {
     return res.statusCode == 200;
   }
 
-  Future<bool> addShop(ShopModel shop) async {
-    final res = await http.post(
-      Uri.parse("$shopBaseUrl/add"),
-      headers: {
-        "Authorization": "Bearer ${AuthService.token}"},
-      body: jsonEncode(shop.toJson()),
-    );
-
-    return res.statusCode == 200;
-  }
-
+  // --------------------------------------------------------
+  // APPROVE PENDING SHOP
+  // --------------------------------------------------------
   Future<bool> approveShop(String mongoId) async {
     final res = await http.post(
       Uri.parse("$pendingBaseUrl/approve/$mongoId"),

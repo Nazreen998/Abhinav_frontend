@@ -1,3 +1,5 @@
+// 📌 login_page.dart
+
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'home_page.dart';
@@ -46,16 +48,22 @@ class _LoginPageState extends State<LoginPage>
 
     setState(() => loading = false);
 
-    if (ok) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => HomePage(user: AuthService.currentUser!),
-        ),
-      );
-    } else {
+    if (!ok) {
       _msg("Invalid credentials");
+      return;
     }
+
+    if (AuthService.currentUser == null) {
+      _msg("Something went wrong. Try again.");
+      return;
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HomePage(user: AuthService.currentUser!),
+      ),
+    );
   }
 
   void _msg(String txt) {

@@ -36,9 +36,9 @@ class _AddShopPageState extends State<AddShopPage> {
 
   bool loading = false;
 
-  // ==========================================================
-  // POPUP: CAMERA OR GALLERY
-  // ==========================================================
+  // ==========================================
+  // PICK PHOTO POPUP
+  // ==========================================
   Future pickPhoto() async {
     showModalBottomSheet(
       context: context,
@@ -69,16 +69,14 @@ class _AddShopPageState extends State<AddShopPage> {
     );
   }
 
-  // ==========================================================
-  // PICK FROM CAMERA (WEB + MOBILE SAFE)
-  // ==========================================================
+  // ==========================================
+  // CAMERA PICK (WEB + MOBILE)
+  // ==========================================
   Future _pickFromCamera() async {
     if (kIsWeb) {
       bool hasCam = await WebCameraHelper.hasWebCamera();
       if (!hasCam) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No Camera Detected")),
-        );
+        _error("No Camera Detected");
         return;
       }
 
@@ -95,20 +93,18 @@ class _AddShopPageState extends State<AddShopPage> {
     if (picked != null) {
       imageFile = File(picked.path);
       base64Image = base64Encode(await imageFile!.readAsBytes());
-
       setState(() {});
       getLocation();
     }
   }
 
-  // ==========================================================
-  // PICK FROM GALLERY (WEB + MOBILE)
-  // ==========================================================
+  // ==========================================
+  // GALLERY PICK (WEB + MOBILE)
+  // ==========================================
   Future _pickFromGallery() async {
     if (kIsWeb) {
       final result =
           await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
-
       if (result != null) {
         base64Image = base64Encode(result.files.single.bytes!);
         imageFile = null;
@@ -129,7 +125,6 @@ class _AddShopPageState extends State<AddShopPage> {
       return;
     }
 
-    // MOBILE GALLERY
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked != null) {
       imageFile = File(picked.path);
@@ -139,9 +134,9 @@ class _AddShopPageState extends State<AddShopPage> {
     }
   }
 
-  // ==========================================================
-  // GET LOCATION (WEB BLOCK CHECK + MOBILE NORMAL)
-  // ==========================================================
+  // ==========================================
+  // GET LOCATION
+  // ==========================================
   Future getLocation() async {
     if (kIsWeb) {
       final blocked = await WebLocationHelper.isLocationBlocked();
@@ -153,9 +148,7 @@ class _AddShopPageState extends State<AddShopPage> {
 
     final pos = await LocationHelper.getLocation();
     if (pos == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enable location permission")),
-      );
+      _error("Enable location permission");
       return;
     }
 
@@ -165,104 +158,71 @@ class _AddShopPageState extends State<AddShopPage> {
     setState(() {});
   }
 
+  // ==========================================
+  // SUBMIT SHOP → SEND TO PENDING SHOPS
+  // ==========================================
   Future submit() async {
-  // ================================
-  // FRONT CHECKS (PREVENT CRASH)
-  // ================================
-  if (nameController.text.trim().isEmpty) {
-    return _error("Enter shop name");
-  }
+    if (nameController.text.isEmpty) return _error("Enter shop name");
+    if (addressController.text.isEmpty) return _error("Enter address");
+    if (base64Image == null) return _error("Select a photo");
+    if (lat == null || lng == null) return _error("Location not detected");
 
-  if (addressController.text.trim().isEmpty) {
-    return _error("Enter address");
-  }
+    final user = AuthService.currentUser;
+    if (user == null) return _error("User not logged in");
 
-  if (base64Image == null) {
-    return _error("Please take/select a photo");
-  }
+    final salesmanId = user["user_id"];
 
-  if (lat == null || lng == null) {
-    return _error("Location not detected. Enable GPS.");
-  }
+    final payload = {
+      "salesmanId": salesmanId,
+      "shopName": nameController.text.trim(),
+      "address": addressController.text.trim(),
+      "latitude": lat,
+      "longitude": lng,
+      "image": base64Image,
+      "segment": user["segment"] ?? "",
+    };
 
-  // ================================
-  // USER CHECK
-  // ================================
-  final user = AuthService.currentUser;
-  if (user == null) {
-    return _error("User session expired. Login again.");
-  }
+    print("===== PENDING SHOP PAYLOAD =====");
+    print(payload);
 
-  final createdBy = user["user_id"] ?? "";
+    setState(() => loading = true);
 
-  if (createdBy.isEmpty) {
-    return _error("Invalid user ID");
-  }
+    final url = Uri.parse("https://abhinav-backend-4.onrender.com/api/pending/add");
 
-  // ================================
-  // PREPARE PAYLOAD (SAFE)
-  // ================================
-  final payload = {
-    "shop_name": nameController.text.trim(),
-    "address": addressController.text.trim(),
-    "lat": lat,
-    "lng": lng,
-    "image": base64Image,
-    "segment": user["segment"] ?? "all",
-    "created_by": createdBy, // AUTO FIX
-  };
+    try {
+      final res = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(payload),
+      );
 
-  print("======== ADD SHOP PAYLOAD ========");
-  print(payload);
+      setState(() => loading = false);
 
-  // ================================
-  // LOADING
-  // ================================
-  setState(() => loading = true);
+      final data = jsonDecode(res.body);
 
-  final url = Uri.parse(
-      "https://abhinav-backend-4.onrender.com/api/pending/add");
-
-  try {
-    final res = await http.post(
-      url,
-      headers: {
-        "Authorization": "Bearer ${AuthService.token}",
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode(payload),
-    );
-
-    setState(() => loading = false);
-
-    // ================================
-    // HANDLE SERVER RESPONSE
-    // ================================
-    final data = jsonDecode(res.body);
-
-    if (data["status"] == "success") {
-      _success("Shop added successfully");
-      Navigator.pop(context);
-    } else {
-      _error(data["message"] ?? "Something went wrong");
+      if (data["success"] == true) {
+        _success("Shop submitted for approval");
+        Navigator.pop(context);
+      } else {
+        _error(data["message"]);
+      }
+    } catch (e) {
+      setState(() => loading = false);
+      _error("Network Error: $e");
     }
-  } catch (e) {
-    setState(() => loading = false);
-    _error("Network Error: $e");
   }
-}
 
-void _error(String msg) {
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-}
+  void _error(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
 
-void _success(String msg) {
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-}
+  void _success(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
 
-  // ==========================================================
+  // ==========================================
   // UI
-  // ==========================================================
+  // ==========================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -280,8 +240,7 @@ void _success(String msg) {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back,
-                        size: 28, color: Colors.white),
+                    icon: const Icon(Icons.arrow_back, size: 28, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
                   ),
                   const Text(
@@ -295,13 +254,12 @@ void _success(String msg) {
                 ],
               ),
               const SizedBox(height: 10),
-
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(20),
                   margin: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.95),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: ListView(
@@ -312,11 +270,9 @@ void _success(String msg) {
                       _input(addressController, "Address"),
                       const SizedBox(height: 20),
 
-                      Center(
-                        child: ElevatedButton(
-                          onPressed: pickPhoto,
-                          child: const Text("Take Photo"),
-                        ),
+                      ElevatedButton(
+                        onPressed: pickPhoto,
+                        child: const Text("Take Photo"),
                       ),
 
                       if (base64Image != null) ...[
@@ -330,7 +286,8 @@ void _success(String msg) {
 
                       const SizedBox(height: 20),
 
-                      if (lat != null) Text("Lat: $lat\nLng: $lng"),
+                      if (lat != null)
+                        Text("Lat: $lat\nLng: $lng", style: const TextStyle(color: Colors.black87)),
 
                       const SizedBox(height: 25),
 
@@ -338,7 +295,7 @@ void _success(String msg) {
                           ? const Center(child: CircularProgressIndicator())
                           : ElevatedButton(
                               onPressed: submit,
-                              child: const Text("Submit"),
+                              child: const Text("Submit for Approval"),
                             ),
                     ],
                   ),
@@ -356,9 +313,7 @@ void _success(String msg) {
       controller: c,
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
   }

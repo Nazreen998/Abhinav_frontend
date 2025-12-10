@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
+import '../services/api_service.dart' as api;
+import '../services/auth_service.dart';
 
 class ModifyAssignedPage extends StatefulWidget {
-  final String userId;
+  final String salesmanId;
   final List currentShops;
 
   const ModifyAssignedPage({
     super.key,
-    required this.userId,
+    required this.salesmanId,
     required this.currentShops,
   });
 
@@ -16,35 +17,77 @@ class ModifyAssignedPage extends StatefulWidget {
 }
 
 class _ModifyAssignedPageState extends State<ModifyAssignedPage> {
-  List allShops = [];
-  List selected = [];
+  List allShops = [];        // All shops allowed for assign
+  List selected = [];        // Selected shop IDs
   bool loading = true;
+
+  String role = "";
+  String segment = "";
 
   @override
   void initState() {
     super.initState();
-    selected = widget.currentShops.map((e) => e["shop_id"]).toList();
-    loadAllShops();
+    selected = widget.currentShops.map((e) => e["shopId"]).toList();
+    final user = AuthService.currentUser!;
+    role = user["role"];
+    segment = user["segment"] ?? "";
+    loadShops();
   }
 
-  Future<void> loadAllShops() async {
-    allShops = await ApiService.getAllShops();
-    loading = false;
-    setState(() {});
+  // ------------------------------------------
+  // LOAD SHOPS (Role Based)
+  // ------------------------------------------
+  Future<void> loadShops() async {
+    setState(() => loading = true);
+
+    allShops = await api.ApiService.getShops(role, segment);
+
+    setState(() => loading = false);
   }
 
+  // ------------------------------------------
+  // SAVE CHANGES (Remove old + Add new)
+  // ------------------------------------------
   Future<void> saveChanges() async {
-    bool ok = await ApiService.assignShops(widget.userId, selected);
+    String assignerId = AuthService.currentUser!["user_id"];
 
-    if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Assigned Shops Updated Successfully"),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.pop(context, true);
+    // Convert allShops to ID mapping
+    Map<String, dynamic> mapByName = {};
+    for (var s in allShops) {
+      mapByName[s["shopName"]] = s;
     }
+
+    // 1️⃣ REMOVE shops that were previously assigned but now unchecked
+    for (var old in widget.currentShops) {
+      String oldShopId = old["shopId"];
+      if (!selected.contains(oldShopId)) {
+        await api.ApiService.removeAssignedShop(oldShopId, widget.salesmanId);
+      }
+    }
+
+    // 2️⃣ ADD shops that were newly selected
+    for (var shopId in selected) {
+      bool alreadyAssigned = widget.currentShops
+          .any((old) => old["shopId"] == shopId);
+
+      if (!alreadyAssigned) {
+       await api.ApiService.assignShop(
+  shopId,
+  widget.salesmanId,
+  assignerId,
+);
+
+      }
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Assigned Shops Updated Successfully"),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    Navigator.pop(context, true);
   }
 
   @override
@@ -53,11 +96,7 @@ class _ModifyAssignedPageState extends State<ModifyAssignedPage> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFF007BFF),
-              Color(0xFF66B2FF),
-              Color(0xFFB8E0FF),
-            ],
+            colors: [Color(0xFF007BFF), Color(0xFF66B2FF), Color(0xFFB8E0FF)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -65,7 +104,7 @@ class _ModifyAssignedPageState extends State<ModifyAssignedPage> {
         child: SafeArea(
           child: Column(
             children: [
-              // 🔹 Top Bar
+              // Top Bar
               Row(
                 children: [
                   IconButton(
@@ -86,41 +125,40 @@ class _ModifyAssignedPageState extends State<ModifyAssignedPage> {
 
               const SizedBox(height: 10),
 
-              // WHITE CONTAINER
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(28),
-                    ),
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(28)),
                   ),
                   child: loading
                       ? const Center(child: CircularProgressIndicator())
                       : Column(
                           children: [
-                            const SizedBox(height: 10),
-
                             Expanded(
                               child: ListView.builder(
                                 itemCount: allShops.length,
                                 itemBuilder: (_, i) {
                                   final shop = allShops[i];
-                                  bool isSelected =
-                                      selected.contains(shop["shop_id"]);
+                                  final shopId = shop["shopId"];
+                                  final shopName = shop["shopName"];
+
+                                  bool isSelected = selected.contains(shopId);
 
                                   return Card(
                                     elevation: 4,
                                     margin:
                                         const EdgeInsets.only(bottom: 12),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(18),
+                                      borderRadius:
+                                          BorderRadius.circular(18),
                                     ),
                                     child: CheckboxListTile(
                                       activeColor: Colors.blueAccent,
                                       title: Text(
-                                        shop["shop_name"],
+                                        shopName,
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
@@ -132,9 +170,9 @@ class _ModifyAssignedPageState extends State<ModifyAssignedPage> {
                                       onChanged: (value) {
                                         setState(() {
                                           if (value == true) {
-                                            selected.add(shop["shop_id"]);
+                                            selected.add(shopId);
                                           } else {
-                                            selected.remove(shop["shop_id"]);
+                                            selected.remove(shopId);
                                           }
                                         });
                                       },
@@ -146,7 +184,6 @@ class _ModifyAssignedPageState extends State<ModifyAssignedPage> {
 
                             const SizedBox(height: 12),
 
-                            // 🔹 Save Button
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
