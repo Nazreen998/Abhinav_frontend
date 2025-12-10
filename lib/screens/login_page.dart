@@ -1,5 +1,3 @@
-// 📌 login_page.dart
-
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'home_page.dart';
@@ -34,33 +32,41 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Future<void> loginUser() async {
-  if (mobileCtrl.text.isEmpty || passCtrl.text.isEmpty) {
-    _msg("User ID and Password are required");
-    return;
+    if (mobileCtrl.text.isEmpty || passCtrl.text.isEmpty) {
+      _msg("User ID and Password are required");
+      return;
+    }
+
+    setState(() => loading = true);
+
+    final result = await AuthService.login(
+      mobileCtrl.text.trim(),
+      passCtrl.text.trim(),
+    );
+
+    setState(() => loading = false);
+
+    if (result["status"] != "success") {
+      _msg(result["message"] ?? "Login failed");
+      return;
+    }
+
+    // Save current user
+    AuthService.currentUser = result["user"];
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HomePage(user: result["user"]),
+      ),
+    );
   }
-
-  setState(() => loading = true);
-
-  final result = await AuthService.login(mobileCtrl.text, passCtrl.text);
-
-if (result["status"] != "success") {
-  _msg(result["message"] ?? "Login failed");
-  return;
-}
-
-// Save user
-AuthService.currentUser = result["user"];
-Navigator.pushReplacement(
-  context,
-  MaterialPageRoute(builder: (_) => HomePage(user: result["user"])),
-);
-
-}
 
   void _msg(String txt) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(txt)));
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -76,7 +82,6 @@ Navigator.pushReplacement(
             end: Alignment.bottomRight,
           ),
         ),
-
         child: FadeTransition(
           opacity: fadeAnim,
           child: Padding(
@@ -84,8 +89,7 @@ Navigator.pushReplacement(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.location_on,
-                    size: 100, color: darkBlue),
+                Icon(Icons.location_on, size: 100, color: darkBlue),
                 const SizedBox(height: 25),
 
                 const Text(

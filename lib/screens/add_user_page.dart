@@ -22,42 +22,40 @@ class _AddUserPageState extends State<AddUserPage> {
   bool loading = false;
 
   Future<void> createUser() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() => loading = true);
+  setState(() => loading = true);
 
-    // AUTO PASSWORD
-    final autoPassword =
-        mobileCtrl.text.substring(mobileCtrl.text.length - 4) +
-            "@${role.toLowerCase()}";
+  final autoPassword =
+      mobileCtrl.text.substring(mobileCtrl.text.length - 4) +
+          "@${role.toLowerCase()}";
 
-    UserModel u = UserModel(
-      id: null,
-      userId: "",
-      name: nameCtrl.text.trim(),
-      mobile: mobileCtrl.text.trim(),
-      role: role.toLowerCase(),
-      password: autoPassword,
-      createdAt: "",
-      segment: segment.toLowerCase(),
+  UserModel u = UserModel(
+    id: null,
+    userId: "",
+    name: nameCtrl.text.trim(),
+    mobile: mobileCtrl.text.trim(),
+    role: role.toLowerCase(),
+    password: autoPassword,
+    segment: segment.toLowerCase(),
+  );
 
+  bool ok = await userService.addUser(u);
+
+  setState(() => loading = false);
+
+  if (ok) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("User Created!\nPassword: $autoPassword")),
     );
-
-    bool ok = await userService.addUser(u);
-
-    setState(() => loading = false);
-
-    if (ok) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("User Created!\nPassword: $autoPassword")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to create user")),
-      );
-    }
+    Navigator.pop(context);
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Failed to create user")),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

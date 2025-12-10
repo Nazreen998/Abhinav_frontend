@@ -41,24 +41,30 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     setState(() => loading = true);
 
     final role = widget.user["role"].toString().toLowerCase();
-    final userId = widget.user["user_id"];
-    final segment = widget.user["segment"];
+    final userName = widget.user["name"].toString();
+    final userSegment = widget.user["segment"].toString();
 
-    // ******** GET FROM REAL API ******** //
+    // ******** GET FROM VisitLog API ******** //
     List<dynamic> raw = await ApiService.getLogs();
 
-    // ******** MAP TO APP FORMAT ******** //
+    // ******** MAP TO APP FORMAT (USING VISITLOG) ******** //
     List<dynamic> all = raw.map((l) {
-      DateTime dt = DateTime.parse(l["created_at"]);
+      // Convert backend yyyy-MM-dd -> dd-MM-yyyy
+      String backendDate = l["date"] ?? "";
+      String formattedDate = "";
+      if (backendDate.isNotEmpty) {
+        DateTime dt = DateTime.parse(backendDate);
+        formattedDate = DateFormat("dd-MM-yyyy").format(dt);
+      }
 
       return {
         "shopName": l["shop_name"] ?? "",
         "salesman": l["salesman_name"] ?? "",
         "photoUrl": l["imageUrl"] ?? "",
-        "match": l["match"] == true,
+        "result": l["result"] == "match", // TRUE if match
         "distance": (l["distance"] ?? 0).toDouble(),
-        "date": DateFormat("dd-MM-yyyy").format(dt),
-        "time": DateFormat("hh:mm a").format(dt),
+        "date": formattedDate,
+        "time": l["time"] ?? "",
         "segment": l["segment"] ?? "",
       };
     }).toList();
@@ -69,13 +75,14 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     List<dynamic> filtered = all;
 
     if (role == "salesman") {
-      filtered = filtered.where((l) => l["salesman"] == widget.user["name"]).toList();
+      filtered =
+          filtered.where((l) => l["salesman"] == userName).toList();
     }
 
     if (role == "manager") {
       filtered = filtered.where((l) =>
-          l["segment"].toString().toLowerCase() ==
-              segment.toLowerCase()).toList();
+          l["segment"].toString().toUpperCase() ==
+              userSegment.toUpperCase()).toList();
     }
 
     // --------------------------------------------------------------------
@@ -92,7 +99,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     // --------------------------------------------------------------------
     if (widget.result != "All") {
       bool wantMatch = widget.result.toLowerCase() == "match";
-      filtered = filtered.where((l) => l["match"] == wantMatch).toList();
+      filtered = filtered.where((l) => l["result"] == wantMatch).toList();
     }
 
     // --------------------------------------------------------------------
@@ -100,10 +107,16 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     // --------------------------------------------------------------------
     if (widget.startDate != null || widget.endDate != null) {
       filtered = filtered.where((l) {
+        if (l["date"] == "") return false;
+
         DateTime dt = DateFormat("dd-MM-yyyy").parse(l["date"]);
 
-        if (widget.startDate != null && dt.isBefore(widget.startDate!)) return false;
-        if (widget.endDate != null && dt.isAfter(widget.endDate!)) return false;
+        if (widget.startDate != null && dt.isBefore(widget.startDate!)) {
+          return false;
+        }
+        if (widget.endDate != null && dt.isAfter(widget.endDate!)) {
+          return false;
+        }
 
         return true;
       }).toList();
@@ -121,8 +134,8 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final matched = logs.where((l) => l["match"] == true).length;
-    final mismatched = logs.where((l) => l["match"] == false).length;
+    final matched = logs.where((l) => l["result"] == true).length;
+    final mismatched = logs.where((l) => l["result"] == false).length;
 
     return Scaffold(
       body: Container(
@@ -237,7 +250,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
       itemCount: result.length,
       itemBuilder: (_, i) {
         final log = result[i];
-        final isMatch = log["match"] == true;
+        final isMatch = log["result"] == true;
 
         return Card(
           elevation: 3,

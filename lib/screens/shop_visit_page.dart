@@ -152,21 +152,15 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
     }
 
     // 4) Build LogModel + convert to JSON
-    final log = LogModel(
-      userId: user["user_id"],
-      shopId: widget.shop.shopId,
-      shopName: widget.shop.shopName,
-      salesman: user["name"],
-      date: dateStr,
-      time: timeStr,
-      datetime: now.toIso8601String(),
-      lat: currentPos!.latitude,
-      lng: currentPos!.longitude,
-      distance: dist,
-      result: result,
-      segment: widget.shop.segment.toLowerCase(),
-      photoUrl: uploadedUrl,
-    );
+   final log = LogModel(
+  userId: user["user_id"],
+  shopId: widget.shop.shopId,
+  shopName: widget.shop.shopName,
+  salesman: user["name"],
+  date: dateStr,
+  time: timeStr,
+  datetime: now.toIso8601String(),
+);
 
     // 🔥 FIX: Convert LogModel → JSON before sending
     final ok = await logService.saveVisit(log.toJson());

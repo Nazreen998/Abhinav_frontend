@@ -4,69 +4,73 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-class AuthResponse {
-  final bool success;
-  final String message;
-  final Map<String, dynamic>? user;
-
-  AuthResponse({
-    required this.success,
-    required this.message,
-    this.user,
-  });
-}
-
 class AuthService {
-  // 🔥 BASE URL (CHANGE THIS ONLY)
-  static const String baseApi = "https://abhinav-backend-4.onrender.com/api";
-  // Local testing:
-  // static const String baseApi = "http://192.168.1.2:5000/api";
+  // MAIN BASE URL
+  static const String baseApi =
+      "https://abhinav-backend-4.onrender.com/api/auth";
 
   static String? token;
   static Map<String, dynamic>? currentUser;
 
   // -------------------------------------------------------
-  // INIT (LOAD SESSION)
+  // INIT (LOAD FROM STORAGE)
   // -------------------------------------------------------
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
 
     token = prefs.getString("token");
+    print("🔥 LOADED TOKEN = $token");
 
     final savedUser = prefs.getString("user");
     if (savedUser != null) {
       currentUser = jsonDecode(savedUser);
+      print("🔥 LOADED USER = $currentUser");
     }
   }
 
   // -------------------------------------------------------
   // LOGIN
   // -------------------------------------------------------
-static Future<Map<String, dynamic>> login(String mobile, String password) async {
-  try {
-    final url = Uri.parse("https://abhinav-backend-4.onrender.com/api/auth/login");
+  static Future<Map<String, dynamic>> login(
+      String mobile, String password) async {
+    try {
+      final url = Uri.parse("$baseApi/login");
 
-    final res = await http.post(
-      url,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode({
-        "mobile": mobile.trim(),
-        "password": password.trim(),
-      }),
-    );
+      final res = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "mobile": mobile.trim(),
+          "password": password.trim(),
+        }),
+      );
 
-    print("🔥 LOGIN REQUEST SENT = $mobile / $password");
-    print("🔥 LOGIN RAW RESPONSE = ${res.body}");
+      print("🔥 LOGIN RESPONSE = ${res.body}");
 
-    return jsonDecode(res.body);
+      final data = jsonDecode(res.body);
 
-  } catch (e) {
-    print("🔥 LOGIN ERROR: $e");
-    return {"status": "error", "message": e.toString()};
+      if (data["status"] != "success") {
+        return data; // return error to UI
+      }
+
+      // SAVE TOKEN + USER
+      final prefs = await SharedPreferences.getInstance();
+
+      token = data["token"];
+      currentUser = data["user"];
+
+      await prefs.setString("token", token!);
+      await prefs.setString("user", jsonEncode(currentUser));
+
+      print("🔥 TOKEN SAVED = $token");
+      print("🔥 USER SAVED = $currentUser");
+
+      return data;
+
+    } catch (e) {
+      return {"status": "error", "message": e.toString()};
+    }
   }
-}
 
   // -------------------------------------------------------
   // LOGOUT
@@ -74,22 +78,17 @@ static Future<Map<String, dynamic>> login(String mobile, String password) async 
   static Future<void> logout() async {
     try {
       if (currentUser != null) {
-        final url = Uri.parse("$baseApi/auth/logout");
+        final url = Uri.parse("$baseApi/logout");
 
-        await http.post(
-          url,
-          headers: {
-            "Content-Type": "application/json",
-            if (token != null) "Authorization": "Bearer $token",
-          },
-          body: jsonEncode({
-            "user_id": currentUser!["user_id"],
-          }),
-        );
+        await http.post(url,
+            headers: {
+              "Content-Type": "application/json",
+              if (token != null) "Authorization": "Bearer $token",
+            },
+            body: jsonEncode({"user_id": currentUser!["user_id"]}));
       }
     } catch (_) {}
 
-    // CLEAR LOCAL STORAGE
     final prefs = await SharedPreferences.getInstance();
     prefs.remove("token");
     prefs.remove("user");

@@ -54,20 +54,20 @@ class ApiService {
   // --------------------------------------------------------
   // GET ASSIGNED SHOPS ✔ Correct backend path: /api/assigned/:salesmanId
   // --------------------------------------------------------
- static Future<List<dynamic>> getAssignedShops(String salesmanId) async {
-  final res = await http.get(
-    Uri.parse("$baseUrl/assigned/$salesmanId"),
-    headers: headers,
-  );
+  static Future<List<dynamic>> getAssignedShops(String salesmanId) async {
+    final res = await http.get(
+      Uri.parse("$baseUrl/assigned/$salesmanId"),
+      headers: headers,
+    );
 
-  print("ASSIGNED RESPONSE = ${res.body}");
+    print("ASSIGNED RESPONSE = ${res.body}");
 
-  if (res.statusCode != 200) return [];
+    if (res.statusCode != 200) return [];
 
-  final body = jsonDecode(res.body);
+    final body = jsonDecode(res.body);
 
-  return body["shops"] ?? []; // ✔ matches updated backend
-}
+    return body["shops"] ?? []; // ✔ matches updated backend
+  }
 
   // --------------------------------------------------------
   // REMOVE ASSIGNED SHOP ❗ NEEDS CORRECT BACKEND ROUTE
@@ -91,18 +91,25 @@ class ApiService {
   }
 
   // --------------------------------------------------------
-  // GET VISIT LOGS ✔ Correct backend path: /api/logs
+  // GET VISIT LOGS ✔ CORRECTED: /api/visit/logs (from VisitLog.js)
   // --------------------------------------------------------
   static Future<List<dynamic>> getLogs() async {
-    final res = await http.get(
-      Uri.parse("$baseUrl/logs"),
-      headers: headers,
-    );
+    try {
+      final res = await http.get(
+        Uri.parse("$baseUrl/visit/logs"), // ← FIXED HERE
+        headers: headers,
+      );
 
-    if (res.statusCode != 200) return [];
+      print("LOG RESPONSE = ${res.body}");
 
-    final json = jsonDecode(res.body);
-    return json["logs"] ?? [];
+      if (res.statusCode != 200) return [];
+
+      final json = jsonDecode(res.body);
+      return json["logs"] ?? [];
+    } catch (e) {
+      print("VISIT LOG ERROR: $e");
+      return [];
+    }
   }
 
   // --------------------------------------------------------

@@ -16,33 +16,33 @@ class UserService {
   // -------------------------------------------------------
   Map<String, String> get headers => {
         "Content-Type": "application/json",
-        if (AuthService.token != null)
-          "Authorization": "Bearer ${AuthService.token}",
+        "Authorization": "Bearer ${AuthService.token ?? ""}",
       };
 
   // -------------------------------------------------------
   // GET ALL USERS  (Master & Manager)
   // -------------------------------------------------------
   Future<List<UserModel>> getUsers() async {
-    try {
-      final url = Uri.parse("$baseUrl/all");
+  try {
+    final url = Uri.parse("$baseUrl/all");
 
-      final res = await http.get(url, headers: headers);
+    final res = await http.get(url, headers: headers);
 
-      if (res.statusCode != 200) return [];
+    print("USER LIST RESPONSE = ${res.body}");
 
-      final data = jsonDecode(res.body);
+    final data = jsonDecode(res.body);
 
-      if (data["status"] != "success") return [];
+    if (data["status"] != "success") return [];
 
-      final List list = data["users"] ?? [];
+    final List list = data["users"] ?? [];
 
-      return list.map((u) => UserModel.fromJson(u)).toList();
-    } catch (e) {
-      print("GET USERS ERROR: $e");
-      return [];
-    }
+    return list.map((u) => UserModel.fromJson(u)).toList();
+
+  } catch (e) {
+    print("GET USERS ERROR: $e");
+    return [];
   }
+}
 
   // -------------------------------------------------------
   // ADD USER  (Master only)

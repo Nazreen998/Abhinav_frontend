@@ -1,20 +1,11 @@
 class LogModel {
-  String userId;
-  String shopId;
-  String shopName;
-  String salesman;
-
-  String date;
-  String time;
-  String datetime;
-
-  double lat;
-  double lng;
-  double distance;   // ⭐ used for shop distance match
-  String result;     // ⭐ Inside / Outside
-  String segment;
-
-  String photoUrl;   // ⭐ backend key: image_url or photo_url
+  final String userId;
+  final String shopId;
+  final String shopName;
+  final String salesman;
+  final String date;
+  final String time;
+  final String datetime;
 
   LogModel({
     required this.userId,
@@ -24,49 +15,17 @@ class LogModel {
     required this.date,
     required this.time,
     required this.datetime,
-    required this.lat,
-    required this.lng,
-    required this.distance,
-    required this.result,
-    required this.segment,
-    required this.photoUrl,
   });
 
-  // ⭐ When sending log to backend (rare case)
-Map<String, dynamic> toJson() {
-  return {
-    "user_id": userId,
-    "shop_id": shopId,
-    "shop_name": shopName,
-    "salesman_name": salesman,
-    "date": date,
-    "time": time,
-    "datetime": datetime,
-    "lat": lat,
-    "lng": lng,
-    "distance": distance,
-    "result": result,
-    "segment": segment,
-    "imageUrl": photoUrl,
-  };
-}
-
-  // ⭐ When receiving logs from backend
-  factory LogModel.fromJson(Map<String, dynamic> j) {
-    return LogModel(
-      userId: j["user_id"] ?? "",
-      shopId: j["shop_id"] ?? "",
-      shopName: j["shop_name"] ?? "",
-      salesman: j["salesman_name"] ?? j["salesman"] ?? "",
-      date: j["date"] ?? "",
-      time: j["time"] ?? "",
-      datetime: j["datetime"]?.toString() ?? "",
-      lat: (j["lat"] ?? 0).toDouble(),
-      lng: (j["lng"] ?? 0).toDouble(),
-      distance: (j["distance"] ?? 0).toDouble(),
-      result: j["result"] ?? "",
-      segment: j["segment"] ?? "",
-      photoUrl: j["image_url"] ?? j["photo_url"] ?? "",
-    );
+  Map<String, dynamic> toJson() {
+    return {
+      "user_id": userId,
+      "shop_id": shopId,
+      "shop_name": shopName,
+      "salesman": salesman,
+      "date": date,
+      "time": time,
+      "datetime": datetime,
+    };
   }
 }

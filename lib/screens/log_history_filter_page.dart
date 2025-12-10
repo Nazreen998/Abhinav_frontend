@@ -33,7 +33,7 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
       segmentOptions = [segment];
       segmentFilter = segment;
     } else {
-      segmentOptions = ["All", "FMCG", "PIPES"];
+      segmentOptions = ["All", "FMCG", "PIPES"]; // You can add more if needed
     }
   }
 
@@ -60,7 +60,6 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
 
   // ----------------- APPLY FILTERS -----------------
   void applyFilters() {
-    // FIX: Result -> correct values for backend matching
     String resultMapped = resultFilter == "All"
         ? "All"
         : (resultFilter == "Match" ? "match" : "mismatch");
@@ -157,7 +156,7 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
 
                       const SizedBox(height: 18),
 
-                      // RESULT DROPDOWN
+                      // RESULT DROPDOWN (Match/Mismatch)
                       DropdownButtonFormField(
                         decoration: inputDecor("Result"),
                         value: resultFilter,

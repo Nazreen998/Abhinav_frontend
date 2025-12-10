@@ -33,17 +33,15 @@ class _EditUserPageState extends State<EditUserPage> {
 
   Future<void> save() async {
     if (!_formKey.currentState!.validate()) return;
-
     final updated = UserModel(
-      id: widget.user.id,
-      userId: widget.user.userId,
-      name: nameCtrl.text.trim(),
-      mobile: mobileCtrl.text.trim(),
-      role: selectedRole!,
-      password: widget.user.password, // KEEP OLD PASSWORD
-      segment: selectedSegment!,
-      createdAt: widget.user.createdAt,
-    );
+  id: widget.user.id,
+  userId: widget.user.userId,
+  name: nameCtrl.text.trim(),
+  mobile: mobileCtrl.text.trim(),
+  role: selectedRole!,
+  password: widget.user.password, // keep old password
+  segment: selectedSegment!,
+);
 
     bool ok = await userService.updateUser(updated);
 
