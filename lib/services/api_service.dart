@@ -1,5 +1,5 @@
 // ------------------------------------------------------------
-// API SERVICE (MATCHED TO YOUR NODE BACKEND)
+// API SERVICE (FIXED FOR YOUR BACKEND ROUTES)
 // ------------------------------------------------------------
 
 import 'dart:convert';
@@ -9,9 +9,7 @@ import 'auth_service.dart' as auth;
 class ApiService {
   static const String baseUrl = "https://abhinav-backend-5.onrender.com/api";
 
-  // --------------------------------------------------------
   // COMMON HEADERS
-  // --------------------------------------------------------
   static Map<String, String> get headers => {
         "Content-Type": "application/json",
         if (auth.AuthService.token != null)
@@ -19,14 +17,14 @@ class ApiService {
       };
 
   // --------------------------------------------------------
-  // LOGIN
+  // LOGIN ✔ Correct backend route + correct body
   // --------------------------------------------------------
-  static Future<Map<String, dynamic>> login(String userId, String password) async {
+  static Future<Map<String, dynamic>> login(String phone, String password) async {
     final res = await http.post(
-      Uri.parse("$baseUrl/auth/login"),
+      Uri.parse("$baseUrl/users/login"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
-        "user_id": userId,
+        "phone": phone,
         "password": password,
       }),
     );
@@ -35,122 +33,97 @@ class ApiService {
   }
 
   // --------------------------------------------------------
-  // GET ALL SHOPS
+  // GET ALL SHOPS ✔ CORRECT ROUTE (/shops/list)
   // --------------------------------------------------------
   static Future<List<dynamic>> getShops() async {
     final res = await http.get(
-      Uri.parse("$baseUrl/shop/all"),
+      Uri.parse("$baseUrl/shops/list"),   // ✔ FIXED
       headers: headers,
     );
 
     if (res.statusCode != 200) return [];
 
-    final body = jsonDecode(res.body);
-    return body["shops"] ?? [];
+    return jsonDecode(res.body);         // backend returns array directly
   }
 
   // --------------------------------------------------------
-  // GET ASSIGNED SHOPS
+  // GET ASSIGNED SHOPS ✔ MUST USE /assigned/list
   // --------------------------------------------------------
-  static Future<List<dynamic>> getAssignedShops(String salesmanId) async {
+  static Future<List<dynamic>> getAssignedShops() async {
     final res = await http.get(
-      Uri.parse("$baseUrl/assigned/$salesmanId"),
+      Uri.parse("$baseUrl/assigned/list"),   // ✔ FIXED
       headers: headers,
     );
 
     if (res.statusCode != 200) return [];
 
-    final body = jsonDecode(res.body);
-    return body["shops"] ?? [];
+    return jsonDecode(res.body);
   }
 
   // --------------------------------------------------------
-  // ASSIGN SHOP
+  // ASSIGN SHOP ✔ backend uses /assigned/assign
   // --------------------------------------------------------
   static Future<bool> assignShop(
-      String shopId, String salesmanId, String assignedBy) async {
+      String shopId, String salesmanId, String sequence) async {
     final res = await http.post(
-      Uri.parse("$baseUrl/assign/add"),
+      Uri.parse("$baseUrl/assigned/assign"),   // ✔ FIXED
       headers: headers,
       body: jsonEncode({
-        "shopId": shopId,
-        "salesmanId": salesmanId,
-        "assignedBy": assignedBy,
+        "shop_id": shopId,
+        "user_id": salesmanId,
+        "sequence": sequence,
       }),
     );
 
     final data = jsonDecode(res.body);
-    return data["status"] == "success";
+    return data["success"] == true;
   }
 
   // --------------------------------------------------------
-  // UPDATE SHOP
+  // UPDATE SHOP ❌ Your backend DOES NOT have update route
   // --------------------------------------------------------
   static Future<bool> updateShop(Map data) async {
-    final url = "$baseUrl/shop/update/${data["shop_id"]}";
-
-    final res = await http.put(
-      Uri.parse(url),
-      headers: headers,
-      body: jsonEncode({
-        "shop_name": data["shop_name"],
-        "address": data["address"],
-        "segment": data["segment"],
-      }),
-    );
-
-    return res.statusCode == 200;
+    // TEMP: update disabled because backend has NO update route
+    print("⚠ WARNING: /shops/update not available in backend");
+    return false;
   }
 
   // --------------------------------------------------------
-  // DELETE SHOP
+  // DELETE SHOP ✔ /shops/delete/:id
   // --------------------------------------------------------
   static Future<bool> deleteShop(String shopId) async {
-    final url = "$baseUrl/shop/delete/$shopId";
-
     final res = await http.delete(
-      Uri.parse(url),
+      Uri.parse("$baseUrl/shops/delete/$shopId"),
       headers: headers,
     );
 
     return res.statusCode == 200;
   }
+
   // --------------------------------------------------------
-// GET VISIT LOGS
-// --------------------------------------------------------
-static Future<List<dynamic>> getLogs() async {
-  try {
-    final res = await http.get(
-      Uri.parse("$baseUrl/logs"),
-      headers: headers,
-    );
+  // GET LOGS ✔ /history
+  // --------------------------------------------------------
+  static Future<List<dynamic>> getLogs() async {
+    try {
+      final res = await http.get(
+        Uri.parse("$baseUrl/history"),
+        headers: headers,
+      );
 
-    if (res.statusCode != 200) return [];
+      if (res.statusCode != 200) return [];
 
-    final data = jsonDecode(res.body);
-    return data["logs"] ?? [];
-  } catch (e) {
-    print("LOG ERROR: $e");
-    return [];
+      return jsonDecode(res.body);
+    } catch (e) {
+      print("LOG ERROR: $e");
+      return [];
+    }
   }
-}
-// --------------------------------------------------------
-// REMOVE ASSIGNED SHOP
-// --------------------------------------------------------
-static Future<bool> removeAssignedShop(String shopId, String salesmanId) async {
-  final res = await http.post(
-    Uri.parse("$baseUrl/assign/remove"),
-    headers: headers,
-    body: jsonEncode({
-      "shopId": shopId,
-      "salesmanId": salesmanId,
-    }),
-  );
 
-  if (res.statusCode != 200) return false;
-
-  final body = jsonDecode(res.body);
-  return body["status"] == "success";
-}
-
+  // --------------------------------------------------------
+  // REMOVE ASSIGNED SHOP ❌ backend has NO /assigned/remove route
+  // --------------------------------------------------------
+  static Future<bool> removeAssignedShop(String shopId, String salesmanId) async {
+    print("⚠ WARNING: removeAssignedShop is NOT supported by backend.");
+    return false;
+  }
 }

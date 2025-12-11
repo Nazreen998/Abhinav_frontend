@@ -12,7 +12,6 @@ class ShopListPage extends StatefulWidget {
 
 class _ShopListPageState extends State<ShopListPage>
     with SingleTickerProviderStateMixin {
-
   List shops = [];
   List filtered = [];
 
@@ -48,38 +47,53 @@ class _ShopListPageState extends State<ShopListPage>
   // LOAD SHOPS BASED ON ROLE
   // ------------------------------------------------------------
   Future<void> loadShops() async {
+    if (!mounted) return;
     setState(() => loading = true);
 
     List<dynamic> res = [];
 
     if (role == "master") {
-      // MASTER → ALL SHOPS
       res = await ApiService.getShops();
     } 
     else if (role == "manager") {
-      // MANAGER → Same segment only
       final all = await ApiService.getShops();
-      res = all.where((s) =>
-          (s["segment"] ?? "").toString().toLowerCase() ==
-          segment.toLowerCase()).toList();
+      res = all
+          .where((s) =>
+              (s["segment"] ?? "").toString().toLowerCase() ==
+              segment.toLowerCase())
+          .toList();
     } 
     else {
-      // SALESMAN → Assigned shops only
-      final assigned = await ApiService.getAssignedShops(userId);
-      res = assigned.map((s) {
+      // ⭐ SALESMAN MERGE LOGIC (exact same fix as AssignedShopsScreen)
+      final assigned = await ApiService.getAssignedShops();
+      final all = await ApiService.getShops();
+
+      final userAssigned =
+          assigned.where((a) => a["user_id"] == userId).toList();
+
+      res = userAssigned.map((a) {
+        final match = all.firstWhere(
+          (s) => s["shop_id"] == a["shop_id"],
+          orElse: () => {},
+        );
+
         return {
-          "shop_id": s["shop_id"] ?? "",
-          "shop_name": s["shop_name"] ?? "",
-          "address": s["address"] ?? "",
-          "segment": s["segment"] ?? "",
+          "shop_id": a["shop_id"],
+          "shop_name": match["shop_name"] ?? "Unknown Shop",
+          "address": match["address"] ?? "",
+          "segment": match["segment"] ?? "",
         };
       }).toList();
     }
+
+    if (!mounted) return;
 
     shops = res;
     filtered = shops;
 
     controller.forward();
+
+    if (!mounted) return;
     setState(() => loading = false);
   }
 
@@ -171,8 +185,7 @@ class _ShopListPageState extends State<ShopListPage>
                         : FadeTransition(
                             opacity: fadeAnim,
                             child: ListView.builder(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
                               itemCount: listToShow.length,
                               itemBuilder: (_, i) =>
                                   buildShopCard(listToShow[i]),
@@ -187,7 +200,7 @@ class _ShopListPageState extends State<ShopListPage>
   }
 
   // ------------------------------------------------------------
-  // SHOP CARD (MASTER → EDIT + DELETE)
+  // SHOP CARD UI
   // ------------------------------------------------------------
   Widget buildShopCard(Map shop) {
     final seg = shop["segment"].toString().toUpperCase();
@@ -221,13 +234,12 @@ class _ShopListPageState extends State<ShopListPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          // --------------------- TOP ROW ---------------------
+          // --------------------- TOP ---------------------
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                shop["shop_name"],
+                shop["shop_name"] ?? "",
                 style: const TextStyle(
                   color: Color(0xFF003366),
                   fontSize: 20,
@@ -235,25 +247,45 @@ class _ShopListPageState extends State<ShopListPage>
                 ),
               ),
 
-              // ONLY MASTER CAN SEE EDIT/DELETE
               if (role == "master") ...[
                 Row(
                   children: [
-                    // EDIT
                     IconButton(
                       icon: const Icon(Icons.edit, color: Colors.blue),
                       onPressed: () {
                         print("EDIT → ${shop['shop_id']}");
-                        // TODO: Navigate to Edit page
                       },
                     ),
-
-                    // DELETE
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () {
-                        print("DELETE → ${shop['shop_id']}");
-                        // TODO: Call delete API
+                      onPressed: () async {
+                        final yes = await showDialog(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            title: const Text("Delete Shop?"),
+                            content: const Text(
+                                "Are you sure you want to delete this shop?"),
+                            actions: [
+                              TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: const Text("Cancel")),
+                              ElevatedButton(
+                                onPressed: () =>
+                                    Navigator.pop(context, true),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red),
+                                child: const Text("Delete"),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (yes == true) {
+                          final ok =
+                              await ApiService.deleteShop(shop["shop_id"]);
+                          if (ok) loadShops();
+                        }
                       },
                     ),
                   ],
@@ -265,7 +297,7 @@ class _ShopListPageState extends State<ShopListPage>
           const SizedBox(height: 6),
 
           Text(
-            shop["address"],
+            shop["address"] ?? "",
             style: const TextStyle(color: Colors.black54, fontSize: 15),
           ),
 

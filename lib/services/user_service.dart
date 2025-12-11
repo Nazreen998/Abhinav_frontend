@@ -5,11 +5,9 @@ import '../models/user_model.dart';
 import 'auth_service.dart';
 
 class UserService {
-  // 🔥 BASE URL (correct)
+  // ✔ CorrectBASE URL (DO NOT ADD /all HERE)
   static const String baseUrl =
-      "https://abhinav-backend-5.onrender.com/api/users";
-  // Local testing:
-  // static const String baseUrl = "http://192.168.1.2:5000/api/users";
+      "https://abhinav-backend-5.onrender.com/api/user";
 
   // -------------------------------------------------------
   // HEADERS
@@ -20,32 +18,36 @@ class UserService {
       };
 
   // -------------------------------------------------------
-  // GET ALL USERS  (Master & Manager)
+  // GET ALL USERS  ✔ FIXED ROUTE: /api/user/all
   // -------------------------------------------------------
   Future<List<UserModel>> getUsers() async {
-  try {
-    final url = Uri.parse("$baseUrl/all");
+    try {
+      final url = Uri.parse("$baseUrl/all");
 
-    final res = await http.get(url, headers: headers);
+      final res = await http.get(url, headers: headers);
 
-    print("USER LIST RESPONSE = ${res.body}");
+      print("USER LIST RESPONSE = ${res.body}");
 
-    final data = jsonDecode(res.body);
+      final data = jsonDecode(res.body);
 
-    if (data["status"] != "success") return [];
+      if (data is List) {
+        // backend gives array
+        return data.map<UserModel>((u) => UserModel.fromJson(u)).toList();
+      }
 
-    final List list = data["users"] ?? [];
+      if (data["status"] != "success") return [];
 
-    return list.map((u) => UserModel.fromJson(u)).toList();
+      final List list = data["users"] ?? [];
+      return list.map((u) => UserModel.fromJson(u)).toList();
 
-  } catch (e) {
-    print("GET USERS ERROR: $e");
-    return [];
+    } catch (e) {
+      print("GET USERS ERROR: $e");
+      return [];
+    }
   }
-}
 
   // -------------------------------------------------------
-  // ADD USER  (Master only)
+  // ADD USER ✔ FIXED ROUTE: /api/user/addUser
   // -------------------------------------------------------
   Future<bool> addUser(UserModel user) async {
     try {
@@ -70,7 +72,7 @@ class UserService {
   }
 
   // -------------------------------------------------------
-  // UPDATE USER
+  // UPDATE USER ✔ FIXED ROUTE: /api/user/edit/:id
   // -------------------------------------------------------
   Future<bool> updateUser(UserModel user) async {
     try {
@@ -100,7 +102,7 @@ class UserService {
   }
 
   // -------------------------------------------------------
-  // DELETE USER
+  // DELETE USER ✔ FIXED ROUTE: /api/user/delete/:id
   // -------------------------------------------------------
   Future<bool> deleteUser(String id) async {
     try {
