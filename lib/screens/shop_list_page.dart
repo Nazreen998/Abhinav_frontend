@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 
 class ShopListPage extends StatefulWidget {
   final Map<String, dynamic> user;
+
   const ShopListPage({super.key, required this.user});
 
   @override
@@ -11,6 +12,7 @@ class ShopListPage extends StatefulWidget {
 
 class _ShopListPageState extends State<ShopListPage>
     with SingleTickerProviderStateMixin {
+
   List shops = [];
   List filtered = [];
 
@@ -42,11 +44,10 @@ class _ShopListPageState extends State<ShopListPage>
     loadShops();
   }
 
-  // -------------------------------------------------------------------
+  // ------------------------------------------------------------
   // LOAD SHOPS BASED ON ROLE
-  // -------------------------------------------------------------------
+  // ------------------------------------------------------------
   Future<void> loadShops() async {
-    if (!mounted) return;
     setState(() => loading = true);
 
     List<dynamic> res = [];
@@ -54,11 +55,17 @@ class _ShopListPageState extends State<ShopListPage>
     if (role == "master") {
       // MASTER → ALL SHOPS
       res = await ApiService.getShops();
-    } else {
-      // SALESMAN → ONLY ASSIGNED SHOPS
+    } 
+    else if (role == "manager") {
+      // MANAGER → Same segment only
+      final all = await ApiService.getShops();
+      res = all.where((s) =>
+          (s["segment"] ?? "").toString().toLowerCase() ==
+          segment.toLowerCase()).toList();
+    } 
+    else {
+      // SALESMAN → Assigned shops only
       final assigned = await ApiService.getAssignedShops(userId);
-
-      // Map assigned data into unified format
       res = assigned.map((s) {
         return {
           "shop_id": s["shop_id"] ?? "",
@@ -70,32 +77,15 @@ class _ShopListPageState extends State<ShopListPage>
     }
 
     shops = res;
-    applyFilters();
+    filtered = shops;
 
     controller.forward();
-
-    if (!mounted) return;
     setState(() => loading = false);
   }
 
-  // -------------------------------------------------------------------
-  // APPLY ROLE-BASED FILTERS
-  // -------------------------------------------------------------------
-  void applyFilters() {
-    if (role == "master") {
-      filtered = shops;
-    } else {
-      filtered = shops.where((shop) {
-        return shop["segment"]
-            .toString()
-            .toLowerCase() == segment.toLowerCase();
-      }).toList();
-    }
-  }
-
-  // -------------------------------------------------------------------
+  // ------------------------------------------------------------
   // SEARCH FILTER
-  // -------------------------------------------------------------------
+  // ------------------------------------------------------------
   List get searchResult {
     final q = search.toLowerCase();
     return filtered.where((shop) {
@@ -105,9 +95,6 @@ class _ShopListPageState extends State<ShopListPage>
     }).toList();
   }
 
-  // -------------------------------------------------------------------
-  // UI STARTS
-  // -------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     final listToShow = searchResult;
@@ -128,11 +115,11 @@ class _ShopListPageState extends State<ShopListPage>
         child: SafeArea(
           child: Column(
             children: [
+              // TOP BAR
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back,
-                        size: 28, color: Colors.white),
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
                   ),
                   const Text(
@@ -199,9 +186,9 @@ class _ShopListPageState extends State<ShopListPage>
     );
   }
 
-  // -------------------------------------------------------------------
-  // SHOP CARD
-  // -------------------------------------------------------------------
+  // ------------------------------------------------------------
+  // SHOP CARD (MASTER → EDIT + DELETE)
+  // ------------------------------------------------------------
   Widget buildShopCard(Map shop) {
     final seg = shop["segment"].toString().toUpperCase();
 
@@ -234,13 +221,45 @@ class _ShopListPageState extends State<ShopListPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            shop["shop_name"],
-            style: const TextStyle(
-              color: Color(0xFF003366),
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+
+          // --------------------- TOP ROW ---------------------
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                shop["shop_name"],
+                style: const TextStyle(
+                  color: Color(0xFF003366),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              // ONLY MASTER CAN SEE EDIT/DELETE
+              if (role == "master") ...[
+                Row(
+                  children: [
+                    // EDIT
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      onPressed: () {
+                        print("EDIT → ${shop['shop_id']}");
+                        // TODO: Navigate to Edit page
+                      },
+                    ),
+
+                    // DELETE
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () {
+                        print("DELETE → ${shop['shop_id']}");
+                        // TODO: Call delete API
+                      },
+                    ),
+                  ],
+                )
+              ]
+            ],
           ),
 
           const SizedBox(height: 6),

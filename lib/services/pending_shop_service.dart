@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
 
 class PendingShopService {
-  static const String base = "https://abhinav-backend-4.onrender.com/api";
+  static const String base = "https://abhinav-backend-5.onrender.com/api";
 
   Map<String, String> get headers => {
         "Content-Type": "application/json",

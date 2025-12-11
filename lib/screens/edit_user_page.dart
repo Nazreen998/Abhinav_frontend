@@ -29,19 +29,25 @@ class _EditUserPageState extends State<EditUserPage> {
 
     selectedRole = widget.user.role.trim().toLowerCase();
     selectedSegment = widget.user.segment.trim().toLowerCase();
+
+    // FIX: If segment is null or unexpected
+    if (!["all", "fmcg", "pipes"].contains(selectedSegment)) {
+      selectedSegment = "all";
+    }
   }
 
   Future<void> save() async {
     if (!_formKey.currentState!.validate()) return;
+
     final updated = UserModel(
-  id: widget.user.id,
-  userId: widget.user.userId,
-  name: nameCtrl.text.trim(),
-  mobile: mobileCtrl.text.trim(),
-  role: selectedRole!,
-  password: widget.user.password, // keep old password
-  segment: selectedSegment!,
-);
+      id: widget.user.id,
+      userId: widget.user.userId,
+      name: nameCtrl.text.trim(),
+      mobile: mobileCtrl.text.trim(),
+      role: selectedRole!,
+      password: widget.user.password,
+      segment: selectedSegment!,
+    );
 
     bool ok = await userService.updateUser(updated);
 
@@ -78,8 +84,8 @@ class _EditUserPageState extends State<EditUserPage> {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back,
-                        size: 28, color: Colors.white),
+                    icon:
+                        const Icon(Icons.arrow_back, size: 28, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
                   ),
                   const Text(
@@ -100,10 +106,8 @@ class _EditUserPageState extends State<EditUserPage> {
                   padding: const EdgeInsets.all(20),
                   decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
-                    ),
+                    borderRadius:
+                        BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
                   ),
 
                   child: Form(
@@ -112,38 +116,34 @@ class _EditUserPageState extends State<EditUserPage> {
                       children: [
                         textField(nameCtrl, "Name"),
                         const SizedBox(height: 15),
-                        textField(mobileCtrl, "Mobile",
-                            keyboardType: TextInputType.phone),
+
+                        textField(mobileCtrl, "Mobile", keyboardType: TextInputType.phone),
                         const SizedBox(height: 15),
 
+                        // ------------ ROLE DROPDOWN ------------
                         DropdownButtonFormField<String>(
                           value: selectedRole,
                           decoration: dropdownDecor("Role"),
                           items: const [
-                            DropdownMenuItem(
-                                value: "master", child: Text("Master")),
-                            DropdownMenuItem(
-                                value: "manager", child: Text("Manager")),
-                            DropdownMenuItem(
-                                value: "salesman", child: Text("Salesman")),
+                            DropdownMenuItem(value: "master", child: Text("Master")),
+                            DropdownMenuItem(value: "manager", child: Text("Manager")),
+                            DropdownMenuItem(value: "salesman", child: Text("Salesman")),
                           ],
-                          onChanged: (v) =>
-                              setState(() => selectedRole = v),
+                          onChanged: (v) => setState(() => selectedRole = v),
                         ),
 
                         const SizedBox(height: 15),
 
+                        // ------------ SEGMENT DROPDOWN (FIXED!) ------------
                         DropdownButtonFormField<String>(
                           value: selectedSegment,
                           decoration: dropdownDecor("Segment"),
                           items: const [
-                            DropdownMenuItem(
-                                value: "fmcg", child: Text("FMCG")),
-                            DropdownMenuItem(
-                                value: "pipes", child: Text("PIPES")),
+                            DropdownMenuItem(value: "all", child: Text("ALL SEGMENTS")),
+                            DropdownMenuItem(value: "fmcg", child: Text("FMCG")),
+                            DropdownMenuItem(value: "pipes", child: Text("PIPES")),
                           ],
-                          onChanged: (v) =>
-                              setState(() => selectedSegment = v),
+                          onChanged: (v) => setState(() => selectedSegment = v),
                         ),
 
                         const SizedBox(height: 22),
@@ -179,9 +179,7 @@ class _EditUserPageState extends State<EditUserPage> {
         labelText: label,
         filled: true,
         fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       ),
       validator: (v) => v!.isEmpty ? "Enter $label" : null,
     );
@@ -192,9 +190,7 @@ class _EditUserPageState extends State<EditUserPage> {
       labelText: label,
       filled: true,
       fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
     );
   }
 }

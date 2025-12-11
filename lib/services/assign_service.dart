@@ -4,9 +4,11 @@ import 'auth_service.dart';
 
 class AssignService {
   static const String baseUrl =
-      "https://abhinav-backend-4.onrender.com/api/assign";
+      "https://abhinav-backend-5.onrender.com/api/assign";
 
-  /// Assign shops
+  /// ------------------------------------------------
+  /// ASSIGN SHOPS  (OLD BULK ASSIGN - LEAVE AS IS)
+  /// ------------------------------------------------
   Future<bool> assignShops({
     required dynamic userId,
     required List<String> shopIds,
@@ -105,7 +107,7 @@ class AssignService {
   }
 
   /// -----------------------------
-  /// NEXT SHOPS
+  /// NEXT SHOPS (NEARBY, SORTED)
   /// -----------------------------
   Future<List<dynamic>> getNextShops(
     String userId,
@@ -114,10 +116,14 @@ class AssignService {
   ) async {
     final url = Uri.parse("$baseUrl/next/$userId?lat=$lat&lng=$lng");
 
+    print("👉 CALLING NEXT SHOPS: $url");
+
     final res = await http.get(
       url,
       headers: {"Authorization": "Bearer ${AuthService.token}"},
     );
+
+    print("👉 NEXT SHOPS RESPONSE: ${res.statusCode} ${res.body}");
 
     if (res.statusCode != 200) {
       print("❌ Next Shop Error ${res.statusCode}");
@@ -125,16 +131,29 @@ class AssignService {
     }
 
     final data = jsonDecode(res.body);
+    if (data["status"] != "success") {
+      print("❌ Next Shop API status != success");
+      return [];
+    }
+
     final shops = data["shops"] ?? [];
 
-    return shops.map((s) => {
-          "shop_id": s["shop_id"],
-          "shop_name": s["shop_name"] ?? "",
-          "address": s["address"] ?? "",
-          "lat": _safeDouble(s["lat"]),
-          "lng": _safeDouble(s["lng"]),
-          "sequence": s["sequence"],
-        }).toList();
+    // Map to structure compatible with ShopModel.fromJson
+    return shops.map((s) {
+      return {
+        "shop_id": s["shop_id"],
+        "shop_name": s["shop_name"] ?? "",
+        "address": s["address"] ?? "",
+        "lat": _safeDouble(s["lat"]),
+        "lng": _safeDouble(s["lng"]),
+
+        // below fields are optional – ShopModel expects them
+        "segment": s["segment"] ?? "",
+        "created_by": s["created_by"] ?? "",
+        "created_at": s["created_at"] ?? "",
+        "status": s["status"] ?? "",
+      };
+    }).toList();
   }
 
   double _safeDouble(dynamic v) {

@@ -6,7 +6,7 @@ import '../services/auth_service.dart';
 class ShopService {
   // ✔ FIXED BACKEND URL
   static const String base =
-      "https://abhinav-backend-4.onrender.com/api";
+      "https://abhinav-backend-5.onrender.com/api";
 
   String get shopBaseUrl => "$base/shop";
   String get pendingBaseUrl => "$base/pending";
@@ -79,4 +79,33 @@ class ShopService {
 
     return res.statusCode == 200;
   }
+  // --------------------------------------------------------
+// DELETE SHOP
+// --------------------------------------------------------
+Future<bool> deleteShop(String shopId) async {
+  final res = await http.delete(
+    Uri.parse("$shopBaseUrl/delete/$shopId"),
+    headers: {
+      "Authorization": "Bearer ${AuthService.token}",
+    },
+  );
+
+  return res.statusCode == 200;
+}
+// --------------------------------------------------------
+// UPDATE SHOP
+// --------------------------------------------------------
+Future<bool> updateShop(Map data) async {
+  final res = await http.put(
+    Uri.parse("$shopBaseUrl/update/${data["shop_id"]}"),
+    headers: {
+      "Authorization": "Bearer ${AuthService.token}",
+      "Content-Type": "application/json",
+    },
+    body: jsonEncode(data),
+  );
+
+  return res.statusCode == 200;
+}
+
 }

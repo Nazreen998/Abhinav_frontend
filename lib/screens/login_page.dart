@@ -33,7 +33,7 @@ class _LoginPageState extends State<LoginPage>
 
   Future<void> loginUser() async {
     if (mobileCtrl.text.isEmpty || passCtrl.text.isEmpty) {
-      _msg("User ID and Password are required");
+      _msg("Mobile & Password are required");
       return;
     }
 
@@ -50,9 +50,6 @@ class _LoginPageState extends State<LoginPage>
       _msg(result["message"] ?? "Login failed");
       return;
     }
-
-    // Save current user
-    AuthService.currentUser = result["user"];
 
     Navigator.pushReplacement(
       context,
@@ -146,12 +143,7 @@ class _LoginPageState extends State<LoginPage>
         fillColor: Colors.white.withOpacity(0.90),
         labelText: label,
         labelStyle: const TextStyle(color: darkBlue),
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide.none,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: darkBlue),
+        border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
         ),
       ),
@@ -175,12 +167,7 @@ class _LoginPageState extends State<LoginPage>
             color: darkBlue,
           ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide.none,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: darkBlue),
+        border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
         ),
       ),
