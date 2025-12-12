@@ -11,13 +11,22 @@ class ApiService {
       "https://abhinav-backend-5.onrender.com/api";
 
   // --------------------------------------------------------
-  // COMMON HEADERS
+  // COMMON HEADERS  ✅ FIXED (TOKEN GUARANTEED)
   // --------------------------------------------------------
-  static Map<String, String> get headers => {
-        "Content-Type": "application/json",
-        if (auth.AuthService.token != null)
-          "Authorization": "Bearer ${auth.AuthService.token}",
-      };
+  static Map<String, String> get headers {
+    final token = auth.AuthService.token;
+
+    if (token == null) {
+      print("❌ API HEADER ERROR: TOKEN IS NULL");
+    } else {
+      print("✅ API HEADER TOKEN => $token");
+    }
+
+    return {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer $token",
+    };
+  }
 
   // --------------------------------------------------------
   // LOGIN
@@ -32,6 +41,7 @@ class ApiService {
         "password": password,
       }),
     );
+
     return jsonDecode(res.body);
   }
 
@@ -81,6 +91,10 @@ class ApiService {
       Uri.parse("$baseUrl/shops/list"),
       headers: headers,
     );
+
+    print("SHOP STATUS => ${res.statusCode}");
+    print("SHOP RESPONSE => ${res.body}");
+
     if (res.statusCode != 200) return [];
     return jsonDecode(res.body)["shops"] ?? [];
   }
@@ -117,31 +131,34 @@ class ApiService {
     return jsonDecode(res.body)["assigned"] ?? [];
   }
 
-// --------------------------------------------------------
-// ASSIGN SHOP (NAME BASED – FINAL)
-// --------------------------------------------------------
-static Future<bool> assignShop(
-  String shopName,
-  String salesmanName,
-  String segment,
-) async {
-  final res = await http.post(
-    Uri.parse("$baseUrl/assigned/assign"),
-    headers: headers,
-    body: jsonEncode({
-      "shop_name": shopName,
-      "salesman_name": salesmanName,
-      "segment": segment,
-    }),
-  );
+  // --------------------------------------------------------
+  // ASSIGN SHOP  ✅ NAME BASED
+  // --------------------------------------------------------
+  static Future<bool> assignShop(
+    String shopName,
+    String salesmanName,
+    String segment,
+  ) async {
+    final res = await http.post(
+      Uri.parse("$baseUrl/assigned/assign"),
+      headers: headers,
+      body: jsonEncode({
+        "shop_name": shopName,
+        "salesman_name": salesmanName,
+        "segment": segment,
+      }),
+    );
 
-  if (res.statusCode != 200) return false;
+    print("ASSIGN STATUS => ${res.statusCode}");
+    print("ASSIGN RESPONSE => ${res.body}");
 
-  final body = jsonDecode(res.body);
-  return body["success"] == true;
-}
+    final body = jsonDecode(res.body);
+    return body["success"] == true;
+  }
 
-  // REMOVE
+  // --------------------------------------------------------
+  // REMOVE ASSIGNED SHOP
+  // --------------------------------------------------------
   static Future<bool> removeAssignedShop(
     String shopName,
     String salesmanName,
@@ -157,8 +174,11 @@ static Future<bool> assignShop(
     return jsonDecode(res.body)["success"] == true;
   }
 
-  // REORDER
-  static Future<bool> reorderAssignedShops(Map<String, dynamic> data) async {
+  // --------------------------------------------------------
+  // REORDER ASSIGNED SHOPS
+  // --------------------------------------------------------
+  static Future<bool> reorderAssignedShops(
+      Map<String, dynamic> data) async {
     final res = await http.post(
       Uri.parse("$baseUrl/assigned/reorder"),
       headers: headers,

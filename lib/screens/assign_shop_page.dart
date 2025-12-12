@@ -10,7 +10,7 @@ import '../models/shop_model.dart';
 import '../services/user_service.dart';
 import '../services/shop_service.dart';
 import '../services/auth_service.dart';
-import '../services/api_service.dart'as api;
+import '../services/api_service.dart' as api;
 
 import 'home_page.dart';
 
@@ -148,49 +148,51 @@ class _AssignShopPageState extends State<AssignShopPage> {
   }
 
   // ASSIGN SHOPS (NEW BACKEND)
-  Future<void> assignShopsToSalesman() async {
-    if (selectedUser == null) return showMsg("Select a user first");
+ Future<void> assignShopsToSalesman() async {
+   if (!mounted) return;
 
-    if (selectedShopIds.isEmpty) return showMsg("Select at least one shop");
-
-    await getUserLocation();
-
-    String assignerId = AuthService.currentUser?["user_id"] ?? "";
-
-    List<Map<String, dynamic>> arranged = [];
-
-    for (var shop in segmentShops) {
-  if (selectedShopIds.contains(shop.shopId.toString())) {
-    await api.ApiService.assignShop(
-      shop.shopName,           // ✅ NAME
-      selectedUser!.name,      // ✅ NAME
-      shop.segment,            // ✅ segment
-    );
+  if (AuthService.token == null) {
+    await AuthService.init();
   }
-}
+  if (selectedUser == null) return showMsg("Select a user first");
+  if (selectedShopIds.isEmpty) return showMsg("Select at least one shop");
 
+  await getUserLocation();
 
-    arranged.sort((a, b) => a["distance"].compareTo(b["distance"]));
+  List<Map<String, dynamic>> arranged = [];
 
-    // NEW BACKEND → assign ONE shop at a time
-    for (var s in arranged) {
-      await api.ApiService.assignShop(
-  s["shopId"],
-  selectedUser!.userId,
-  assignerId,
+  for (var shop in segmentShops) {
+    if (selectedShopIds.contains(shop.shopId.toString())) {
+      arranged.add({
+        "shop": shop,
+        "distance": distance(
+          userLocation!.latitude,
+          userLocation!.longitude,
+          shop.lat,
+          shop.lng,
+        ),
+      });
+    }
+  }
+
+  arranged.sort((a, b) => a["distance"].compareTo(b["distance"]));
+
+  for (var s in arranged) {
+    final ShopModel shop = s["shop"];
+
+    await api.ApiService.assignShop(
+  shop.shopName,
+  selectedUser!.name,
+  shop.segment,
 );
 
-    }
-
-    showMsg("Assigned Successfully!");
-
-    Future.delayed(const Duration(milliseconds: 400), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => HomePage(user: AuthService.currentUser!)),
-      );
-    });
   }
+if (!mounted) return;
+
+showMsg("Assigned Successfully!");
+Navigator.pop(context);
+
+}
 
   void showMsg(String t) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
