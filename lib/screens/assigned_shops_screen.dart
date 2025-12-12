@@ -27,13 +27,16 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
   Future<void> loadAssignedShops() async {
     setState(() => loading = true);
 
-    final userId = widget.user["user_id"];
+   final salesmanName = widget.user["name"];
+
+final userAssigned = assigned
+    .where((a) => a["salesman_name"] == salesmanName)
+    .toList();
+
 
     final assigned = await ApiService.getAssignedShops();
     final allShops = await ApiService.getShops();
 
-    final userAssigned =
-        assigned.where((a) => a["user_id"] == userId).toList();
 
     final mapped = userAssigned.map((a) {
       final match = allShops.firstWhere(

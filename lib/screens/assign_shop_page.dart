@@ -189,8 +189,11 @@ class _AssignShopPageState extends State<AssignShopPage> {
   }
 if (!mounted) return;
 
-showMsg("Assigned Successfully!");
-Navigator.pop(context);
+Future.delayed(const Duration(milliseconds: 400), () {
+  if (!mounted) return;
+  Navigator.pop(context);
+});
+
 
 }
 

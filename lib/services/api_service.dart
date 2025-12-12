@@ -134,28 +134,27 @@ class ApiService {
   // --------------------------------------------------------
   // ASSIGN SHOP  ✅ NAME BASED
   // --------------------------------------------------------
-  static Future<bool> assignShop(
-    String shopName,
-    String salesmanName,
-    String segment,
-  ) async {
-    final res = await http.post(
-      Uri.parse("$baseUrl/assigned/assign"),
-      headers: headers,
-      body: jsonEncode({
-        "shop_name": shopName,
-        "salesman_name": salesmanName,
-        "segment": segment,
-      }),
-    );
+static Future<bool> assignShop(
+  String shopName,
+  String salesmanName,
+  String segment,
+) async {
+  final res = await http.post(
+    Uri.parse("$baseUrl/assigned/assign"),
+    headers: headers,
+    body: jsonEncode({
+      "shop_name": shopName,
+      "salesman_name": salesmanName,
+      "segment": segment,
+    }),
+  );
 
-    print("ASSIGN STATUS => ${res.statusCode}");
-    print("ASSIGN RESPONSE => ${res.body}");
+  print("ASSIGN STATUS => ${res.statusCode}");
+  print("ASSIGN RESPONSE => ${res.body}");
 
-    final body = jsonDecode(res.body);
-    return body["success"] == true;
-  }
-
+  final body = jsonDecode(res.body);
+  return body["success"] == true;
+}
   // --------------------------------------------------------
   // REMOVE ASSIGNED SHOP
   // --------------------------------------------------------
