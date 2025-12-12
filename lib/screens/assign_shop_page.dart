@@ -160,18 +160,15 @@ class _AssignShopPageState extends State<AssignShopPage> {
     List<Map<String, dynamic>> arranged = [];
 
     for (var shop in segmentShops) {
-      if (selectedShopIds.contains(shop.shopId.toString())) {
-        arranged.add({
-          "shopId": shop.shopId.toString(),
-          "distance": distance(
-            userLocation!.latitude,
-            userLocation!.longitude,
-            shop.lat,
-            shop.lng,
-          ),
-        });
-      }
-    }
+  if (selectedShopIds.contains(shop.shopId.toString())) {
+    await api.ApiService.assignShop(
+      shop.shopName,           // ✅ NAME
+      selectedUser!.name,      // ✅ NAME
+      shop.segment,            // ✅ segment
+    );
+  }
+}
+
 
     arranged.sort((a, b) => a["distance"].compareTo(b["distance"]));
 
