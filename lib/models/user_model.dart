@@ -5,7 +5,7 @@ class UserModel {
   final String mobile;
   final String role;
   final String segment;
-  final String password;
+  final String? password;
 
   UserModel({
     this.id,
@@ -14,28 +14,28 @@ class UserModel {
     required this.mobile,
     required this.role,
     required this.segment,
-    required this.password,
+    this.password,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json["_id"]?.toString(),
-      userId: json["user_id"]?.toString() ?? "",
+      id: json["_id"],
+      userId: json["user_id"] ?? "",
       name: json["name"] ?? "",
-      mobile: json["mobile"] ?? "",
-      role: json["role"] ?? "",
+      mobile: json["mobile"]?.toString() ?? "",
+      role: json["role"]?.toString().toLowerCase() ?? "",
       segment: json["segment"] ?? "",
-      password: json["password"] ?? "",
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      "user_id": userId,
       "name": name,
       "mobile": mobile,
       "role": role,
-      "password": password,
       "segment": segment,
+      if (password != null) "password": password,
     };
   }
 }

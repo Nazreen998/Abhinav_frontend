@@ -19,9 +19,12 @@ class _EditShopPageState extends State<EditShopPage> {
   @override
   void initState() {
     super.initState();
-    nameCtrl = TextEditingController(text: widget.shop["shop_name"]);
-    addrCtrl = TextEditingController(text: widget.shop["address"]);
-    segment = widget.shop["segment"] ?? "FMCG";
+
+    nameCtrl = TextEditingController(
+        text: widget.shop["shopName"] ?? widget.shop["shop_name"]);
+    addrCtrl = TextEditingController(
+        text: widget.shop["shopAddress"] ?? widget.shop["address"]);
+    segment = widget.shop["segment"]?.toString().toUpperCase() ?? "FMCG";
   }
 
   @override
@@ -88,10 +91,10 @@ class _EditShopPageState extends State<EditShopPage> {
 
   Future<void> saveShop() async {
     final updated = {
-      "shop_id": widget.shop["shop_id"],
+      "_id": widget.shop["_id"], // REAL MongoDB ID
       "shop_name": nameCtrl.text.trim(),
       "address": addrCtrl.text.trim(),
-      "segment": segment,
+      "segment": segment.toLowerCase(),
     };
 
     final ok = await ApiService.updateShop(updated);

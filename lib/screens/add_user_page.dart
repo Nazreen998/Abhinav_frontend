@@ -11,7 +11,6 @@ class AddUserPage extends StatefulWidget {
 
 class _AddUserPageState extends State<AddUserPage> {
   final _formKey = GlobalKey<FormState>();
-
   final nameCtrl = TextEditingController();
   final mobileCtrl = TextEditingController();
 
@@ -22,157 +21,84 @@ class _AddUserPageState extends State<AddUserPage> {
   bool loading = false;
 
   Future<void> createUser() async {
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
-  setState(() => loading = true);
+    setState(() => loading = true);
 
-  final autoPassword =
-      mobileCtrl.text.substring(mobileCtrl.text.length - 4) +
-          "@${role.toLowerCase()}";
+    final autoPassword =
+        mobileCtrl.text.substring(6) + "@$role";
 
-  UserModel u = UserModel(
-    id: null,
-    userId: "",
-    name: nameCtrl.text.trim(),
-    mobile: mobileCtrl.text.trim(),
-    role: role.toLowerCase(),
-    password: autoPassword,
-    segment: segment.toLowerCase(),
-  );
-
-  bool ok = await userService.addUser(u);
-
-  setState(() => loading = false);
-
-  if (ok) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("User Created!\nPassword: $autoPassword")),
+    final user = UserModel(
+      userId: "",
+      name: nameCtrl.text.trim(),
+      mobile: mobileCtrl.text.trim(),
+      role: role,
+      segment: segment,
+      password: autoPassword,
     );
-    Navigator.pop(context);
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Failed to create user")),
-    );
+
+    final ok = await userService.addUser(user);
+
+    if (!mounted) return;
+    setState(() => loading = false);
+
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("User Created\nPassword: $autoPassword")),
+      );
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Create failed")));
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF007BFF),
-              Color(0xFF66B2FF),
-              Color(0xFFB8E0FF),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+      appBar: AppBar(title: const Text("Add User")),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            TextFormField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(labelText: "Name"),
+              validator: (v) => v!.isEmpty ? "Enter name" : null,
+            ),
+            TextFormField(
+              controller: mobileCtrl,
+              decoration: const InputDecoration(labelText: "Mobile"),
+              keyboardType: TextInputType.phone,
+              validator: (v) => v!.length != 10 ? "10 digits" : null,
+            ),
+            DropdownButtonFormField(
+              value: role,
+              items: const [
+                DropdownMenuItem(value: "master", child: Text("Master")),
+                DropdownMenuItem(value: "manager", child: Text("Manager")),
+                DropdownMenuItem(value: "salesman", child: Text("Salesman")),
+              ],
+              onChanged: (v) => role = v.toString(),
+            ),
+            DropdownButtonFormField(
+              value: segment,
+              items: const [
+                DropdownMenuItem(value: "fmcg", child: Text("FMCG")),
+                DropdownMenuItem(value: "pipes", child: Text("PIPES")),
+              ],
+              onChanged: (v) => segment = v.toString(),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: loading ? null : createUser,
+              child: loading
+                  ? const CircularProgressIndicator()
+                  : const Text("Create User"),
+            )
+          ],
         ),
-        child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              const Text(
-                "Add User",
-                style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white),
-              ),
-              const SizedBox(height: 25),
-              Container(
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.92),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 10,
-                        offset: Offset(0, 4))
-                  ],
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        controller: nameCtrl,
-                        decoration: customInput("Name"),
-                        validator: (v) => v!.isEmpty ? "Enter name" : null,
-                      ),
-                      const SizedBox(height: 20),
-                      TextFormField(
-                        controller: mobileCtrl,
-                        keyboardType: TextInputType.phone,
-                        decoration: customInput("Mobile"),
-                        validator: (v) =>
-                            v!.length != 10 ? "Enter 10 digit mobile" : null,
-                      ),
-                      const SizedBox(height: 20),
-                      DropdownButtonFormField(
-                        value: role,
-                        decoration: customInput("Role"),
-                        items: const [
-                          DropdownMenuItem(
-                              value: "master", child: Text("Master")),
-                          DropdownMenuItem(
-                              value: "manager", child: Text("Manager")),
-                          DropdownMenuItem(
-                              value: "salesman", child: Text("Salesman")),
-                        ],
-                        onChanged: (v) => setState(() => role = v.toString()),
-                      ),
-                      const SizedBox(height: 20),
-                      DropdownButtonFormField(
-                        value: segment,
-                        decoration: customInput("Segment"),
-                        items: const [
-                          DropdownMenuItem(
-                              value: "fmcg", child: Text("FMCG")),
-                          DropdownMenuItem(
-                              value: "pipes", child: Text("PIPES")),
-                        ],
-                        onChanged: (v) =>
-                            setState(() => segment = v.toString()),
-                      ),
-                      const SizedBox(height: 28),
-                      loading
-                          ? const CircularProgressIndicator()
-                          : SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: createUser,
-                                child: const Text(
-                                  "Create User",
-                                  style: TextStyle(fontSize: 18),
-                                ),
-                              ),
-                            ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  InputDecoration customInput(String label) {
-    return InputDecoration(
-      labelText: label,
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
       ),
     );
   }

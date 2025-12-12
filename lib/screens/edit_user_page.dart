@@ -17,23 +17,16 @@ class _EditUserPageState extends State<EditUserPage> {
   late TextEditingController nameCtrl;
   late TextEditingController mobileCtrl;
 
-  String? selectedRole;
-  String? selectedSegment;
+  String? role;
+  String? segment;
 
   @override
   void initState() {
     super.initState();
-
     nameCtrl = TextEditingController(text: widget.user.name);
     mobileCtrl = TextEditingController(text: widget.user.mobile);
-
-    selectedRole = widget.user.role.trim().toLowerCase();
-    selectedSegment = widget.user.segment.trim().toLowerCase();
-
-    // FIX: If segment is null or unexpected
-    if (!["all", "fmcg", "pipes"].contains(selectedSegment)) {
-      selectedSegment = "all";
-    }
+    role = widget.user.role;
+    segment = widget.user.segment;
   }
 
   Future<void> save() async {
@@ -44,153 +37,69 @@ class _EditUserPageState extends State<EditUserPage> {
       userId: widget.user.userId,
       name: nameCtrl.text.trim(),
       mobile: mobileCtrl.text.trim(),
-      role: selectedRole!,
-      password: widget.user.password,
-      segment: selectedSegment!,
+      role: role!,
+      segment: segment!,
     );
 
-    bool ok = await userService.updateUser(updated);
+    final ok = await userService.updateUser(updated);
 
-    if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("User Updated Successfully")),
-      );
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Update Failed")),
-      );
-    }
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content:
+            Text(ok ? "User Updated Successfully" : "Update Failed"),
+      ),
+    );
+
+    if (ok) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF007BFF),
-              Color(0xFF66B2FF),
-              Color(0xFFB8E0FF),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  IconButton(
-                    icon:
-                        const Icon(Icons.arrow_back, size: 28, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const Text(
-                    "Edit User",
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 10),
-
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius:
-                        BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
-                  ),
-
-                  child: Form(
-                    key: _formKey,
-                    child: ListView(
-                      children: [
-                        textField(nameCtrl, "Name"),
-                        const SizedBox(height: 15),
-
-                        textField(mobileCtrl, "Mobile", keyboardType: TextInputType.phone),
-                        const SizedBox(height: 15),
-
-                        // ------------ ROLE DROPDOWN ------------
-                        DropdownButtonFormField<String>(
-                          value: selectedRole,
-                          decoration: dropdownDecor("Role"),
-                          items: const [
-                            DropdownMenuItem(value: "master", child: Text("Master")),
-                            DropdownMenuItem(value: "manager", child: Text("Manager")),
-                            DropdownMenuItem(value: "salesman", child: Text("Salesman")),
-                          ],
-                          onChanged: (v) => setState(() => selectedRole = v),
-                        ),
-
-                        const SizedBox(height: 15),
-
-                        // ------------ SEGMENT DROPDOWN (FIXED!) ------------
-                        DropdownButtonFormField<String>(
-                          value: selectedSegment,
-                          decoration: dropdownDecor("Segment"),
-                          items: const [
-                            DropdownMenuItem(value: "all", child: Text("ALL SEGMENTS")),
-                            DropdownMenuItem(value: "fmcg", child: Text("FMCG")),
-                            DropdownMenuItem(value: "pipes", child: Text("PIPES")),
-                          ],
-                          onChanged: (v) => setState(() => selectedSegment = v),
-                        ),
-
-                        const SizedBox(height: 22),
-
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: save,
-                            child: const Text(
-                              "Save Changes",
-                              style: TextStyle(fontSize: 18),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+      appBar: AppBar(title: const Text("Edit User")),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            TextFormField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(labelText: "Name"),
+              validator: (v) => v!.isEmpty ? "Enter name" : null,
+            ),
+            TextFormField(
+              controller: mobileCtrl,
+              decoration: const InputDecoration(labelText: "Mobile"),
+              keyboardType: TextInputType.phone,
+            ),
+            DropdownButtonFormField(
+              value: role,
+              items: const [
+                DropdownMenuItem(value: "master", child: Text("Master")),
+                DropdownMenuItem(value: "manager", child: Text("Manager")),
+                DropdownMenuItem(value: "salesman", child: Text("Salesman")),
+              ],
+              onChanged: (v) => role = v.toString(),
+            ),
+            DropdownButtonFormField(
+              value: segment,
+              items: const [
+                DropdownMenuItem(value: "all", child: Text("ALL")),
+                DropdownMenuItem(value: "fmcg", child: Text("FMCG")),
+                DropdownMenuItem(value: "pipes", child: Text("PIPES")),
+              ],
+              onChanged: (v) => segment = v.toString(),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: save,
+              child: const Text("Save Changes"),
+            )
+          ],
         ),
       ),
-    );
-  }
-
-  Widget textField(TextEditingController ctrl, String label,
-      {TextInputType keyboardType = TextInputType.text}) {
-    return TextFormField(
-      controller: ctrl,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-      validator: (v) => v!.isEmpty ? "Enter $label" : null,
-    );
-  }
-
-  InputDecoration dropdownDecor(String label) {
-    return InputDecoration(
-      labelText: label,
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
     );
   }
 }

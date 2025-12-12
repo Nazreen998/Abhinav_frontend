@@ -25,14 +25,18 @@ class _ModifyAssignedPageState extends State<ModifyAssignedPage> {
   String segment = "";
 
   @override
-  void initState() {
-    super.initState();
-    selected = widget.currentShops.map((e) => e["shopId"]).toList();
-    final user = AuthService.currentUser!;
-    role = user["role"];
-    segment = user["segment"] ?? "";
-    loadShops();
-  }
+  @override
+void initState() {
+  super.initState();
+
+  selected = widget.currentShops.map((e) => e["shopId"]).toList();
+
+  final user = AuthService.currentUser!;
+  role = user["role"]?.toString().toLowerCase() ?? "";
+  segment = user["segment"]?.toString().toLowerCase() ?? "";
+
+  loadShops();
+}
 
   // ------------------------------------------
   // LOAD SHOPS (Role Based)
