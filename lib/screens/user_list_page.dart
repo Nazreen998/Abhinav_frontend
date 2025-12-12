@@ -4,6 +4,8 @@ import '../services/user_service.dart';
 import '../services/auth_service.dart' as auth;
 import 'add_user_page.dart';
 import 'edit_user_page.dart';
+import '../utils/date_utils.dart';
+
 
 class UserListPage extends StatefulWidget {
   const UserListPage({super.key});
@@ -252,12 +254,12 @@ class _UserListPageState extends State<UserListPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        subtitle: Text(
-          "Mobile: ${u.mobile}"
-          "\nRole: ${u.role}"
-          "\nSegment: ${u.segment}",
-          style: const TextStyle(color: Colors.black54),
-        ),
+       subtitle: Text(
+  "Mobile: ${u.mobile}"
+  "\nRole: ${u.role}"
+  "\nSegment: ${u.segment}"
+  "\nCreated: ${formatIST(u.createdAt ?? "")}",
+),
 
         trailing: PopupMenuButton(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

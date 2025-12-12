@@ -109,32 +109,40 @@ class ApiService {
   // --------------------------------------------------------
   // GET ALL SHOPS
   // --------------------------------------------------------
-  static Future<List<dynamic>> getShops() async {
+ static Future<List<dynamic>> getShops() async {
+  try {
     final res = await http.get(
-      Uri.parse("$baseUrl/shops/list"),
+      Uri.parse("$baseUrl/shops/list"), // ✅ CORRECT ROUTE
       headers: headers,
     );
 
+    print("SHOP STATUS => ${res.statusCode}");
+    print("SHOP RESPONSE => ${res.body}");
+
     if (res.statusCode != 200) return [];
 
-    final body = jsonDecode(res.body);
-    return body["shops"] ?? [];
+    final data = jsonDecode(res.body);
+
+    // backend returns { success, shops }
+    return data["shops"] ?? [];
+  } catch (e) {
+    print("SHOP API ERROR => $e");
+    return [];
   }
+}
 
   // --------------------------------------------------------
   // GET ASSIGNED SHOPS
   // --------------------------------------------------------
   static Future<List<dynamic>> getAssignedShops() async {
-    final res = await http.get(
-      Uri.parse("$baseUrl/assigned/list"),
-      headers: headers,
-    );
+  final res = await http.get(
+    Uri.parse("$baseUrl/assigned/list"),
+    headers: headers,
+  );
 
-    if (res.statusCode != 200) return [];
-
-    return jsonDecode(res.body);
-  }
-
+  final data = jsonDecode(res.body);
+  return data["assigned"] ?? [];
+}
   // --------------------------------------------------------
   // ASSIGN SHOP
   // --------------------------------------------------------
@@ -200,6 +208,38 @@ class ApiService {
     final body = jsonDecode(res.body);
     return body["success"] == true;
   }
+  // --------------------------------------------------------
+// SALESMAN TODAY / COMPLETED / PENDING
+// --------------------------------------------------------
+static Future<Map<String, dynamic>> getSalesmanToday() async {
+  final res = await http.get(
+    Uri.parse("$baseUrl/assigned/salesman/today"),
+    headers: headers,
+  );
+
+  if (res.statusCode != 200) return {};
+
+  return jsonDecode(res.body);
+}
+
+  // --------------------------------------------------------
+// REORDER ASSIGNED SHOPS
+// --------------------------------------------------------
+static Future<bool> reorderAssignedShops(
+    Map<String, dynamic> data) async {
+  try {
+    final res = await http.put(
+      Uri.parse("$baseUrl/assigned/reorder"),
+      headers: headers,
+      body: jsonEncode(data),
+    );
+
+    final body = jsonDecode(res.body);
+    return body["success"] == true;
+  } catch (e) {
+    return false;
+  }
+}
 
   // --------------------------------------------------------
   // DELETE SHOP
@@ -233,4 +273,5 @@ class ApiService {
       return [];
     }
   }
+  
 }

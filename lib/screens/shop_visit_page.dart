@@ -176,7 +176,8 @@ class _ShopVisitPageState extends State<ShopVisitPage> {
               : "Outside shop location (MISMATCH)"),
         ),
       );
-      Navigator.pop(context);
+      Navigator.pop(context, true); // 🔥 IMPORTANT
+
     } else {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text("Failed to save visit")));

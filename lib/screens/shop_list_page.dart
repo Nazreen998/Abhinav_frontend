@@ -24,15 +24,13 @@ class _ShopListPageState extends State<ShopListPage>
 
   String role = "";
   String segment = "";
-  String userId = "";
 
   @override
   void initState() {
     super.initState();
 
     role = widget.user["role"].toString().toLowerCase();
-    segment = widget.user["segment"] ?? "";
-    userId = widget.user["user_id"] ?? "";
+    segment = (widget.user["segment"] ?? "").toString().toLowerCase();
 
     controller = AnimationController(
       vsync: this,
@@ -44,12 +42,30 @@ class _ShopListPageState extends State<ShopListPage>
     loadShops();
   }
 
+  // ------------------------------------------------------
+  // LOAD SHOPS (FIXED)
+  // ------------------------------------------------------
   Future<void> loadShops() async {
     if (!mounted) return;
     setState(() => loading = true);
 
-    shops = await ApiService.getShops();
-    filtered = shops;
+    final res = await ApiService.getShops();
+
+    // 🔥 FIX: API returns { success, shops }
+    final List all = res;
+
+    // ROLE BASED FILTER
+    if (role == "master") {
+      filtered = all;
+    } else {
+      filtered = all.where((shop) {
+        final shopSeg =
+            (shop["segment"] ?? "").toString().toLowerCase();
+        return shopSeg == segment;
+      }).toList();
+    }
+
+    shops = filtered;
 
     controller.forward();
 
@@ -57,16 +73,18 @@ class _ShopListPageState extends State<ShopListPage>
     setState(() => loading = false);
   }
 
+  // ------------------------------------------------------
+  // SEARCH
+  // ------------------------------------------------------
   List get searchResult {
     final q = search.toLowerCase();
-    return filtered.where((shop) {
+    return shops.where((shop) {
       final name = (shop["shopName"] ?? shop["shop_name"] ?? "")
           .toString()
           .toLowerCase();
       final address = (shop["shopAddress"] ?? shop["address"] ?? "")
           .toString()
           .toLowerCase();
-
       return name.contains(q) || address.contains(q);
     }).toList();
   }
@@ -160,6 +178,9 @@ class _ShopListPageState extends State<ShopListPage>
     );
   }
 
+  // ------------------------------------------------------
+  // SHOP CARD
+  // ------------------------------------------------------
   Widget buildShopCard(Map shop) {
     final seg = shop["segment"].toString().toUpperCase();
 
@@ -192,7 +213,7 @@ class _ShopListPageState extends State<ShopListPage>
                 ),
               ),
 
-              if (role == "master") ...[
+              if (role == "master" || role == "manager") ...[
                 Row(
                   children: [
                     IconButton(
@@ -208,7 +229,6 @@ class _ShopListPageState extends State<ShopListPage>
                         });
                       },
                     ),
-
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () async {
@@ -236,7 +256,8 @@ class _ShopListPageState extends State<ShopListPage>
                         );
 
                         if (yes == true) {
-                          final ok = await ApiService.deleteShop(shop["_id"]);
+                          final ok =
+                              await ApiService.deleteShop(shop["_id"]);
                           if (ok) loadShops();
                         }
                       },

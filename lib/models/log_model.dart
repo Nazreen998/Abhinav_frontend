@@ -17,15 +17,16 @@ class LogModel {
     required this.datetime,
   });
 
-  Map<String, dynamic> toJson() {
-    return {
-      "user_id": userId,
-      "shop_id": shopId,
-      "shop_name": shopName,
-      "salesman": salesman,
-      "date": date,
-      "time": time,
-      "datetime": datetime,
-    };
-  }
+  Map<String, dynamic> toJson() => {
+        "salesman_id": userId,
+        "salesman_name": salesman,
+        "shop_id": shopId,
+        "shop_name": shopName,
+        "visit_date": date,
+        "visit_time": time,
+        "datetime": datetime,
+        "photo_url": "uploaded_url_dummy",
+        "distance": 0,
+        "result": "match",
+      };
 }

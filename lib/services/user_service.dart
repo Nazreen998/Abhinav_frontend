@@ -48,25 +48,40 @@ class UserService {
   }
 
   // UPDATE USER
-  Future<bool> updateUser(UserModel user) async {
-    try {
-      final res = await http.put(
-        Uri.parse("$baseUrl/edit/${user.id}"),
-        headers: headers,
-        body: jsonEncode({
-          "name": user.name,
-          "mobile": user.mobile,
-          "role": user.role,
-          "segment": user.segment,
-        }),
-      );
+Future<bool> updateUser(UserModel user) async {
+  try {
+    final url = Uri.parse("$baseUrl/update/${user.id}");
+    print("UPDATE USER URL => $url");
 
-      final data = jsonDecode(res.body);
-      return data["success"] == true;
-    } catch (e) {
-      return false;
-    }
+    final body = {
+      "name": user.name,
+      "mobile": user.mobile,
+      "role": user.role,
+      "segment": user.segment,
+      "password": user.password,
+    };
+
+    print("UPDATE USER BODY => $body");
+
+    final res = await http.put(
+      url,
+      headers: headers,
+      body: jsonEncode(body),
+    );
+
+    print("UPDATE USER STATUS => ${res.statusCode}");
+    print("UPDATE USER RESPONSE => ${res.body}");
+
+    if (res.statusCode != 200) return false;
+
+    final data = jsonDecode(res.body);
+    return data["success"] == true;
+
+  } catch (e) {
+    print("UPDATE USER ERROR => $e");
+    return false;
   }
+}
 
   // DELETE USER
   Future<bool> deleteUser(String id) async {

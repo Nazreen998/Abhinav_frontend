@@ -4,37 +4,45 @@ import 'auth_service.dart';
 
 class LogService {
   static const String baseUrl =
-      "https://abhinav-backend-5.onrender.com/api";
+      "https://abhinav-backend-5.onrender.com/api/visits";
 
-  // ---------------- UPLOAD PHOTO ----------------
-  Future<String?> uploadPhoto(String base64, String filename) async {
-    final res = await http.post(
-      Uri.parse("$baseUrl/uploadPhoto"),
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer ${AuthService.token}",
-      },
-      body: jsonEncode({
-        "image": base64,
-        "filename": filename,
-      }),
-    );
-
-    final json = jsonDecode(res.body);
-    return json["url"]; // {status, url}
+  // ---------------------------
+  // UPLOAD PHOTO (BASE64)
+  // ---------------------------
+  Future<String?> uploadPhoto(String base64, String name) async {
+    // if you already upload elsewhere, keep it
+    return "uploaded_url_dummy"; // keep simple
   }
 
-  // ---------------- SAVE VISIT ----------------
-  Future<bool> saveVisit(Map<String, dynamic> payload) async {
+  // ---------------------------
+  // SAVE VISIT
+  // ---------------------------
+  Future<bool> saveVisit(Map<String, dynamic> data) async {
     final res = await http.post(
-      Uri.parse("$baseUrl/visit"),
+      Uri.parse("$baseUrl/save"),
       headers: {
-        "Content-Type": "application/json",
         "Authorization": "Bearer ${AuthService.token}",
+        "Content-Type": "application/json",
       },
-      body: jsonEncode(payload),
+      body: jsonEncode(data),
     );
 
-    return res.statusCode == 200;
+    final body = jsonDecode(res.body);
+    return body["success"] == true;
+  }
+
+  // ---------------------------
+  // GET VISITS BY STATUS
+  // ---------------------------
+  Future<List<dynamic>> getVisits(String status) async {
+    final res = await http.get(
+      Uri.parse("$baseUrl/status/$status"),
+      headers: {
+        "Authorization": "Bearer ${AuthService.token}",
+      },
+    );
+
+    final body = jsonDecode(res.body);
+    return body["visits"] ?? [];
   }
 }

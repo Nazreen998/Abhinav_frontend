@@ -65,7 +65,11 @@ void initState() {
     for (var old in widget.currentShops) {
       String oldShopId = old["shopId"];
       if (!selected.contains(oldShopId)) {
-        await api.ApiService.removeAssignedShop(oldShopId, widget.salesmanId);
+        await api.ApiService.removeAssignedShop(
+  oldShopId,
+  widget.salesmanId,
+);
+
       }
     }
 

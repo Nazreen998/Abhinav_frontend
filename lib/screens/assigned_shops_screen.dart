@@ -21,124 +21,134 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
     loadAssignedShops();
   }
 
-  // ⭐ OPTION-1 + OPTION-B
-  // Fetch all assigned shops → filter by user → merge with shops list
+  // --------------------------------------------------
+  // LOAD ASSIGNED SHOPS
+  // --------------------------------------------------
   Future<void> loadAssignedShops() async {
-    if (!mounted) return;
     setState(() => loading = true);
 
     final userId = widget.user["user_id"];
 
-    // 1️⃣ Get full assigned list
     final assigned = await ApiService.getAssignedShops();
-
-    // 2️⃣ Get all shop details
     final allShops = await ApiService.getShops();
 
-    // 3️⃣ Filter only shops assigned to this user
-    final userAssigned = assigned.where((a) => a["user_id"] == userId).toList();
+    final userAssigned =
+        assigned.where((a) => a["user_id"] == userId).toList();
 
-    // 4️⃣ Merge shop details with assigned shops
-    final List mapped = userAssigned.map((a) {
+    final mapped = userAssigned.map((a) {
       final match = allShops.firstWhere(
         (s) => s["shop_id"] == a["shop_id"],
         orElse: () => {},
       );
 
       return {
-        "shopId": a["shop_id"],
-        "sequence": a["sequence"] ?? "",
-        "shopName": match["shop_name"] ?? "Unknown Shop",
+        "shop_id": a["shop_id"],
+        "shop_name": match["shop_name"] ?? "Unknown Shop",
         "address": match["address"] ?? "",
         "segment": match["segment"] ?? "",
+        "sequence": a["sequence"] ?? 0,
       };
     }).toList();
 
-    if (!mounted) return;
+    mapped.sort((a, b) => a["sequence"].compareTo(b["sequence"]));
+
     setState(() {
       shops = mapped;
       loading = false;
     });
   }
 
+  // --------------------------------------------------
+  // SAVE ORDER TO SERVER
+  // --------------------------------------------------
+  Future<void> saveOrder() async {
+    if (shops.isEmpty) return;
+
+    final payload = {
+      "salesman_name": widget.user["name"],
+      "shops": List.generate(
+        shops.length,
+        (i) => {
+          "shop_name": shops[i]["shop_name"],
+          "sequence": i + 1,
+        },
+      ),
+    };
+
+    final ok = await ApiService.reorderAssignedShops(payload);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok
+            ? "Order Updated Successfully"
+            : "Order Update Failed"),
+      ),
+    );
+
+    if (ok) loadAssignedShops();
+  }
+
   @override
   Widget build(BuildContext context) {
     final role = widget.user["role"].toString().toLowerCase();
+
+    final visible = shops
+        .where((s) =>
+            s["shop_name"].toLowerCase().contains(search.toLowerCase()))
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Assigned Shops"),
         actions: [
           IconButton(
-            onPressed: loadAssignedShops,
             icon: const Icon(Icons.refresh),
+            onPressed: loadAssignedShops,
           ),
+          if (role == "master" || role == "manager")
+            IconButton(
+              icon: const Icon(Icons.save),
+              onPressed: saveOrder,
+            ),
         ],
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
-          : shops.isEmpty
+          : visible.isEmpty
               ? const Center(child: Text("No assigned shops"))
-              : Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: TextField(
-                        onChanged: (v) => setState(() => search = v),
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.search),
-                          hintText: "Search shop...",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+              : ReorderableListView.builder(
+                  itemCount: visible.length,
+                  onReorder: (oldIndex, newIndex) {
+                    setState(() {
+                      if (newIndex > oldIndex) newIndex--;
+
+                      final moved = shops.removeAt(oldIndex);
+                      shops.insert(newIndex, moved);
+                    });
+                  },
+                  itemBuilder: (_, i) {
+                    final shop = visible[i];
+                    return Card(
+                      key: ValueKey(shop["shop_id"]),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          child: Text("${i + 1}"),
                         ),
+                        title: Text(
+                          shop["shop_name"],
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text("Sequence: ${i + 1}"),
+                        trailing: (role == "master" || role == "manager")
+                            ? const Icon(Icons.drag_handle)
+                            : null,
                       ),
-                    ),
-                    Expanded(child: buildList(role)),
-                  ],
+                    );
+                  },
                 ),
-    );
-  }
-
-  // ⭐ LIST UI (unchanged)
-  Widget buildList(String role) {
-    final filtered = shops.where((s) {
-      return s["shopName"]
-          .toString()
-          .toLowerCase()
-          .contains(search.toLowerCase());
-    }).toList();
-
-    return ListView.builder(
-      itemCount: filtered.length,
-      itemBuilder: (context, index) {
-        final shop = filtered[index];
-
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          elevation: 3,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: ListTile(
-            title: Text(
-              shop["shopName"], // ⭐ Name shows NOW
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(
-              "Shop ID: ${shop["shopId"]}\n"
-              "Sequence: ${shop["sequence"]}",
-            ),
-            trailing: (role == "master" || role == "manager")
-                ? IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
-                      // Delete option later
-                    },
-                  )
-                : null,
-          ),
-        );
-      },
     );
   }
 }
