@@ -1,45 +1,37 @@
 class PendingShopModel {
   final String mongoId;
-  final String shopId;
   final String shopName;
   final String address;
   final double lat;
   final double lng;
-  final String createdBy;        // salesman name
-  final String createdAt;        // date time
   final String segment;
+  final String? createdBy;      // nullable
+  final String createdAt;       // ISO string
   final String? imageBase64;
 
   PendingShopModel({
     required this.mongoId,
-    required this.shopId,
     required this.shopName,
     required this.address,
     required this.lat,
     required this.lng,
-    required this.createdBy,
-    required this.createdAt,
     required this.segment,
+    required this.createdAt,
+    this.createdBy,
     this.imageBase64,
   });
 
   factory PendingShopModel.fromJson(Map<String, dynamic> json) {
     return PendingShopModel(
-      mongoId: json["_id"] ?? "",
-      shopId: json["shop_id"] ?? "",
-      shopName: json["shop_name"] ?? "",
-      address: json["address"] ?? "",
-      lat: (json["lat"] ?? 0).toDouble(),
-      lng: (json["lng"] ?? 0).toDouble(),
-      createdBy: json["created_by_name"] ?? json["created_by"],
-      createdAt: json["created_at"] ?? "",
-      segment: json["segment"] ?? "",
-       // ⭐ CHECK THESE IN ORDER
-      imageBase64: json["image"] ??
-                   json["shop_image"] ??
-                   json["photo"] ??
-                   json["img"] ??
-                   null,
+      mongoId: json["_id"]?.toString() ?? "",
+      shopName: json["shopName"]?.toString() ?? "",
+      address: json["address"]?.toString() ?? "",
+      lat: (json["latitude"] ?? 0).toDouble(),
+      lng: (json["longitude"] ?? 0).toDouble(),
+      segment: json["segment"]?.toString() ?? "",
+      createdAt: json["createdAt"]?.toString() ?? "",
+      createdBy: json["createdBy"]?.toString(), // may be null
+      imageBase64: json["image"]?.toString(),
     );
   }
 }

@@ -22,21 +22,19 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
   }
 
   // --------------------------------------------------
-  // LOAD ASSIGNED SHOPS
+  // LOAD ASSIGNED SHOPS  ✅ INSIDE CLASS
   // --------------------------------------------------
   Future<void> loadAssignedShops() async {
     setState(() => loading = true);
 
-   final salesmanName = widget.user["name"];
-
-final userAssigned = assigned
-    .where((a) => a["salesman_name"] == salesmanName)
-    .toList();
-
+    final salesmanName = widget.user["name"];
 
     final assigned = await ApiService.getAssignedShops();
     final allShops = await ApiService.getShops();
 
+    final userAssigned = assigned
+        .where((a) => a["salesman_name"] == salesmanName)
+        .toList();
 
     final mapped = userAssigned.map((a) {
       final match = allShops.firstWhere(
@@ -55,6 +53,7 @@ final userAssigned = assigned
 
     mapped.sort((a, b) => a["sequence"].compareTo(b["sequence"]));
 
+    if (!mounted) return;
     setState(() {
       shops = mapped;
       loading = false;
@@ -62,7 +61,7 @@ final userAssigned = assigned
   }
 
   // --------------------------------------------------
-  // SAVE ORDER TO SERVER
+  // SAVE ORDER
   // --------------------------------------------------
   Future<void> saveOrder() async {
     if (shops.isEmpty) return;
@@ -80,11 +79,11 @@ final userAssigned = assigned
 
     final ok = await ApiService.reorderAssignedShops(payload);
 
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(ok
-            ? "Order Updated Successfully"
-            : "Order Update Failed"),
+        content:
+            Text(ok ? "Order Updated Successfully" : "Order Update Failed"),
       ),
     );
 
@@ -141,8 +140,8 @@ final userAssigned = assigned
                         ),
                         title: Text(
                           shop["shop_name"],
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold),
+                          style:
+                              const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text("Sequence: ${i + 1}"),
                         trailing: (role == "master" || role == "manager")

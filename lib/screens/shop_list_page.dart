@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'edit_shop_page.dart';
+import 'pending_shops_page.dart';
 
 class ShopListPage extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -123,6 +124,27 @@ class _ShopListPageState extends State<ShopListPage>
                       color: Colors.white,
                     ),
                   ),
+                    const Spacer(),
+
+    // 🔥 PENDING SHOPS BUTTON
+    if (role == "master" || role == "manager")
+      IconButton(
+        icon: const Icon(Icons.pending_actions,
+            color: Colors.white, size: 28),
+        onPressed: () async {
+          final refreshed = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PendingShopsPage(user: widget.user),
+            ),
+          );
+
+          // 🔥 THIS IS THE MAGIC
+          if (refreshed == true) {
+            loadShops();
+          }
+        },
+      ),
                 ],
               ),
 

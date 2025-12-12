@@ -161,56 +161,85 @@ class _AddShopPageState extends State<AddShopPage> {
   // ==========================================
   // SUBMIT SHOP → SEND TO PENDING SHOPS
   // ==========================================
-  Future submit() async {
-    if (nameController.text.isEmpty) return _error("Enter shop name");
-    if (addressController.text.isEmpty) return _error("Enter address");
-    if (base64Image == null) return _error("Select a photo");
-    if (lat == null || lng == null) return _error("Location not detected");
-
-    final user = AuthService.currentUser;
-    if (user == null) return _error("User not logged in");
-
-    final salesmanId = user["user_id"];
-
-    final payload = {
-      "salesmanId": salesmanId,
-      "shopName": nameController.text.trim(),
-      "address": addressController.text.trim(),
-      "latitude": lat,
-      "longitude": lng,
-      "image": base64Image,
-      "segment": user["segment"] ?? "",
-    };
-
-    print("===== PENDING SHOP PAYLOAD =====");
-    print(payload);
-
-    setState(() => loading = true);
-
-    final url = Uri.parse("https://abhinav-backend-5.onrender.com/api/pending/add");
-
-    try {
-      final res = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(payload),
-      );
-
-      setState(() => loading = false);
-
-      final data = jsonDecode(res.body);
-
-      if (data["success"] == true) {
-        _success("Shop submitted for approval");
-        Navigator.pop(context);
-      } else {
-        _error(data["message"]);
-      }
-    } catch (e) {
-      setState(() => loading = false);
-      _error("Network Error: $e");
-    }
+ Future submit() async {
+  // ================= DEBUG POPUP =================
+  void debugBox(String msg) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("DEBUG"),
+        content: SingleChildScrollView(child: Text(msg)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          )
+        ],
+      ),
+    );
   }
+
+  // ================= BASIC VALIDATION =================
+  if (nameController.text.isEmpty) return _error("Enter shop name");
+  if (addressController.text.isEmpty) return _error("Enter address");
+  if (base64Image == null) return _error("Select a photo");
+  if (lat == null || lng == null) return _error("Location not detected");
+
+  // ================= TOKEN CHECK (🔥 MAIN FIX) =================
+  if (AuthService.token == null) {
+    debugBox("TOKEN NOT READY ❌\nWait 2 seconds and try again");
+    return;
+  }
+
+  final payload = {
+    "shopName": nameController.text.trim(),
+    "address": addressController.text.trim(),
+    "latitude": lat,
+    "longitude": lng,
+    "image": base64Image,
+  };
+
+  setState(() => loading = true);
+
+  final url = Uri.parse(
+    "https://abhinav-backend-5.onrender.com/api/pending/add",
+  );
+
+  try {
+    final res = await http.post(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${AuthService.token}",
+      },
+      body: jsonEncode(payload),
+    );
+
+    setState(() => loading = false);
+
+    // ================= STATUS CHECK =================
+    if (res.statusCode != 200) {
+      debugBox(
+        "SERVER ERROR ❌\n"
+        "Status: ${res.statusCode}\n"
+        "Body:\n${res.body}",
+      );
+      return;
+    }
+
+    final data = jsonDecode(res.body);
+
+    if (data["success"] == true) {
+      _success("Shop submitted for approval");
+      if (mounted) Navigator.pop(context);
+    } else {
+      _error(data["message"] ?? "Submit failed");
+    }
+  } catch (e) {
+    setState(() => loading = false);
+    debugBox("NETWORK / CRASH ERROR ❌\n$e");
+  }
+}
 
   void _error(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));

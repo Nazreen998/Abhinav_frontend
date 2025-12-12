@@ -3,7 +3,8 @@ import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
 
 class PendingShopService {
-  static const String base = "https://abhinav-backend-5.onrender.com/api";
+  static const String base =
+      "https://abhinav-backend-5.onrender.com/api";
 
   Map<String, String> get headers => {
         "Content-Type": "application/json",
@@ -12,20 +13,21 @@ class PendingShopService {
       };
 
   // -------------------------------------------------------
-  // GET ALL PENDING SHOPS
+  // GET PENDING SHOPS (MASTER / MANAGER)
   // -------------------------------------------------------
   Future<List<dynamic>> getPendingShops() async {
-
-    final url = Uri.parse("$base/pending/all");
+    final url = Uri.parse("$base/pending/list");
 
     final res = await http.get(url, headers: headers);
 
-    if (res.statusCode != 200) return [];
+    if (res.statusCode != 200) {
+      return [];
+    }
 
     final data = jsonDecode(res.body);
 
-    if (data["status"] == "success") {
-      return data["shops"] ?? [];
+    if (data["success"] == true) {
+      return data["data"] ?? [];
     }
 
     return [];
@@ -42,7 +44,7 @@ class PendingShopService {
     if (res.statusCode != 200) return false;
 
     final data = jsonDecode(res.body);
-    return data["status"] == "success";
+    return data["success"] == true;
   }
 
   // -------------------------------------------------------
@@ -51,11 +53,17 @@ class PendingShopService {
   Future<bool> rejectShop(String id) async {
     final url = Uri.parse("$base/pending/reject/$id");
 
-    final res = await http.delete(url, headers: headers);
+    final res = await http.post(
+      url,
+      headers: headers,
+      body: jsonEncode({
+        "reason": "Rejected by manager",
+      }),
+    );
 
     if (res.statusCode != 200) return false;
 
     final data = jsonDecode(res.body);
-    return data["status"] == "success";
+    return data["success"] == true;
   }
 }

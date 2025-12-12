@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/pending_shop_model.dart';
 import '../services/pending_shop_service.dart';
-import '../services/auth_service.dart' as auth;
 import 'full_image_page.dart';
 
 class PendingShopsPage extends StatefulWidget {
@@ -18,6 +17,7 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
 
   List<PendingShopModel> pendingShops = [];
   bool loading = true;
+  bool approving = false; // 🔥 FIX 1
 
   bool get isMaster =>
       widget.user["role"].toString().toLowerCase() == "master";
@@ -31,59 +31,74 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
     loadPendingShops();
   }
 
-  // -----------------------------------------------------------
-  // LOAD PENDING SHOPS (Role Based Filter)
-  // -----------------------------------------------------------
+  // ================= LOAD PENDING SHOPS =================
   Future<void> loadPendingShops() async {
     setState(() => loading = true);
 
-    final res = await pendingService.getPendingShops();
-
-    pendingShops = res.map((e) => PendingShopModel.fromJson(e)).toList();
-
-    // MANAGER → filter by segment
-    if (isManager) {
-      final seg = widget.user["segment"].toString().toUpperCase();
-      pendingShops = pendingShops
-          .where((s) => s.segment.toUpperCase() == seg)
-          .toList();
+    try {
+      final res = await pendingService.getPendingShops();
+      pendingShops =
+          res.map((e) => PendingShopModel.fromJson(e)).toList();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error loading pending shops")),
+        );
+      }
     }
 
-    setState(() => loading = false);
+    if (mounted) setState(() => loading = false);
   }
 
-  // -----------------------------------------------------------
-  // APPROVE SHOP
-  // -----------------------------------------------------------
+  // ================= APPROVE =================
   Future<void> approveShop(String id) async {
+    if (approving) return;
+
+    setState(() => approving = true);
+
     final ok = await pendingService.approveShop(id);
+
+    setState(() => approving = false);
+
+    if (!mounted) return;
+
     if (ok) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Shop Approved")));
-      loadPendingShops();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Shop Approved Successfully")),
+      );
+
+      // 🔥 tell ShopListPage to refresh
+      Navigator.pop(context, true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Approval failed")),
+      );
     }
   }
 
-  // -----------------------------------------------------------
-  // REJECT SHOP
-  // -----------------------------------------------------------
+  // ================= REJECT =================
   Future<void> rejectShop(String id) async {
     final ok = await pendingService.rejectShop(id);
+    if (!mounted) return;
+
     if (ok) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Shop Rejected")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Shop Rejected")),
+      );
       loadPendingShops();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // SALESMAN → ACCESS DENIED
+    // SALESMAN BLOCK
     if (!isMaster && !isManager) {
       return const Scaffold(
         body: Center(
-          child: Text("Access Denied",
-              style: TextStyle(fontSize: 22, color: Colors.red)),
+          child: Text(
+            "Access Denied",
+            style: TextStyle(fontSize: 22, color: Colors.red),
+          ),
         ),
       );
     }
@@ -100,7 +115,7 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
         child: SafeArea(
           child: Column(
             children: [
-              // ---------------- HEADER ----------------
+              // ================= HEADER =================
               Row(
                 children: [
                   IconButton(
@@ -121,6 +136,7 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
 
               const SizedBox(height: 10),
 
+              // ================= BODY =================
               Expanded(
                 child: loading
                     ? const Center(child: CircularProgressIndicator())
@@ -149,28 +165,26 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
     );
   }
 
-  // -----------------------------------------------------------
-  // PENDING SHOP CARD UI
-  // -----------------------------------------------------------
+  // ================= PENDING CARD =================
   Widget _pendingCard(PendingShopModel shop) {
     return Container(
       padding: const EdgeInsets.all(20),
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.14),
+            color: Colors.black.withOpacity(0.15),
             blurRadius: 10,
             offset: const Offset(0, 5),
-          )
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ---------------- IMAGE PREVIEW ----------------
+          // IMAGE
           if (shop.imageBase64 != null && shop.imageBase64!.isNotEmpty)
             GestureDetector(
               onTap: () {
@@ -193,7 +207,7 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
               ),
             ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
           Text(
             shop.shopName,
@@ -206,48 +220,50 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
 
           const SizedBox(height: 6),
 
-          Text("Address: ${shop.address}",
-              style: const TextStyle(color: Colors.black87)),
-          Text("Segment: ${shop.segment}",
-              style: const TextStyle(color: Colors.black54)),
-          Text("Created By: ${shop.createdBy}",
-              style: const TextStyle(color: Colors.black54)),
+          Text("Address: ${shop.address}"),
+          Text("Segment: ${shop.segment}"),
+          Text(
+            "Created By: ${shop.createdBy ?? "Salesman"}",
+            style: const TextStyle(color: Colors.black54),
+          ),
 
           const SizedBox(height: 14),
 
-          // ---------------- APPROVE / REJECT BUTTONS ----------------
-          if (isMaster || isManager)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ElevatedButton(
-                  onPressed: () => approveShop(shop.mongoId),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 10, horizontal: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+          // APPROVE / REJECT
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ElevatedButton(
+                onPressed: approving ? null : () => approveShop(shop.mongoId),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child:
-                      const Text("Approve", style: TextStyle(color: Colors.white)),
                 ),
-                ElevatedButton(
-                  onPressed: () => rejectShop(shop.mongoId),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 10, horizontal: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                child: approving
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text("Approve"),
+              ),
+              ElevatedButton(
+                onPressed: approving ? null : () => rejectShop(shop.mongoId),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child:
-                      const Text("Reject", style: TextStyle(color: Colors.white)),
                 ),
-              ],
-            ),
+                child: const Text("Reject"),
+              ),
+            ],
+          ),
         ],
       ),
     );
