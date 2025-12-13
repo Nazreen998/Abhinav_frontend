@@ -32,32 +32,41 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Future<void> loginUser() async {
-    if (mobileCtrl.text.isEmpty || passCtrl.text.isEmpty) {
-      _msg("Mobile & Password are required");
-      return;
-    }
-
-    setState(() => loading = true);
-
-    final result = await AuthService.login(
-      mobileCtrl.text.trim(),
-      passCtrl.text.trim(),
-    );
-
-    setState(() => loading = false);
-
-    if (result["status"] != "success") {
-      _msg(result["message"] ?? "Login failed");
-      return;
-    }
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => HomePage(user: result["user"]),
-      ),
-    );
+  if (mobileCtrl.text.isEmpty || passCtrl.text.isEmpty) {
+    _msg("Mobile & Password are required");
+    return;
   }
+
+  setState(() => loading = true);
+
+  final result = await AuthService.login(
+    mobileCtrl.text.trim(),
+    passCtrl.text.trim(),
+  );
+
+  setState(() => loading = false);
+
+ if (result["success"] != true) {
+  _msg(result["message"] ?? "Login failed");
+  return;
+}
+
+
+  // 🔥 IMPORTANT FIX (TOKEN SYNC)
+  await Future.delayed(const Duration(milliseconds: 300));
+
+  if (!mounted) return;
+
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (_) => HomePage(
+        user: AuthService.currentUser ?? result["user"],
+      ),
+    ),
+  );
+}
+
 
   void _msg(String txt) {
     ScaffoldMessenger.of(context)

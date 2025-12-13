@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  // ✔ Your correct backend route
+  // ✔ Backend base URL
   static const String baseApi =
       "https://abhinav-backend-5.onrender.com/api/users";
 
@@ -11,7 +11,7 @@ class AuthService {
   static Map<String, dynamic>? currentUser;
 
   // ---------------------------------------------------------
-  // LOAD TOKEN + USER FROM LOCAL STORAGE
+  // INIT → LOAD TOKEN & USER AT APP START
   // ---------------------------------------------------------
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -25,7 +25,7 @@ class AuthService {
   }
 
   // ---------------------------------------------------------
-  // LOGIN (FULLY CORRECT VERSION FOR YOUR BACKEND)
+  // LOGIN
   // ---------------------------------------------------------
   static Future<Map<String, dynamic>> login(
       String phone, String password) async {
@@ -36,31 +36,37 @@ class AuthService {
         url,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "phone": phone.trim(),       // ✔ backend expects phone
-          "password": password.trim(), // ✔ backend expects this
+          "phone": phone.trim(),
+          "password": password.trim(),
         }),
       );
 
       final data = jsonDecode(res.body);
 
-      // ❌ If login failed → just return message
-      if (data["success"] != true) return data;
+      // ❌ Login failed
+      if (data["success"] != true) {
+        return data;
+      }
 
       // -----------------------------------------------------
-      // SAVE USER + TOKEN LOCALLY
+      // SAVE TOKEN + USER (IMPORTANT)
       // -----------------------------------------------------
       final prefs = await SharedPreferences.getInstance();
 
       token = data["token"];
       currentUser = data["user"];
 
+      // 🔥 MUST AWAIT
       await prefs.setString("token", token!);
       await prefs.setString("user", jsonEncode(currentUser));
 
       return data;
-
     } catch (e) {
-      return {"success": false, "error": e.toString()};
+      return {
+        "success": false,
+        "message": "Network error",
+        "error": e.toString(),
+      };
     }
   }
 
@@ -70,10 +76,18 @@ class AuthService {
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
 
-    prefs.remove("token");
-    prefs.remove("user");
+    await prefs.remove("token");
+    await prefs.remove("user");
 
     token = null;
     currentUser = null;
   }
+
+  // ---------------------------------------------------------
+  // COMMON AUTH HEADER
+  // ---------------------------------------------------------
+  static Map<String, String> get authHeader => {
+        "Content-Type": "application/json",
+        if (token != null) "Authorization": "Bearer $token",
+      };
 }

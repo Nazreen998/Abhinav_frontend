@@ -131,9 +131,9 @@ class AssignService {
     }
 
     final data = jsonDecode(res.body);
-    if (data["status"] != "success") {
-      print("❌ Next Shop API status != success");
-      return [];
+    if (data["success"] != true) {
+  print("❌ Next Shop API success=false");
+  return [];
     }
 
     final shops = data["shops"] ?? [];
