@@ -1,5 +1,5 @@
 // ------------------------------------------------------------
-// API SERVICE (SYNCED WITH BACKEND) - ERROR FREE VERSION
+// API SERVICE (SYNCED WITH BACKEND) - FINAL ERROR FREE VERSION
 // ------------------------------------------------------------
 
 import 'dart:convert';
@@ -11,7 +11,7 @@ class ApiService {
       "https://abhinav-backend-5.onrender.com/api";
 
   // --------------------------------------------------------
-  // COMMON HEADERS  ✅ FIXED (TOKEN GUARANTEED)
+  // COMMON HEADERS
   // --------------------------------------------------------
   static Map<String, String> get headers {
     final token = auth.AuthService.token;
@@ -128,48 +128,44 @@ class ApiService {
       Uri.parse("$baseUrl/assigned/list"),
       headers: headers,
     );
+    if (res.statusCode != 200) return [];
     return jsonDecode(res.body)["assigned"] ?? [];
   }
 
   // --------------------------------------------------------
-  // ASSIGN SHOP  ✅ NAME BASED
+  // ASSIGN SHOP (MASTER / MANAGER)
   // --------------------------------------------------------
-static Future<bool> assignShop(
-  String shopName,
-  String salesmanName,
-  String segment,
-) async {
-  final res = await http.post(
-    Uri.parse("$baseUrl/assigned/assign"),
-    headers: headers,
-    body: jsonEncode({
-      "shop_name": shopName,
-      "salesman_name": salesmanName,
-      "segment": segment,
-    }),
-  );
-
-  print("ASSIGN STATUS => ${res.statusCode}");
-  print("ASSIGN RESPONSE => ${res.body}");
-
-  final body = jsonDecode(res.body);
-  return body["success"] == true;
-}
-  // --------------------------------------------------------
-  // REMOVE ASSIGNED SHOP
-  // --------------------------------------------------------
-  static Future<bool> removeAssignedShop(
+  static Future<bool> assignShop(
     String shopName,
     String salesmanName,
+    String segment,
   ) async {
     final res = await http.post(
-      Uri.parse("$baseUrl/assigned/remove"),
+      Uri.parse("$baseUrl/assigned/assign"),
       headers: headers,
       body: jsonEncode({
         "shop_name": shopName,
         "salesman_name": salesmanName,
+        "segment": segment,
       }),
     );
+
+    final body = jsonDecode(res.body);
+    return body["success"] == true;
+  }
+
+  // --------------------------------------------------------
+  // REMOVE ASSIGNED SHOP (BY assign_id)
+  // --------------------------------------------------------
+  static Future<bool> removeAssignedShop(String assignId) async {
+    final res = await http.post(
+      Uri.parse("$baseUrl/assigned/remove"),
+      headers: headers,
+      body: jsonEncode({
+        "assign_id": assignId,
+      }),
+    );
+
     return jsonDecode(res.body)["success"] == true;
   }
 
@@ -177,12 +173,24 @@ static Future<bool> assignShop(
   // REORDER ASSIGNED SHOPS
   // --------------------------------------------------------
   static Future<bool> reorderAssignedShops(
-      Map<String, dynamic> data) async {
+    String salesmanId,
+    List<dynamic> shops,
+  ) async {
     final res = await http.post(
       Uri.parse("$baseUrl/assigned/reorder"),
       headers: headers,
-      body: jsonEncode(data),
+      body: jsonEncode({
+        "salesman_id": salesmanId,
+        "shops": List.generate(
+          shops.length,
+          (i) => {
+            "assign_id": shops[i]["_id"],
+            "sequence": i + 1,
+          },
+        ),
+      }),
     );
+
     return jsonDecode(res.body)["success"] == true;
   }
 
@@ -199,14 +207,15 @@ static Future<bool> assignShop(
   }
 
   // --------------------------------------------------------
-  // LOG HISTORY
+  // HISTORY LOGS
   // --------------------------------------------------------
   static Future<List<dynamic>> getLogs() async {
     final res = await http.get(
-      Uri.parse("$baseUrl/history"),
+      Uri.parse("$baseUrl/history/list"),
       headers: headers,
     );
+
     if (res.statusCode != 200) return [];
-    return jsonDecode(res.body);
+    return jsonDecode(res.body)["history"] ?? [];
   }
 }

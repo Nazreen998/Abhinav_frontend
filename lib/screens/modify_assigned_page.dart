@@ -52,52 +52,40 @@ void initState() {
   // ------------------------------------------
   // SAVE CHANGES (Remove old + Add new)
   // ------------------------------------------
-  Future<void> saveChanges() async {
-    String assignerId = AuthService.currentUser!["user_id"];
-
-    // Convert allShops to ID mapping
-    Map<String, dynamic> mapByName = {};
-    for (var s in allShops) {
-      mapByName[s["shopName"]] = s;
+Future<void> saveChanges() async {
+  // REMOVE unchecked
+  for (var old in widget.currentShops) {
+    if (!selected.contains(old["_id"])) {
+      await api.ApiService.removeAssignedShop(old["_id"]);
     }
-
-    // 1️⃣ REMOVE shops that were previously assigned but now unchecked
-    for (var old in widget.currentShops) {
-      String oldShopId = old["shopId"];
-      if (!selected.contains(oldShopId)) {
-        await api.ApiService.removeAssignedShop(
-  oldShopId,
-  widget.salesmanId,
-);
-
-      }
-    }
-
-    // 2️⃣ ADD shops that were newly selected
-    for (var shopId in selected) {
-      bool alreadyAssigned = widget.currentShops
-          .any((old) => old["shopId"] == shopId);
-
-      if (!alreadyAssigned) {
-       await api.ApiService.assignShop(
-  shopId,
-  widget.salesmanId,
-  assignerId,
-);
-
-      }
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Assigned Shops Updated Successfully"),
-        backgroundColor: Colors.green,
-      ),
-    );
-
-    Navigator.pop(context, true);
   }
 
+  // ADD newly checked
+  for (var shop in allShops) {
+    if (selected.contains(shop["_id"])) {
+      final exists = widget.currentShops
+          .any((e) => e["shop_name"] == shop["shop_name"]);
+
+      if (!exists) {
+        await api.ApiService.assignShop(
+          shop["shop_name"],
+          widget.salesmanId,
+          shop["segment"],
+        );
+      }
+    }
+  }
+
+  if (!mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text("Assigned Shops Updated Successfully"),
+      backgroundColor: Colors.green,
+    ),
+  );
+
+  Navigator.pop(context, true);
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(

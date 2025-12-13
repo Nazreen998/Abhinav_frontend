@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'modify_assigned_page.dart';
 
 class AssignedShopsScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -13,7 +14,6 @@ class AssignedShopsScreen extends StatefulWidget {
 class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
   List<dynamic> shops = [];
   bool loading = true;
-  String search = "";
 
   @override
   void initState() {
@@ -22,31 +22,42 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
   }
 
   // --------------------------------------------------
-  // LOAD ASSIGNED SHOPS  ✅ INSIDE CLASS
+  // LOAD ASSIGNED SHOPS (ROLE BASED)
   // --------------------------------------------------
   Future<void> loadAssignedShops() async {
     setState(() => loading = true);
 
-    final salesmanName = widget.user["name"];
+    final role = widget.user["role"].toString().toLowerCase();
+    final myName = widget.user["name"];
+    final mySegment = widget.user["segment"];
 
     final assigned = await ApiService.getAssignedShops();
     final allShops = await ApiService.getShops();
 
-    final userAssigned = assigned
-        .where((a) => a["salesman_name"] == salesmanName)
-        .toList();
+    List filtered = [];
 
-    final mapped = userAssigned.map((a) {
+    if (role == "master") {
+      filtered = assigned;
+    } else if (role == "manager") {
+      filtered =
+          assigned.where((a) => a["segment"] == mySegment).toList();
+    } else {
+      filtered =
+          assigned.where((a) => a["salesman_name"] == myName).toList();
+    }
+
+    final mapped = filtered.map((a) {
       final match = allShops.firstWhere(
-        (s) => s["shop_id"] == a["shop_id"],
+        (s) => s["_id"] == a["shop_id"] || s["shop_id"] == a["shop_id"],
         orElse: () => {},
       );
 
       return {
+        "_id": a["_id"], // 🔥 REQUIRED for remove/reorder
         "shop_id": a["shop_id"],
-        "shop_name": match["shop_name"] ?? "Unknown Shop",
+        "shop_name": a["shop_name"] ?? match["shop_name"] ?? "",
         "address": match["address"] ?? "",
-        "segment": match["segment"] ?? "",
+        "segment": a["segment"] ?? "",
         "sequence": a["sequence"] ?? 0,
       };
     }).toList();
@@ -61,29 +72,19 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
   }
 
   // --------------------------------------------------
-  // SAVE ORDER
+  // SAVE ORDER (MASTER / MANAGER)
   // --------------------------------------------------
   Future<void> saveOrder() async {
-    if (shops.isEmpty) return;
-
-    final payload = {
-      "salesman_name": widget.user["name"],
-      "shops": List.generate(
-        shops.length,
-        (i) => {
-          "shop_name": shops[i]["shop_name"],
-          "sequence": i + 1,
-        },
-      ),
-    };
-
-    final ok = await ApiService.reorderAssignedShops(payload);
+    final ok = await ApiService.reorderAssignedShops(
+      widget.user["_id"],
+      shops,
+    );
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content:
-            Text(ok ? "Order Updated Successfully" : "Order Update Failed"),
+        content: Text(ok ? "Order Updated" : "Update Failed"),
+        backgroundColor: ok ? Colors.green : Colors.red,
       ),
     );
 
@@ -94,14 +95,10 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
   Widget build(BuildContext context) {
     final role = widget.user["role"].toString().toLowerCase();
 
-    final visible = shops
-        .where((s) =>
-            s["shop_name"].toLowerCase().contains(search.toLowerCase()))
-        .toList();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Assigned Shops"),
+        backgroundColor: Colors.blue,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -116,36 +113,95 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
-          : visible.isEmpty
+          : shops.isEmpty
               ? const Center(child: Text("No assigned shops"))
               : ReorderableListView.builder(
-                  itemCount: visible.length,
+                  itemCount: shops.length,
                   onReorder: (oldIndex, newIndex) {
                     setState(() {
                       if (newIndex > oldIndex) newIndex--;
-
-                      final moved = shops.removeAt(oldIndex);
-                      shops.insert(newIndex, moved);
+                      final item = shops.removeAt(oldIndex);
+                      shops.insert(newIndex, item);
                     });
                   },
-                  itemBuilder: (_, i) {
-                    final shop = visible[i];
+                  itemBuilder: (context, i) {
+                    final shop = shops[i];
+
                     return Card(
-                      key: ValueKey(shop["shop_id"]),
+                      key: ValueKey(shop["_id"]),
                       margin: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
                       child: ListTile(
                         leading: CircleAvatar(
-                          child: Text("${i + 1}"),
+                          backgroundColor: Colors.blue,
+                          child: Text(
+                            "${i + 1}",
+                            style:
+                                const TextStyle(color: Colors.white),
+                          ),
                         ),
                         title: Text(
                           shop["shop_name"],
-                          style:
-                              const TextStyle(fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold),
                         ),
-                        subtitle: Text("Sequence: ${i + 1}"),
-                        trailing: (role == "master" || role == "manager")
-                            ? const Icon(Icons.drag_handle)
+                        subtitle:
+                            Text("Segment: ${shop["segment"]}"),
+                        trailing: (role == "master" ||
+                                role == "manager")
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // ✏️ EDIT
+                                  IconButton(
+                                    icon: const Icon(Icons.edit,
+                                        color: Colors.blue),
+                                    onPressed: () async {
+                                      final updated =
+                                          await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              ModifyAssignedPage(
+                                            salesmanId:
+                                                widget.user["_id"],
+                                            currentShops: shops,
+                                          ),
+                                        ),
+                                      );
+
+                                      if (updated == true) {
+                                        loadAssignedShops();
+                                      }
+                                    },
+                                  ),
+
+                                  // ❌ REMOVE
+                                  IconButton(
+                                    icon: const Icon(Icons.delete,
+                                        color: Colors.red),
+                                    onPressed: () async {
+                                      final ok =
+                                          await ApiService
+                                              .removeAssignedShop(
+                                                  shop["_id"]);
+
+                                      if (ok) {
+                                        loadAssignedShops();
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                                "Assigned shop removed"),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  ),
+
+                                  const Icon(Icons.drag_handle),
+                                ],
+                              )
                             : null,
                       ),
                     );
