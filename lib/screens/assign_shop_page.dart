@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, unused_import
 
 import 'dart:math';
 import 'package:flutter/foundation.dart';
@@ -250,6 +250,7 @@ Future.delayed(const Duration(milliseconds: 400), () {
                         child: Column(
                           children: [
                             DropdownButtonFormField<UserModel>(
+                              // ignore: deprecated_member_use
                               value: selectedUser,
                               decoration: customInput("Select User"),
                               items: users

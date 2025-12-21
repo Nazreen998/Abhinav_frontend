@@ -53,30 +53,35 @@ void initState() {
   // SAVE CHANGES (Remove old + Add new)
   // ------------------------------------------
 Future<void> saveChanges() async {
-  // REMOVE unchecked
+  // REMOVE unchecked shops
   for (var old in widget.currentShops) {
-    if (!selected.contains(old["_id"])) {
+    final oldShopId = old["shop_id"] ?? old["shopId"];
+    if (!selected.contains(oldShopId)) {
       await api.ApiService.removeAssignedShop(old["_id"]);
     }
   }
 
-  // ADD newly checked
+  // ADD newly selected shops
   for (var shop in allShops) {
-    if (selected.contains(shop["_id"])) {
-      final exists = widget.currentShops
-          .any((e) => e["shop_name"] == shop["shop_name"]);
+    final shopId = shop["shop_id"] ?? shop["shopId"];
+    final shopName = shop["shop_name"] ?? shop["shopName"] ?? "";
+
+    if (selected.contains(shopId)) {
+      final exists = widget.currentShops.any((e) =>
+          (e["shop_name"] ?? "") == shopName);
 
       if (!exists) {
         await api.ApiService.assignShop(
-          shop["shop_name"],
+          shopName,
           widget.salesmanId,
-          shop["segment"],
+          shop["segment"] ?? "",
         );
       }
     }
   }
 
   if (!mounted) return;
+
   ScaffoldMessenger.of(context).showSnackBar(
     const SnackBar(
       content: Text("Assigned Shops Updated Successfully"),
@@ -86,6 +91,7 @@ Future<void> saveChanges() async {
 
   Navigator.pop(context, true);
 }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

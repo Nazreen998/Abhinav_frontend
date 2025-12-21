@@ -96,17 +96,18 @@ class _MatchPageState extends State<MatchPage> {
 
     // SEND VISIT TO BACKEND (NEW FORMAT)
     final payload = {
-      "salesman_id": AuthService.currentUser!["user_id"],
-      "shop_id": widget.shop["shop_id"],
-      "shop_name": widget.shop["shop_name"],
-      "photo_url": uploadedUrl ?? "",
-      "lat": userLat,
-      "lng": userLng,
-      "distance": distanceMeters!.toStringAsFixed(1),
-      "match": isMatch ? "match" : "mismatch",
-      "segment": widget.shop["segment"] ?? "",
-    };
-
+  "salesman_id": AuthService.currentUser!["user_id"],
+  "salesman_name": AuthService.currentUser!["name"],
+  "shop_id": widget.shop["shop_id"],
+  "shop_name": widget.shop["shop_name"],
+  "photo_url": uploadedUrl ?? "",
+  "lat": userLat,
+  "lng": userLng,
+  "distance": distanceMeters!.toStringAsFixed(1),
+  "result": isMatch ? "match" : "mismatch",
+  "segment": widget.shop["segment"] ?? "",
+  "visit_time": DateTime.now().toIso8601String(),
+};
     await visitService.visitShop(payload);
 
     // SHOW RESULT

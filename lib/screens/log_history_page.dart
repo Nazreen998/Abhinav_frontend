@@ -49,25 +49,30 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
 
     // ******** MAP TO APP FORMAT (USING VISITLOG) ******** //
     List<dynamic> all = raw.map((l) {
-      // Convert backend yyyy-MM-dd -> dd-MM-yyyy
-      String backendDate = l["date"] ?? "";
-      String formattedDate = "";
-      if (backendDate.isNotEmpty) {
-        DateTime dt = DateTime.parse(backendDate);
-        formattedDate = DateFormat("dd-MM-yyyy").format(dt);
-      }
+  // 🔥 FIX: dt properly defined
+  DateTime dt;
 
-      return {
-        "shopName": l["shop_name"] ?? "",
-        "salesman": l["salesman_name"] ?? "",
-        "photoUrl": l["imageUrl"] ?? "",
-        "result": l["result"] == "match", // TRUE if match
-        "distance": (l["distance"] ?? 0).toDouble(),
-        "date": formattedDate,
-        "time": l["time"] ?? "",
-        "segment": l["segment"] ?? "",
-      };
-    }).toList();
+  try {
+    dt = DateTime.parse(
+      l["visit_time"] ??
+      l["created_at"] ??
+      DateTime.now().toIso8601String(),
+    );
+  } catch (e) {
+    dt = DateTime.now();
+  }
+
+  return {
+    "shopName": l["shop_name"] ?? "",
+    "salesman": l["salesman_name"] ?? "",
+    "photoUrl": l["photo_url"] ?? "",
+    "result": l["result"] == "match",
+    "distance": double.tryParse(l["distance"].toString()) ?? 0.0,
+    "date": DateFormat("dd-MM-yyyy").format(dt),
+    "time": DateFormat("HH:mm").format(dt),
+    "segment": l["segment"] ?? "",
+  };
+}).toList();
 
     // --------------------------------------------------------------------
     // ROLE BASED FILTERING
