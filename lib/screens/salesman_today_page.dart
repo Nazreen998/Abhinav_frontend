@@ -99,20 +99,15 @@ class _SalesmanTodayPageState extends State<SalesmanTodayPage>
                         MaterialPageRoute(
                           builder: (_) => ShopVisitPage(
                             shop: ShopModel(
-                              shopId: shop["shop_id"] ?? "",
-                              shopName: shop["shop_name"] ?? "",
-                              address: shop["address"] ?? "",
-                              lat: double.tryParse(
-                                      shop["lat"]?.toString() ?? "0") ??
-                                  0,
-                              lng: double.tryParse(
-                                      shop["lng"]?.toString() ?? "0") ??
-                                  0,
-                              segment: shop["segment"] ?? "",
-                              createdBy: "",
-                              createdAt: "",
-                              status: "",
-                            ),
+  id: shop["_id"] ?? "",
+  shopId: shop["shop_id"] ?? "",
+  shopName: shop["shop_name"] ?? "",
+  address: shop["address"] ?? "",
+  lat: double.tryParse(shop["lat"].toString()) ?? 0,
+  lng: double.tryParse(shop["lng"].toString()) ?? 0,
+  segment: shop["segment"] ?? "",
+)
+
                           ),
                         ),
                       );

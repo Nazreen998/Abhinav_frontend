@@ -52,26 +52,27 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
   // 🔥 FIX: dt properly defined
   DateTime dt;
 
-  try {
-    dt = DateTime.parse(
-      l["visit_time"] ??
-      l["created_at"] ??
-      DateTime.now().toIso8601String(),
-    );
-  } catch (e) {
+try {
+  if (l["datetime"] != null) {
+    dt = DateTime.parse(l["datetime"]);
+  } else {
     dt = DateTime.now();
   }
+} catch (e) {
+  dt = DateTime.now();
+}
 
-  return {
-    "shopName": l["shop_name"] ?? "",
-    "salesman": l["salesman_name"] ?? "",
-    "photoUrl": l["photo_url"] ?? "",
-    "result": (l["result"] ?? l["match"]) == "match",
-    "distance": double.tryParse(l["distance"].toString()) ?? 0.0,
-    "date": DateFormat("dd-MM-yyyy").format(dt),
-    "time": DateFormat("HH:mm").format(dt),
-    "segment": l["segment"] ?? "",
-  };
+return {
+  "shopName": l["shop_name"] ?? "",
+  "salesman": l["salesman_name"] ?? "",
+  "photoUrl": l["photo_url"] ?? "",
+  "result": l["result"] == "match",
+  "distance": double.tryParse(l["distance"].toString()) ?? 0.0,
+  "date": DateFormat("dd-MM-yyyy").format(dt),
+  "time": DateFormat("HH:mm").format(dt),
+  "segment": l["segment"] ?? "",
+};
+
 }).toList();
 
     // --------------------------------------------------------------------

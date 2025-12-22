@@ -12,7 +12,7 @@ import '../services/auth_service.dart';
 import '../services/visit_service.dart';
 
 class MatchPage extends StatefulWidget {
-  final dynamic shop; // Map shop data from assigned list
+  final dynamic shop;
 
   const MatchPage({super.key, required this.shop});
 
@@ -32,10 +32,10 @@ class _MatchPageState extends State<MatchPage> {
   double? userLng;
 
   // ---------------------------
-  // Distance Calculation (meters)
+  // Distance Calculation
   // ---------------------------
   double calcDistance(double lat1, double lon1, double lat2, double lon2) {
-    const R = 6371000; // meters
+    const R = 6371000;
     final dLat = (lat2 - lat1) * pi / 180;
     final dLon = (lon2 - lon1) * pi / 180;
 
@@ -49,7 +49,7 @@ class _MatchPageState extends State<MatchPage> {
   }
 
   // ---------------------------
-  // CAPTURE → GPS → MATCH
+  // CAPTURE → GPS → UPLOAD → SAVE
   // ---------------------------
   Future<void> captureAndMatch() async {
     setState(() => processing = true);
@@ -57,7 +57,6 @@ class _MatchPageState extends State<MatchPage> {
     final picker = ImagePicker();
     XFile? img;
 
-    // Web / Laptop → gallery only
     if (kIsWeb || Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       img = await picker.pickImage(source: ImageSource.gallery);
     } else {
@@ -68,28 +67,26 @@ class _MatchPageState extends State<MatchPage> {
       setState(() => processing = false);
       return;
     }
+
     // IMAGE FILE
-final File imageFile = File(img.path);
+    final File imageFile = File(img.path);
 
-// PREVIEW (UI-ku mattum)
-final bytes = await imageFile.readAsBytes();
-previewBase64 = base64Encode(bytes);
+    // PREVIEW
+    previewBase64 = base64Encode(await imageFile.readAsBytes());
 
-// GET LIVE GPS (THIS IS CORRECT – NO CHANGE)
-Position pos = await Geolocator.getCurrentPosition(
-  desiredAccuracy: LocationAccuracy.high,
-);
-userLat = pos.latitude;
-userLng = pos.longitude;
+    // GPS
+    Position pos = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    userLat = pos.latitude;
+    userLng = pos.longitude;
 
-print("📍 USER GPS => $userLat , $userLng");
+    print("📍 USER GPS => $userLat , $userLng");
 
-// ✅ UPLOAD PHOTO AS MULTIPART
-uploadedUrl = await visitService.uploadPhoto(imageFile);
+    // PHOTO UPLOAD
+    uploadedUrl = ""; // TEMP: disable upload
 
-print("🖼 UPLOADED PHOTO URL => $uploadedUrl");
-
-    // CALCULATE DISTANCE
+    // DISTANCE
     double shopLat = double.tryParse(widget.shop["lat"].toString()) ?? 0.0;
     double shopLng = double.tryParse(widget.shop["lng"].toString()) ?? 0.0;
 
@@ -97,23 +94,24 @@ print("🖼 UPLOADED PHOTO URL => $uploadedUrl");
 
     bool isMatch = distanceMeters! <= 50;
 
-    // SEND VISIT TO BACKEND (NEW FORMAT)
+    // PAYLOAD (🔥 FINAL & CLEAN)
     final payload = {
   "salesman_id": AuthService.currentUser!["user_id"],
   "salesman_name": AuthService.currentUser!["name"],
-  "shop_id": widget.shop["shop_id"],
+
+  "shop_id": widget.shop["shop_id"],   // ✅ FIXED
   "shop_name": widget.shop["shop_name"],
-  "photo_url": uploadedUrl ?? "",
+
+  "photo_url": "",                     // TEMP
   "lat": userLat,
   "lng": userLng,
   "distance": distanceMeters!.toStringAsFixed(1),
   "result": isMatch ? "match" : "mismatch",
-  "segment": widget.shop["segment"] ?? "",
-  "visit_time": DateTime.now().toIso8601String(),
+  "segment": widget.shop["segment"],
 };
+
     await visitService.visitShop(payload);
 
-    // SHOW RESULT
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -138,25 +136,16 @@ print("🖼 UPLOADED PHOTO URL => $uploadedUrl");
 
     return Scaffold(
       body: Container(
-        width: double.infinity,
-        height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFF007BFF),
-              Color(0xFF66B2FF),
-              Color(0xFFB8E0FF),
-            ],
+            colors: [Color(0xFF007BFF), Color(0xFF66B2FF), Color(0xFFB8E0FF)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
         ),
-
         child: SafeArea(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // BACK BUTTON + TITLE
               Row(
                 children: [
                   IconButton(
@@ -177,20 +166,12 @@ print("🖼 UPLOADED PHOTO URL => $uploadedUrl");
 
               const SizedBox(height: 20),
 
-              // SHOP DETAILS CARD
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 20),
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 8,
-                      offset: Offset(0, 3),
-                    )
-                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,29 +179,20 @@ print("🖼 UPLOADED PHOTO URL => $uploadedUrl");
                     Text(
                       s["shop_name"],
                       style: const TextStyle(
-                        color: Color(0xFF003366),
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      s["address"] ?? "",
-                      style: const TextStyle(fontSize: 15, color: Colors.black54),
-                    ),
-                    const SizedBox(height: 5),
+                    Text(s["address"] ?? ""),
                     Text("Lat: ${s["lat"]}, Lng: ${s["lng"]}"),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 20),
-
-              // PHOTO PREVIEW
               if (previewBase64 != null)
                 Container(
                   height: 250,
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  margin: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(18),
                     image: DecorationImage(
@@ -230,40 +202,23 @@ print("🖼 UPLOADED PHOTO URL => $uploadedUrl");
                   ),
                 ),
 
-              const SizedBox(height: 20),
-
-              // DISTANCE DISPLAY
               if (distanceMeters != null)
-                Center(
-                  child: Text(
-                    "Distance: ${distanceMeters!.toStringAsFixed(1)} meters",
-                    style: const TextStyle(
+                Text(
+                  "Distance: ${distanceMeters!.toStringAsFixed(1)} m",
+                  style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                      fontWeight: FontWeight.bold),
                 ),
 
-              const SizedBox(height: 25),
+              const SizedBox(height: 20),
 
-              // MATCH BUTTON
-              Center(
-                child: ElevatedButton(
-                  onPressed: processing ? null : captureAndMatch,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 45, vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: Text(
-                    processing ? "Processing..." : "Capture & Match",
-                    style: const TextStyle(fontSize: 17),
-                  ),
+              ElevatedButton(
+                onPressed: processing ? null : captureAndMatch,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
                 ),
+                child: Text(processing ? "Processing..." : "Capture & Match"),
               ),
             ],
           ),

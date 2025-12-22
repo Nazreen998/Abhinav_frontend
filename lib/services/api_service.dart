@@ -209,19 +209,23 @@ class ApiService {
 static Future<List<dynamic>> getLogs() async {
   try {
     final res = await http.get(
-      Uri.parse("https://abhinav-backend-5.onrender.com/api/visit/list"),
+      Uri.parse("$baseUrl/visit/list"),
       headers: {
         "Authorization": "Bearer ${auth.AuthService.token}",
       },
     );
 
+    print("📜 LOG STATUS => ${res.statusCode}");
+    print("📜 LOG BODY => ${res.body}");
+
     if (res.statusCode != 200) {
-      print("❌ GET LOGS FAILED: ${res.body}");
       return [];
     }
 
     final body = jsonDecode(res.body);
-    return body["logs"] ?? [];
+
+    // 🔥 BACKEND RETURNS "visits"
+    return body["visits"] ?? [];
   } catch (e) {
     print("❌ GET LOGS ERROR: $e");
     return [];

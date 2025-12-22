@@ -13,51 +13,48 @@ class VisitService {
   // UPLOAD PHOTO (MULTIPART) ✅ FINAL
   // --------------------------------------------------
   Future<String?> uploadPhoto(File file) async {
-    final uri = Uri.parse("$baseUrl/visit/uploadPhoto");
+  final uri = Uri.parse("$baseUrl/visit/uploadPhoto");
 
-    final request = http.MultipartRequest("POST", uri);
-    request.headers["Authorization"] =
-        "Bearer ${AuthService.token}";
+  final request = http.MultipartRequest("POST", uri);
+  request.headers["Authorization"] =
+      "Bearer ${AuthService.token}";
 
-    final mimeType = lookupMimeType(file.path) ?? "image/jpeg";
-    final parts = mimeType.split("/");
+  request.files.add(
+    await http.MultipartFile.fromPath(
+      "file",        // 🔥 MUST MATCH multer.single("file")
+      file.path,
+    ),
+  );
 
-    request.files.add(
-      await http.MultipartFile.fromPath(
-        "file",
-        file.path,
-        contentType: MediaType(parts[0], parts[1]),
-      ),
-    );
+  final res = await request.send();
+  final body = await res.stream.bytesToString();
 
-    final res = await request.send();
-    final body = await res.stream.bytesToString();
+  print("📸 UPLOAD STATUS => ${res.statusCode}");
+  print("📸 UPLOAD BODY => $body");
 
-    try {
-      final data = jsonDecode(body);
-      if (res.statusCode == 200 && data["success"] == true) {
-        return data["path"];
-      }
-    } catch (e) {
-      print("UPLOAD JSON ERROR: $body");
-    }
-
-    return null;
+  if (res.statusCode == 200) {
+    final data = jsonDecode(body);
+    return data["path"];
   }
 
+  return null;
+}
   // --------------------------------------------------
   // SAVE VISIT LOG
   // --------------------------------------------------
   Future<bool> visitShop(Map<String, dynamic> payload) async {
-    final res = await http.post(
-      Uri.parse("$baseUrl/visit/save"),
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer ${AuthService.token}",
-      },
-      body: jsonEncode(payload),
-    );
+  final res = await http.post(
+    Uri.parse("$baseUrl/visit/save"),
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer ${AuthService.token}",
+    },
+    body: jsonEncode(payload),
+  );
 
-    return res.statusCode == 200;
-  }
+  print("📝 VISIT SAVE STATUS => ${res.statusCode}");
+  print("📝 VISIT SAVE BODY => ${res.body}");
+
+  return res.statusCode == 200;
+}
 }
