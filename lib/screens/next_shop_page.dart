@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'match_page.dart';
 import '../models/shop_model.dart';
+import '../services/api_service.dart';
 import '../services/assign_service.dart';
 import '../services/auth_service.dart';
 
@@ -29,43 +30,34 @@ class _NextShopPageState extends State<NextShopPage> {
   // LOAD NEXT SHOPS (distance sorted)
   // ---------------------------------------------------------
   Future<void> loadAssignedShops() async {
-    loading = true;
-    setState(() {});
+  loading = true;
+  setState(() {});
 
-    final user = AuthService.currentUser;
-    if (user == null) {
-      loading = false;
-      setState(() {});
-      return;
-    }
-
-    Position position;
-    try {
-      position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Enable location: $e")),
-      );
-      loading = false;
-      setState(() {});
-      return;
-    }
-
-    // API → /assign/next/:userId
-    final result = await assignService.getNextShops(
-      user["user_id"],
-      position.latitude,
-      position.longitude,
-    );
-
-    shops = result.map((e) => ShopModel.fromJson(e)).toList();
-
+  final user = AuthService.currentUser;
+  if (user == null) {
     loading = false;
     setState(() {});
+    return;
   }
 
+  try {
+    // 🔥 NEW BACKEND API
+    final data = await ApiService.getSalesmanToday();
+
+    final pending = data["pending"] ?? [];
+
+    shops = pending.map<ShopModel>((e) {
+      return ShopModel.fromJson(e);
+    }).toList();
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Load error: $e")),
+    );
+  }
+
+  loading = false;
+  setState(() {});
+}
   // ---------------------------------------------------------
   // OPEN GOOGLE MAPS
   // ---------------------------------------------------------

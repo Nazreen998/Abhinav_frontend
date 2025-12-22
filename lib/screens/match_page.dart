@@ -68,23 +68,26 @@ class _MatchPageState extends State<MatchPage> {
       setState(() => processing = false);
       return;
     }
+    // IMAGE FILE
+final File imageFile = File(img.path);
 
-    // IMAGE → BASE64
-    final bytes = await img.readAsBytes();
-    previewBase64 = base64Encode(bytes);
+// PREVIEW (UI-ku mattum)
+final bytes = await imageFile.readAsBytes();
+previewBase64 = base64Encode(bytes);
 
-    // GET LIVE GPS
-    Position pos = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-    userLat = pos.latitude;
-    userLng = pos.longitude;
+// GET LIVE GPS (THIS IS CORRECT – NO CHANGE)
+Position pos = await Geolocator.getCurrentPosition(
+  desiredAccuracy: LocationAccuracy.high,
+);
+userLat = pos.latitude;
+userLng = pos.longitude;
 
-    // UPLOAD PHOTO
-    uploadedUrl = await visitService.uploadPhoto(
-      previewBase64!,
-      "visit_${DateTime.now().millisecondsSinceEpoch}.jpg",
-    );
+print("📍 USER GPS => $userLat , $userLng");
+
+// ✅ UPLOAD PHOTO AS MULTIPART
+uploadedUrl = await visitService.uploadPhoto(imageFile);
+
+print("🖼 UPLOADED PHOTO URL => $uploadedUrl");
 
     // CALCULATE DISTANCE
     double shopLat = double.tryParse(widget.shop["lat"].toString()) ?? 0.0;

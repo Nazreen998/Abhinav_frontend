@@ -1,62 +1,63 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
-import '../services/auth_service.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
+import 'auth_service.dart';
 
 class VisitService {
-  static const baseUrl =
-      "https://abhinav-backend-5.onrender.com/api/visit";
+  static const String baseUrl =
+      "https://abhinav-backend-5.onrender.com/api";
 
-  /// ---------------------------------------------------------
-  /// 1. UPLOAD PHOTO (base64 → URL)
-  /// ---------------------------------------------------------
-  Future<String?> uploadPhoto(String base64, String filename) async {
+  // --------------------------------------------------
+  // UPLOAD PHOTO (MULTIPART) ✅ FINAL
+  // --------------------------------------------------
+  Future<String?> uploadPhoto(File file) async {
+    final uri = Uri.parse("$baseUrl/visit/uploadPhoto");
+
+    final request = http.MultipartRequest("POST", uri);
+    request.headers["Authorization"] =
+        "Bearer ${AuthService.token}";
+
+    final mimeType = lookupMimeType(file.path) ?? "image/jpeg";
+    final parts = mimeType.split("/");
+
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        "file",
+        file.path,
+        contentType: MediaType(parts[0], parts[1]),
+      ),
+    );
+
+    final res = await request.send();
+    final body = await res.stream.bytesToString();
+
     try {
-      final url = Uri.parse("$baseUrl/uploadPhoto");
-
-      final res = await http.post(
-        url,
-        headers: {
-          "Authorization": "Bearer ${AuthService.token}",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({
-          "image": base64,
-          "filename": filename,
-        }),
-      );
-
-      if (res.statusCode != 200) {
-        print("UPLOAD FAILED: ${res.body}");
-        return null;
+      final data = jsonDecode(body);
+      if (res.statusCode == 200 && data["success"] == true) {
+        return data["path"];
       }
-
-      return jsonDecode(res.body)["url"];
     } catch (e) {
-      print("UPLOAD ERROR: $e");
-      return null;
+      print("UPLOAD JSON ERROR: $body");
     }
+
+    return null;
   }
 
-  /// ---------------------------------------------------------
-  /// 2. SAVE VISIT LOG
-  /// ---------------------------------------------------------
+  // --------------------------------------------------
+  // SAVE VISIT LOG
+  // --------------------------------------------------
   Future<bool> visitShop(Map<String, dynamic> payload) async {
-    try {
-      final url = Uri.parse("$baseUrl/visitShop");
+    final res = await http.post(
+      Uri.parse("$baseUrl/visit/save"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${AuthService.token}",
+      },
+      body: jsonEncode(payload),
+    );
 
-      final res = await http.post(
-        url,
-        headers: {
-          "Authorization": "Bearer ${AuthService.token}",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode(payload),
-      );
-
-      return res.statusCode == 200;
-    } catch (e) {
-      print("VISIT ERROR: $e");
-      return false;
-    }
+    return res.statusCode == 200;
   }
 }

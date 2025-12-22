@@ -66,7 +66,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     "shopName": l["shop_name"] ?? "",
     "salesman": l["salesman_name"] ?? "",
     "photoUrl": l["photo_url"] ?? "",
-    "result": l["result"] == "match",
+    "result": (l["result"] ?? l["match"]) == "match",
     "distance": double.tryParse(l["distance"].toString()) ?? 0.0,
     "date": DateFormat("dd-MM-yyyy").format(dt),
     "time": DateFormat("HH:mm").format(dt),

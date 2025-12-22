@@ -307,7 +307,7 @@ Future.delayed(const Duration(milliseconds: 400), () {
                                       value: isChecked,
                                       title: Text(shop.shopName,
                                           style: const TextStyle(fontWeight: FontWeight.bold)),
-                                      subtitle: Text(shop.address),
+                                           subtitle: Text(shop.address ?? ""),
                                       onChanged: (v) {
                                         setState(() {
                                           if (v == true) {

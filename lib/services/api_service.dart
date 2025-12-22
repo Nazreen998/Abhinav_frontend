@@ -205,17 +205,26 @@ class ApiService {
     if (res.statusCode != 200) return {};
     return jsonDecode(res.body);
   }
-
-  // --------------------------------------------------------
-  // HISTORY LOGS
-  // --------------------------------------------------------
-  static Future<List<dynamic>> getLogs() async {
+// ================= HISTORY LOGS =================
+static Future<List<dynamic>> getLogs() async {
+  try {
     final res = await http.get(
-      Uri.parse("$baseUrl/history/list"),
-      headers: headers,
+      Uri.parse("https://abhinav-backend-5.onrender.com/api/visit/list"),
+      headers: {
+        "Authorization": "Bearer ${auth.AuthService.token}",
+      },
     );
 
-    if (res.statusCode != 200) return [];
-    return jsonDecode(res.body)["history"] ?? [];
+    if (res.statusCode != 200) {
+      print("❌ GET LOGS FAILED: ${res.body}");
+      return [];
+    }
+
+    final body = jsonDecode(res.body);
+    return body["logs"] ?? [];
+  } catch (e) {
+    print("❌ GET LOGS ERROR: $e");
+    return [];
   }
+}
 }

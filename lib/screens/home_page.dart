@@ -27,7 +27,6 @@ class _HomePageState extends State<HomePage>
 
   late AnimationController _controller;
   late Animation<double> fadeAnim;
-  late Animation<Offset> slideAnim;
 
   @override
   void initState() {
@@ -40,13 +39,6 @@ class _HomePageState extends State<HomePage>
 
     fadeAnim =
         CurvedAnimation(parent: _controller, curve: Curves.easeIn);
-
-    slideAnim = Tween<Offset>(
-      begin: const Offset(0, -1),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
 
     _controller.forward();
   }
@@ -78,13 +70,10 @@ class _HomePageState extends State<HomePage>
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         automaticallyImplyLeading: false,
-
-
         actions: [
           IconButton(
             onPressed: logout,
@@ -93,7 +82,6 @@ class _HomePageState extends State<HomePage>
           ),
         ],
       ),
-
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -106,7 +94,6 @@ class _HomePageState extends State<HomePage>
             end: Alignment.bottomRight,
           ),
         ),
-
         child: FadeTransition(
           opacity: fadeAnim,
           child: ListView(
@@ -144,14 +131,11 @@ class _HomePageState extends State<HomePage>
                     ),
                     const SizedBox(height: 10),
                     Text("Mobile: $mobile",
-                        style:
-                            const TextStyle(color: darkBlue)),
+                        style: const TextStyle(color: darkBlue)),
                     Text("Role: ${role.toUpperCase()}",
-                        style:
-                            const TextStyle(color: darkBlue)),
+                        style: const TextStyle(color: darkBlue)),
                     Text("Segment: $segment",
-                        style:
-                            const TextStyle(color: darkBlue)),
+                        style: const TextStyle(color: darkBlue)),
                   ],
                 ),
               ),
@@ -162,8 +146,7 @@ class _HomePageState extends State<HomePage>
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
-                physics:
-                    const NeverScrollableScrollPhysics(),
+                physics: const NeverScrollableScrollPhysics(),
                 crossAxisSpacing: 18,
                 mainAxisSpacing: 18,
                 children: [
@@ -172,8 +155,7 @@ class _HomePageState extends State<HomePage>
                       context,
                       MaterialPageRoute(
                         builder: (_) =>
-                            LogHistoryFilterPage(
-                                user: widget.user),
+                            LogHistoryFilterPage(user: widget.user),
                       ),
                     );
                   }),
@@ -189,73 +171,64 @@ class _HomePageState extends State<HomePage>
                   }),
 
                   if (isMaster || isManager)
-                    _tile(Icons.pending_actions,
-                        "Pending Shops", () {
+                    _tile(Icons.pending_actions, "Pending Shops", () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) =>
-                              PendingShopsPage(
-                                  user: widget.user),
+                              PendingShopsPage(user: widget.user),
                         ),
                       );
                     }),
 
                   if (isMaster || isManager)
-                    _tile(Icons.list_alt,
-                        "Assigned Shops", () {
+                    _tile(Icons.list_alt, "Assigned Shops", () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) =>
-                              AssignedShopsScreen(
-                                  user: widget.user),
+                              AssignedShopsScreen(user: widget.user),
                         ),
                       );
                     }),
 
+                  // 🔥 THIS IS THE FIXED ONE
                   if (isMaster || isManager)
                     _tile(Icons.map, "Assign Shops", () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const AssignShopPage(),
+                          builder: (_) => const AssignShopPage(),
                         ),
                       );
                     }),
 
                   if (isMaster)
-                    _tile(Icons.people_alt, "User List",
-                        () {
+                    _tile(Icons.people_alt, "User List", () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const UserListPage(),
+                          builder: (_) => const UserListPage(),
                         ),
                       );
                     }),
 
                   if (isSalesman)
-                    _tile(Icons.add_business, "Add Shop",
-                        () {
+                    _tile(Icons.add_business, "Add Shop", () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const AddShopPage(),
+                          builder: (_) => const AddShopPage(),
                         ),
                       );
                     }),
 
                   if (isSalesman)
-                    _tile(Icons.directions_walk,
-                        "Next Shop", () {
+                    _tile(Icons.directions_walk, "Next Shop", () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => NextShopPage(),
+                          builder: (_) => const NextShopPage(),
                         ),
                       );
                     }),
@@ -294,9 +267,10 @@ class _HomePageState extends State<HomePage>
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                  color: darkBlue,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold),
+                color: darkBlue,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),

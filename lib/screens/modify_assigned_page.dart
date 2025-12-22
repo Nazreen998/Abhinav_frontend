@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/material.dart';
 import '../services/api_service.dart' as api;
 import '../services/auth_service.dart';
@@ -17,81 +19,90 @@ class ModifyAssignedPage extends StatefulWidget {
 }
 
 class _ModifyAssignedPageState extends State<ModifyAssignedPage> {
-  List allShops = [];        // All shops allowed for assign
-  List selected = [];        // Selected shop IDs
+  List<dynamic> allShops = [];
+  List<String> selectedShopIds = [];
+  late String salesmanName; 
   bool loading = true;
 
-  String role = "";
-  String segment = "";
-
-  @override
-  @override
+ @override
 void initState() {
   super.initState();
 
-  selected = widget.currentShops.map((e) => e["shopId"]).toList();
+  salesmanName = widget.currentShops.isNotEmpty
+      ? widget.currentShops.first["salesman_name"]?.toString() ?? ""
+      : "";
 
-  final user = AuthService.currentUser!;
-  role = user["role"]?.toString().toLowerCase() ?? "";
-  segment = user["segment"]?.toString().toLowerCase() ?? "";
+  selectedShopIds = widget.currentShops
+      .map<String>((e) => e["shop_id"]?.toString() ?? "")
+      .where((e) => e.isNotEmpty)
+      .toList();
 
   loadShops();
 }
-
-  // ------------------------------------------
-  // LOAD SHOPS (Role Based)
-  // ------------------------------------------
+  // --------------------------------------------------
+  // LOAD SHOPS
+  // --------------------------------------------------
   Future<void> loadShops() async {
     setState(() => loading = true);
 
+    try {
       allShops = await api.ApiService.getShops();
+    } catch (e) {
+      print("❌ Load shops error: $e");
+      allShops = [];
+    }
 
     setState(() => loading = false);
   }
 
-  // ------------------------------------------
-  // SAVE CHANGES (Remove old + Add new)
-  // ------------------------------------------
-Future<void> saveChanges() async {
-  // REMOVE unchecked shops
-  for (var old in widget.currentShops) {
-    final oldShopId = old["shop_id"] ?? old["shopId"];
-    if (!selected.contains(oldShopId)) {
-      await api.ApiService.removeAssignedShop(old["_id"]);
+  // --------------------------------------------------
+  // SAVE CHANGES
+  // --------------------------------------------------
+  Future<void> saveChanges() async {
+    /// REMOVE unchecked shops
+    for (var old in widget.currentShops) {
+      final oldShopId = old["shop_id"]?.toString() ?? "";
+      if (oldShopId.isNotEmpty && !selectedShopIds.contains(oldShopId)) {
+        await api.ApiService.removeAssignedShop(old["_id"]);
+      }
     }
-  }
 
-  // ADD newly selected shops
-  for (var shop in allShops) {
-    final shopId = shop["shop_id"] ?? shop["shopId"];
-    final shopName = shop["shop_name"] ?? shop["shopName"] ?? "";
+    /// ADD newly checked shops
+    for (var shop in allShops) {
+      final shopId = shop["shop_id"]?.toString() ?? "";
+      final shopName = shop["shop_name"]?.toString() ?? "";
+      final shopSegment = shop["segment"]?.toString() ?? "";
 
-    if (selected.contains(shopId)) {
-      final exists = widget.currentShops.any((e) =>
-          (e["shop_name"] ?? "") == shopName);
+      if (shopId.isEmpty || shopName.isEmpty) continue;
 
-      if (!exists) {
+      final alreadyExists = widget.currentShops.any(
+        (e) => e["shop_id"]?.toString() == shopId,
+      );
+
+      if (selectedShopIds.contains(shopId) && !alreadyExists) {
         await api.ApiService.assignShop(
           shopName,
-          widget.salesmanId,
-          shop["segment"] ?? "",
+          salesmanName,
+          shopSegment,
         );
       }
     }
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Assigned Shops Updated Successfully"),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    Navigator.pop(context, true);
   }
 
-  if (!mounted) return;
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text("Assigned Shops Updated Successfully"),
-      backgroundColor: Colors.green,
-    ),
-  );
-
-  Navigator.pop(context, true);
-}
-
+  // --------------------------------------------------
+  // UI
+  // --------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -106,7 +117,7 @@ Future<void> saveChanges() async {
         child: SafeArea(
           child: Column(
             children: [
-              // Top Bar
+              // HEADER
               Row(
                 children: [
                   IconButton(
@@ -144,37 +155,39 @@ Future<void> saveChanges() async {
                                 itemCount: allShops.length,
                                 itemBuilder: (_, i) {
                                   final shop = allShops[i];
-                                  final shopId = shop["shopId"];
-                                  final shopName = shop["shopName"];
 
-                                  bool isSelected = selected.contains(shopId);
+                                  final shopId =
+                                      shop["shop_id"]?.toString() ?? "";
+                                  if (shopId.isEmpty) return const SizedBox();
+
+                                  final shopName =
+                                      shop["shop_name"]?.toString() ??
+                                          "Unnamed Shop";
+                                  final address =
+                                      shop["address"]?.toString() ?? "";
+
+                                  final isSelected =
+                                      selectedShopIds.contains(shopId);
 
                                   return Card(
-                                    elevation: 4,
+                                    elevation: 3,
                                     margin:
-                                        const EdgeInsets.only(bottom: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(18),
-                                    ),
+                                        const EdgeInsets.only(bottom: 10),
                                     child: CheckboxListTile(
-                                      activeColor: Colors.blueAccent,
+                                      value: isSelected,
+                                      activeColor: Colors.blue,
                                       title: Text(
                                         shopName,
                                         style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
+                                            fontWeight: FontWeight.bold),
                                       ),
-                                      subtitle:
-                                          Text(shop["address"] ?? ""),
-                                      value: isSelected,
-                                      onChanged: (value) {
+                                      subtitle: Text(address),
+                                      onChanged: (v) {
                                         setState(() {
-                                          if (value == true) {
-                                            selected.add(shopId);
+                                          if (v == true) {
+                                            selectedShopIds.add(shopId);
                                           } else {
-                                            selected.remove(shopId);
+                                            selectedShopIds.remove(shopId);
                                           }
                                         });
                                       },
@@ -195,13 +208,13 @@ Future<void> saveChanges() async {
                                       vertical: 16),
                                   backgroundColor: Colors.blueAccent,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius:
+                                        BorderRadius.circular(16),
                                   ),
                                 ),
                                 child: const Text(
                                   "Save Changes",
                                   style: TextStyle(
-                                    color: Colors.white,
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
