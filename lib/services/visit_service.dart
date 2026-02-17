@@ -1,3 +1,5 @@
+// ignore_for_file: unused_import, depend_on_referenced_packages, avoid_print
+
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -7,7 +9,7 @@ import 'auth_service.dart';
 
 class VisitService {
   static const String baseUrl =
-      "https://abhinav-backend-5.onrender.com/api";
+      "https://abhinav-backend.onrender.com/api";
 
   // --------------------------------------------------
   // UPLOAD PHOTO (MULTIPART) ✅ FINAL

@@ -1,10 +1,12 @@
+// ignore_for_file: avoid_print
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class AssignService {
   static const String baseUrl =
-      "https://abhinav-backend-5.onrender.com/api/assign";
+      "https://abhinav-backend.onrender.com/api/assign";
 
   /// ------------------------------------------------
   /// ASSIGN SHOPS  (OLD BULK ASSIGN - LEAVE AS IS)

@@ -205,7 +205,7 @@ class _AddShopPageState extends State<AddShopPage> {
   setState(() => loading = true);
 
   final url = Uri.parse(
-    "https://abhinav-backend-5.onrender.com/api/pending/add",
+    "https://abhinav-backend.onrender.com/api/pending/add",
   );
 
   try {

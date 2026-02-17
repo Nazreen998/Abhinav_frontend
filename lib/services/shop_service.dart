@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/shop_model.dart';
@@ -5,7 +7,7 @@ import '../services/auth_service.dart';
 
 class ShopService {
   static const String base =
-      "https://abhinav-backend-5.onrender.com/api";
+      "https://abhinav-backend.onrender.com/api";
 
   // ✅ FIXED ROUTE
   String get shopBaseUrl => "$base/shops/list";

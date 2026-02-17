@@ -4,7 +4,7 @@ import 'auth_service.dart';
 
 class LogService {
   static const String baseUrl =
-      "https://abhinav-backend-5.onrender.com/api/visits";
+      "https://abhinav-backend.onrender.com/api/visits";
 
   // ---------------------------
   // UPLOAD PHOTO (BASE64)
