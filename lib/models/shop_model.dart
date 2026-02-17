@@ -1,6 +1,6 @@
 class ShopModel {
-  final String id;
-  final String shopId;
+  final String id;        // Mongo _id (MAIN)
+  final String shopId;    // shop_id (OLD SUPPORT)
   final String shopName;
   final String address;
   final double lat;
@@ -18,20 +18,28 @@ class ShopModel {
   });
 
   factory ShopModel.fromJson(Map<String, dynamic> json) {
+    // 🔥 SAFELY PICK ID
+    final String mongoId = json["_id"]?.toString() ?? "";
+    final String legacyShopId =
+        json["shop_id"]?.toString().isNotEmpty == true
+            ? json["shop_id"].toString()
+            : mongoId;
+
     return ShopModel(
-      id: json["_id"] ?? "",
-      shopId: json["shop_id"] ?? "",
-      shopName: json["shop_name"] ?? "",
+      id: mongoId,
+      shopId: legacyShopId, // 🔥 ALWAYS NON-EMPTY
+      shopName:
+          json["shop_name"] ?? json["shopName"] ?? "",
       address: json["address"] ?? "",
-      lat: double.tryParse(json["lat"].toString()) ?? 0,
-      lng: double.tryParse(json["lng"].toString()) ?? 0,
-      segment: json["segment"] ?? "",
+      lat: double.tryParse((json["lat"] ?? 0).toString()) ?? 0,
+      lng: double.tryParse((json["lng"] ?? 0).toString()) ?? 0,
+      segment: (json["segment"] ?? "").toString().toLowerCase(),
     );
   }
 
   Map<String, dynamic> toJson() => {
         "_id": id,
-        "shop_id": shopId,
+        "shop_id": shopId,          // 🔥 KEEP OLD SUPPORT
         "shop_name": shopName,
         "address": address,
         "lat": lat,

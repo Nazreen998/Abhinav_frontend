@@ -52,8 +52,8 @@ class VisitService {
     body: jsonEncode(payload),
   );
 
-  print("📝 VISIT SAVE STATUS => ${res.statusCode}");
-  print("📝 VISIT SAVE BODY => ${res.body}");
+  print("📝 VISIT STATUS => ${res.statusCode}");
+  print("📝 VISIT BODY => ${res.body}");
 
   return res.statusCode == 200;
 }

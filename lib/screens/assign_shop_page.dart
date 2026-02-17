@@ -12,8 +12,6 @@ import '../services/shop_service.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart' as api;
 
-import 'home_page.dart';
-
 class AssignShopPage extends StatefulWidget {
   const AssignShopPage({super.key});
 
@@ -29,9 +27,10 @@ class _AssignShopPageState extends State<AssignShopPage> {
   UserModel? selectedUser;
   Position? userLocation;
 
+  /// 🔥 IMPORTANT → ONLY Mongo `_id`
   List<String> selectedShopIds = [];
-  bool loading = true;
 
+  bool loading = true;
   TextEditingController searchCtrl = TextEditingController();
 
   @override
@@ -40,83 +39,64 @@ class _AssignShopPageState extends State<AssignShopPage> {
     loadInitial();
   }
 
+  // =============================
+  // LOAD USERS & SHOPS
+  // =============================
   Future<void> loadInitial() async {
     setState(() => loading = true);
 
     String role = AuthService.currentUser?["role"] ?? "";
     String segment = AuthService.currentUser?["segment"] ?? "";
 
-    // FETCH USERS
     users = await UserService().getUsers();
-
-    // FETCH SHOPS
     allShops = await ShopService().getShops();
 
-    // SEGMENT FILTER FOR MANAGER
+    // MANAGER → segment filter
     if (role == "manager") {
-      users = users.where((u) => u.segment.toLowerCase() == segment.toLowerCase()).toList();
-      allShops = allShops.where((s) => s.segment.toLowerCase() == segment.toLowerCase()).toList();
+      users = users
+          .where((u) =>
+              u.segment.toLowerCase() == segment.toLowerCase())
+          .toList();
+
+      allShops = allShops
+          .where((s) =>
+              s.segment.toLowerCase() == segment.toLowerCase())
+          .toList();
     }
 
     setState(() => loading = false);
   }
 
-  // FILTER SHOPS FOR SELECTED USER'S SEGMENT
+  // =============================
+  // FILTER SHOPS BY USER SEGMENT
+  // =============================
   void filterShops() {
-    if (selectedUser == null) return;
+  if (selectedUser == null) return;
 
-    setState(() {
-      segmentShops = allShops
-          .where((s) => s.segment.toLowerCase() == selectedUser!.segment.toLowerCase())
-          .toList();
+  final userSegment = selectedUser!.segment.toLowerCase();
 
-      selectedShopIds.clear();
-    });
-  }
+  setState(() {
+    segmentShops = allShops.where((s) {
+      final shopSegment = s.segment.toLowerCase();
 
-  // GET LOCATION
+      // 🔥 master / all → show all shops
+      if (userSegment == "all") return true;
+
+      return shopSegment == userSegment;
+    }).toList();
+
+    selectedShopIds.clear();
+  });
+}
+  // =============================
+  // LOCATION
+  // =============================
   Future<void> getUserLocation() async {
-    if (kIsWeb) {
-      try {
-        userLocation = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.low,
-        );
-      } catch (e) {
-        print("WEB Location Blocked → fallback 0,0");
-        userLocation = Position(
-          latitude: 0,
-          longitude: 0,
-          timestamp: DateTime.now(),
-          accuracy: 0,
-          altitude: 0,
-          heading: 0,
-          speed: 0,
-          speedAccuracy: 0,
-          altitudeAccuracy: 0,
-          headingAccuracy: 0,
-        );
-      }
-      return;
-    }
-
-    // MOBILE / WINDOWS
-    bool service = await Geolocator.isLocationServiceEnabled();
-    if (!service) return showMsg("Enable Location");
-
-    LocationPermission perm = await Geolocator.checkPermission();
-    if (perm == LocationPermission.denied) {
-      perm = await Geolocator.requestPermission();
-      if (perm == LocationPermission.denied) {
-        return showMsg("Location Permission Denied");
-      }
-    }
-
     try {
       userLocation = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
     } catch (e) {
-      print("Mobile Location Error, fallback 0,0");
       userLocation = Position(
         latitude: 0,
         longitude: 0,
@@ -132,7 +112,9 @@ class _AssignShopPageState extends State<AssignShopPage> {
     }
   }
 
-  // DISTANCE LOGIC (still used for sorting)
+  // =============================
+  // DISTANCE (SORTING)
+  // =============================
   double distance(double lat1, double lon1, double lat2, double lon2) {
     const R = 6371;
     final dLat = (lat2 - lat1) * pi / 180;
@@ -147,61 +129,62 @@ class _AssignShopPageState extends State<AssignShopPage> {
     return R * 2 * atan2(sqrt(a), sqrt(1 - a));
   }
 
-  // ASSIGN SHOPS (NEW BACKEND)
- Future<void> assignShopsToSalesman() async {
-   if (!mounted) return;
-
-  if (AuthService.token == null) {
-    await AuthService.init();
-  }
-  if (selectedUser == null) return showMsg("Select a user first");
-  if (selectedShopIds.isEmpty) return showMsg("Select at least one shop");
-
-  await getUserLocation();
-
-  List<Map<String, dynamic>> arranged = [];
-
-  for (var shop in segmentShops) {
-    if (selectedShopIds.contains(shop.shopId.toString())) {
-      arranged.add({
-        "shop": shop,
-        "distance": distance(
-          userLocation!.latitude,
-          userLocation!.longitude,
-          shop.lat,
-          shop.lng,
-        ),
-      });
+  // =============================
+  // ASSIGN SHOPS
+  // =============================
+  Future<void> assignShopsToSalesman() async {
+    if (selectedUser == null) {
+      showMsg("Select a user first");
+      return;
     }
+
+    if (selectedShopIds.isEmpty) {
+      showMsg("Select at least one shop");
+      return;
+    }
+
+    await getUserLocation();
+
+    List<Map<String, dynamic>> arranged = [];
+
+    for (var shop in segmentShops) {
+      if (selectedShopIds.contains(shop.id)) {
+        arranged.add({
+          "shop": shop,
+          "distance": distance(
+            userLocation!.latitude,
+            userLocation!.longitude,
+            shop.lat,
+            shop.lng,
+          ),
+        });
+      }
+    }
+
+    arranged.sort((a, b) => a["distance"].compareTo(b["distance"]));
+
+    for (var s in arranged) {
+      final ShopModel shop = s["shop"];
+
+      await api.ApiService.assignShop(
+        shop.shopName,
+        selectedUser!.name,
+        shop.segment,
+      );
+    }
+
+    if (!mounted) return;
+    Navigator.pop(context);
   }
-
-  arranged.sort((a, b) => a["distance"].compareTo(b["distance"]));
-
-  for (var s in arranged) {
-    final ShopModel shop = s["shop"];
-
-    await api.ApiService.assignShop(
-  shop.shopName,
-  selectedUser!.name,
-  shop.segment,
-);
-
-  }
-if (!mounted) return;
-
-Future.delayed(const Duration(milliseconds: 400), () {
-  if (!mounted) return;
-  Navigator.pop(context);
-});
-
-
-}
 
   void showMsg(String t) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(t)));
   }
 
+  // =============================
   // UI
+  // =============================
   @override
   Widget build(BuildContext context) {
     String role = AuthService.currentUser?["role"] ?? "";
@@ -209,7 +192,10 @@ Future.delayed(const Duration(milliseconds: 400), () {
     if (role != "master" && role != "manager") {
       return const Scaffold(
         body: Center(
-          child: Text("Access Denied", style: TextStyle(color: Colors.red, fontSize: 20)),
+          child: Text(
+            "Access Denied",
+            style: TextStyle(color: Colors.red, fontSize: 20),
+          ),
         ),
       );
     }
@@ -218,9 +204,14 @@ Future.delayed(const Duration(milliseconds: 400), () {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-              colors: [Color(0xFF007BFF), Color(0xFF66B2FF), Color(0xFFB8E0FF)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter),
+            colors: [
+              Color(0xFF007BFF),
+              Color(0xFF66B2FF),
+              Color(0xFFB8E0FF)
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
         ),
         child: SafeArea(
           child: loading
@@ -230,32 +221,43 @@ Future.delayed(const Duration(milliseconds: 400), () {
                     Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back, size: 28, color: Colors.white),
+                          icon: const Icon(Icons.arrow_back,
+                              size: 28, color: Colors.white),
                           onPressed: () => Navigator.pop(context),
                         ),
-                        const Text("Assign Shops",
-                            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
+                        const Text(
+                          "Assign Shops",
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                       ],
                     ),
-
-                    const SizedBox(height: 10),
 
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.all(18),
                         decoration: const BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(30),
+                          ),
                         ),
                         child: Column(
                           children: [
                             DropdownButtonFormField<UserModel>(
-                              // ignore: deprecated_member_use
-                              value: selectedUser,
+                              initialValue: selectedUser,
                               decoration: customInput("Select User"),
                               items: users
-                                  .map((u) =>
-                                      DropdownMenuItem(value: u, child: Text("${u.name} (${u.segment})")))
+                                  .map(
+                                    (u) => DropdownMenuItem(
+                                      value: u,
+                                      child:
+                                          Text("${u.name} (${u.segment})"),
+                                    ),
+                                  )
                                   .toList(),
                               onChanged: (u) {
                                 selectedUser = u;
@@ -263,60 +265,77 @@ Future.delayed(const Duration(milliseconds: 400), () {
                               },
                             ),
 
-                            const SizedBox(height: 15),
+                            const SizedBox(height: 14),
 
                             TextField(
                               controller: searchCtrl,
-                              decoration: InputDecoration(
-                                hintText: "Search shops...",
-                                prefixIcon: const Icon(Icons.search),
-                                filled: true,
-                                fillColor: Colors.white,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
+                              decoration: customInput("Search shops"),
                               onChanged: (txt) {
                                 if (selectedUser == null) return;
 
                                 setState(() {
                                   segmentShops = allShops
-                                      .where((s) => s.segment.toLowerCase() ==
-                                          selectedUser!.segment.toLowerCase())
                                       .where((s) =>
-                                          s.shopName.toLowerCase().contains(txt.toLowerCase()) ||
-                                          s.address.toLowerCase().contains(txt.toLowerCase()))
+                                          s.segment.toLowerCase() ==
+                                          selectedUser!.segment
+                                              .toLowerCase())
+                                      .where((s) =>
+                                          s.shopName
+                                              .toLowerCase()
+                                              .contains(
+                                                  txt.toLowerCase()) ||
+                                          s.address
+                                              .toLowerCase()
+                                              .contains(
+                                                  txt.toLowerCase()))
                                       .toList();
                                 });
                               },
                             ),
 
-                            const SizedBox(height: 15),
+                            const SizedBox(height: 14),
 
                             Expanded(
                               child: ListView.builder(
                                 itemCount: segmentShops.length,
                                 itemBuilder: (_, i) {
                                   final shop = segmentShops[i];
-                                  final isChecked =
-                                      selectedShopIds.contains(shop.shopId.toString());
-
-                                  return Card(
-                                    elevation: 2,
+                                  final isChecked =selectedShopIds.contains(shop.shopId);
+                                  return Container(
+                                    margin:
+                                        const EdgeInsets.only(bottom: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade50,
+                                      borderRadius:
+                                          BorderRadius.circular(16),
+                                      border: Border.all(
+                                          color:
+                                              Colors.blue.shade200),
+                                    ),
                                     child: CheckboxListTile(
                                       value: isChecked,
-                                      title: Text(shop.shopName,
-                                          style: const TextStyle(fontWeight: FontWeight.bold)),
-                                           subtitle: Text(shop.address ?? ""),
+                                      activeColor: Colors.blue,
+                                      title: Text(
+                                        shop.shopName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        shop.address,
+                                        style: const TextStyle(
+                                            color: Colors.black87),
+                                      ),
                                       onChanged: (v) {
-                                        setState(() {
-                                          if (v == true) {
-                                            selectedShopIds.add(shop.shopId.toString());
-                                          } else {
-                                            selectedShopIds.remove(shop.shopId.toString());
-                                          }
-                                        });
-                                      },
+  setState(() {
+    if (v == true) {
+      selectedShopIds.add(shop.shopId);
+    } else {
+      selectedShopIds.remove(shop.shopId);
+    }
+  });
+}
                                     ),
                                   );
                                 },
@@ -328,12 +347,19 @@ Future.delayed(const Duration(milliseconds: 400), () {
                               child: ElevatedButton(
                                 onPressed: assignShopsToSalesman,
                                 style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  backgroundColor: Colors.blue,
+                                  padding:
+                                      const EdgeInsets.symmetric(
+                                          vertical: 14),
                                   shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14)),
+                                    borderRadius:
+                                        BorderRadius.circular(14),
+                                  ),
                                 ),
-                                child: const Text("Assign Shops",
-                                    style: TextStyle(fontSize: 18)),
+                                child: const Text(
+                                  "Assign Shops",
+                                  style: TextStyle(fontSize: 18),
+                                ),
                               ),
                             ),
                           ],
@@ -349,7 +375,7 @@ Future.delayed(const Duration(milliseconds: 400), () {
 
   InputDecoration customInput(String label) {
     return InputDecoration(
-      labelText: label,
+      hintText: label,
       filled: true,
       fillColor: Colors.white,
       border: OutlineInputBorder(
@@ -361,7 +387,8 @@ Future.delayed(const Duration(milliseconds: 400), () {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Colors.deepPurple, width: 2),
+        borderSide:
+            const BorderSide(color: Colors.blue, width: 2),
       ),
     );
   }

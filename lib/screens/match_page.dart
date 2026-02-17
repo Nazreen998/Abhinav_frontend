@@ -52,80 +52,44 @@ class _MatchPageState extends State<MatchPage> {
   // CAPTURE → GPS → UPLOAD → SAVE
   // ---------------------------
   Future<void> captureAndMatch() async {
-    setState(() => processing = true);
+  setState(() => processing = true);
 
-    final picker = ImagePicker();
-    XFile? img;
+  Position pos = await Geolocator.getCurrentPosition(
+    desiredAccuracy: LocationAccuracy.high,
+  );
 
-    if (kIsWeb || Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      img = await picker.pickImage(source: ImageSource.gallery);
-    } else {
-      img = await picker.pickImage(source: ImageSource.camera);
-    }
+  userLat = pos.latitude;
+  userLng = pos.longitude;
 
-    if (img == null) {
-      setState(() => processing = false);
-      return;
-    }
+  double shopLat = double.tryParse(widget.shop["lat"].toString()) ?? 0.0;
+  double shopLng = double.tryParse(widget.shop["lng"].toString()) ?? 0.0;
 
-    // IMAGE FILE
-    final File imageFile = File(img.path);
+  distanceMeters = calcDistance(userLat!, userLng!, shopLat, shopLng);
+  bool isMatch = distanceMeters! <= 50;
 
-    // PREVIEW
-    previewBase64 = base64Encode(await imageFile.readAsBytes());
+  // 🔥 FINAL PAYLOAD (NO EXTRA FIELDS)
+  final payload = {
+    "shop_id": widget.shop["shop_id"],   // ✅ ONLY shop_id
+    "shop_name": widget.shop["shop_name"],
+    "result": isMatch ? "match" : "mismatch",
+  };
 
-    // GPS
-    Position pos = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-    userLat = pos.latitude;
-    userLng = pos.longitude;
+  await visitService.visitShop(payload);
 
-    print("📍 USER GPS => $userLat , $userLng");
-
-    // PHOTO UPLOAD
-    uploadedUrl = ""; // TEMP: disable upload
-
-    // DISTANCE
-    double shopLat = double.tryParse(widget.shop["lat"].toString()) ?? 0.0;
-    double shopLng = double.tryParse(widget.shop["lng"].toString()) ?? 0.0;
-
-    distanceMeters = calcDistance(userLat!, userLng!, shopLat, shopLng);
-
-    bool isMatch = distanceMeters! <= 50;
-
-    // PAYLOAD (🔥 FINAL & CLEAN)
-    final payload = {
-  "salesman_id": AuthService.currentUser!["user_id"],
-  "salesman_name": AuthService.currentUser!["name"],
-
-  "shop_id": widget.shop["shop_id"],   // ✅ FIXED
-  "shop_name": widget.shop["shop_name"],
-
-  "photo_url": "",                     // TEMP
-  "lat": userLat,
-  "lng": userLng,
-  "distance": distanceMeters!.toStringAsFixed(1),
-  "result": isMatch ? "match" : "mismatch",
-  "segment": widget.shop["segment"],
-};
-
-    await visitService.visitShop(payload);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isMatch
-              ? "MATCH ✔ Within 50 meters"
-              : "MISMATCH ❌ Too far from shop",
-        ),
-        backgroundColor: isMatch ? Colors.green : Colors.red,
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        isMatch
+            ? "MATCH ✔ Within 50 meters"
+            : "MISMATCH ❌ Too far from shop",
       ),
-    );
+      backgroundColor: isMatch ? Colors.green : Colors.red,
+    ),
+  );
 
-    Navigator.pop(context, true);
-    setState(() => processing = false);
-  }
+  Navigator.pop(context, true);
+  setState(() => processing = false);
+}
 
   // ---------------------------
   // UI

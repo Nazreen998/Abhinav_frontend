@@ -1,0 +1,15 @@
+# Target labels
+ nuget-populate
+# Source files and their labels
+C:/Users/Admin/Desktop/AbhinavTracking/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/nuget-populate
+C:/Users/Admin/Desktop/AbhinavTracking/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/a0639cccef775f77998326e781e886fa/nuget-populate.rule
+C:/Users/Admin/Desktop/AbhinavTracking/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/2b28d2b4f8fc4269b94ff3d4bd935026/nuget-populate-complete.rule
+C:/Users/Admin/Desktop/AbhinavTracking/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/facb52037bcb468a4f4d1ad5c52a6583/nuget-populate-build.rule
+C:/Users/Admin/Desktop/AbhinavTracking/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/facb52037bcb468a4f4d1ad5c52a6583/nuget-populate-configure.rule
+C:/Users/Admin/Desktop/AbhinavTracking/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/facb52037bcb468a4f4d1ad5c52a6583/nuget-populate-copyfile.rule
+C:/Users/Admin/Desktop/AbhinavTracking/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/facb52037bcb468a4f4d1ad5c52a6583/nuget-populate-download.rule
+C:/Users/Admin/Desktop/AbhinavTracking/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/facb52037bcb468a4f4d1ad5c52a6583/nuget-populate-install.rule
+C:/Users/Admin/Desktop/AbhinavTracking/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/facb52037bcb468a4f4d1ad5c52a6583/nuget-populate-mkdir.rule
+C:/Users/Admin/Desktop/AbhinavTracking/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/facb52037bcb468a4f4d1ad5c52a6583/nuget-populate-patch.rule
+C:/Users/Admin/Desktop/AbhinavTracking/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/facb52037bcb468a4f4d1ad5c52a6583/nuget-populate-test.rule
+C:/Users/Admin/Desktop/AbhinavTracking/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/facb52037bcb468a4f4d1ad5c52a6583/nuget-populate-update.rule

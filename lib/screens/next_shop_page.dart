@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:geolocator/geolocator.dart';
 import 'match_page.dart';
-import '../models/shop_model.dart';
 import '../services/api_service.dart';
-import '../services/assign_service.dart';
 import '../services/auth_service.dart';
 
 class NextShopPage extends StatefulWidget {
@@ -15,8 +12,8 @@ class NextShopPage extends StatefulWidget {
 }
 
 class _NextShopPageState extends State<NextShopPage> {
-  final AssignService assignService = AssignService();
-  List<ShopModel> shops = [];
+  // 🔥 IMPORTANT: RAW MAP LIST (NO ShopModel)
+  List<Map<String, dynamic>> shops = [];
 
   bool loading = true;
 
@@ -27,43 +24,40 @@ class _NextShopPageState extends State<NextShopPage> {
   }
 
   // ---------------------------------------------------------
-  // LOAD NEXT SHOPS (distance sorted)
+  // LOAD NEXT SHOPS (FROM /assigned/salesman/today)
   // ---------------------------------------------------------
   Future<void> loadAssignedShops() async {
-  loading = true;
-  setState(() {});
+    setState(() => loading = true);
 
-  final user = AuthService.currentUser;
-  if (user == null) {
-    loading = false;
-    setState(() {});
-    return;
+    final user = AuthService.currentUser;
+    if (user == null) {
+      setState(() => loading = false);
+      return;
+    }
+
+    try {
+      final data = await ApiService.getSalesmanToday();
+
+      final pending = data["pending"] ?? [];
+
+      // 🔥 CAST TO RAW MAP
+      shops = List<Map<String, dynamic>>.from(pending);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Load error: $e")),
+      );
+    }
+
+    setState(() => loading = false);
   }
 
-  try {
-    // 🔥 NEW BACKEND API
-    final data = await ApiService.getSalesmanToday();
-
-    final pending = data["pending"] ?? [];
-
-    shops = pending.map<ShopModel>((e) {
-      return ShopModel.fromJson(e);
-    }).toList();
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Load error: $e")),
-    );
-  }
-
-  loading = false;
-  setState(() {});
-}
   // ---------------------------------------------------------
   // OPEN GOOGLE MAPS
   // ---------------------------------------------------------
   Future<void> openMaps(double lat, double lng) async {
     final Uri url = Uri.parse(
-        "https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving");
+      "https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving",
+    );
 
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -108,21 +102,20 @@ class _NextShopPageState extends State<NextShopPage> {
 
                     const SizedBox(height: 10),
 
-                    // NO SHOPS
                     if (shops.isEmpty)
                       const Expanded(
                         child: Center(
                           child: Text(
                             "No assigned shops found",
                             style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold),
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       )
                     else
-                      // SHOPS LIST
                       Expanded(
                         child: RefreshIndicator(
                           onRefresh: loadAssignedShops,
@@ -144,9 +137,14 @@ class _NextShopPageState extends State<NextShopPage> {
   }
 
   // ---------------------------------------------------------
-  // SHOP CARD UI
+  // SHOP CARD (RAW MAP)
   // ---------------------------------------------------------
-  Widget shopCard(ShopModel s) {
+  Widget shopCard(Map<String, dynamic> s) {
+    final double lat =
+        double.tryParse(s["lat"]?.toString() ?? "0") ?? 0;
+    final double lng =
+        double.tryParse(s["lng"]?.toString() ?? "0") ?? 0;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
@@ -161,12 +159,11 @@ class _NextShopPageState extends State<NextShopPage> {
           )
         ],
       ),
-
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            s.shopName,
+            s["shop_name"] ?? "",
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -177,20 +174,19 @@ class _NextShopPageState extends State<NextShopPage> {
           const SizedBox(height: 6),
 
           Text(
-            s.address,
+            s["address"] ?? "",
             style: const TextStyle(color: Colors.black54, fontSize: 15),
           ),
 
           const SizedBox(height: 10),
 
-          Text("Lat: ${s.lat}, Lng: ${s.lng}",
+          Text("Lat: $lat, Lng: $lng",
               style: const TextStyle(color: Colors.black87)),
 
           const SizedBox(height: 18),
 
-          // OPEN MAPS BUTTON
           ElevatedButton(
-            onPressed: () => openMaps(s.lat, s.lng),
+            onPressed: () => openMaps(lat, lng),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blueAccent,
             ),
@@ -199,15 +195,15 @@ class _NextShopPageState extends State<NextShopPage> {
 
           const SizedBox(height: 10),
 
-          // MATCH PAGE BUTTON
+          // 🔥 PASS RAW MAP TO MATCH PAGE
           ElevatedButton(
             onPressed: () {
               Navigator.push(
-               context,
+                context,
                 MaterialPageRoute(
-                builder: (_) => MatchPage(shop: s.toJson()),
-  ),
-);
+                  builder: (_) => MatchPage(shop: s),
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,

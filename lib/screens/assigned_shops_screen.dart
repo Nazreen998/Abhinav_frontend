@@ -35,16 +35,23 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
     final allShops = await ApiService.getShops();
 
     List filtered = [];
-
-    if (role == "master") {
-      filtered = assigned;
-    } else if (role == "manager") {
-      filtered =
-          assigned.where((a) => a["segment"] == mySegment).toList();
-    } else {
-      filtered =
-          assigned.where((a) => a["salesman_name"] == myName).toList();
-    }
+    // FILTER
+if (role == "master") {
+  filtered = assigned;
+} else if (role == "manager") {
+  filtered = assigned
+      .where((a) =>
+          a["segment"].toString().toLowerCase() ==
+          mySegment.toString().toLowerCase())
+      .toList();
+} else {
+  // 🔥 FINAL FIX
+  filtered = assigned
+      .where((a) =>
+          a["salesman_id"].toString() ==
+          widget.user["_id"].toString())
+      .toList();
+}
 
     final mapped = filtered.map((a) {
       final match = allShops.firstWhere(
