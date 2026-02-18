@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use, prefer_const_constructors
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/pending_shop_model.dart';
@@ -185,21 +187,21 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // IMAGE
-          if (shop.imageBase64 != null && shop.imageBase64!.isNotEmpty)
+          if (shop.shopImage != null && shop.shopImage!.isNotEmpty)
             GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) =>
-                        FullImagePage(base64Image: shop.imageBase64!),
+                        FullImagePage(base64Image: shop.shopImage!),
                   ),
                 );
               },
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.memory(
-                  base64Decode(shop.imageBase64!),
+                  base64Decode(shop.shopImage!),
                   height: 150,
                   width: double.infinity,
                   fit: BoxFit.cover,
@@ -223,7 +225,7 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
           Text("Address: ${shop.address}"),
           Text("Segment: ${shop.segment}"),
           Text(
-            "Created By: ${shop.createdBy ?? "Salesman"}",
+            "Created By: ${shop.createdByUserName}",
             style: const TextStyle(color: Colors.black54),
           ),
 
@@ -234,7 +236,7 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               ElevatedButton(
-                onPressed: approving ? null : () => approveShop(shop.mongoId),
+                onPressed: approving ? null : () => approveShop(shop.shopId),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   shape: RoundedRectangleBorder(
@@ -253,7 +255,7 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
                     : const Text("Approve"),
               ),
               ElevatedButton(
-                onPressed: approving ? null : () => rejectShop(shop.mongoId),
+                onPressed: approving ? null : () => rejectShop(shop.shopId),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   shape: RoundedRectangleBorder(

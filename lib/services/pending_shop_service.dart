@@ -15,55 +15,44 @@ class PendingShopService {
   // -------------------------------------------------------
   // GET PENDING SHOPS (MASTER / MANAGER)
   // -------------------------------------------------------
-  Future<List<dynamic>> getPendingShops() async {
-    final url = Uri.parse("$base/pending/list");
+Future<List<dynamic>> getPendingShops() async {
+  final url = Uri.parse("$base/shops/list");
 
-    final res = await http.get(url, headers: headers);
+  final res = await http.get(url, headers: headers);
 
-    if (res.statusCode != 200) {
-      return [];
-    }
+  if (res.statusCode != 200) return [];
 
-    final data = jsonDecode(res.body);
+  final data = jsonDecode(res.body);
+  final List shops = data["shops"] ?? [];
 
-    if (data["success"] == true) {
-      return data["data"] ?? [];
-    }
-
-    return [];
-  }
-
+  // ✅ ONLY PENDING
+  return shops.where((s) => s["isApproved"] == false).toList();
+}
   // -------------------------------------------------------
   // APPROVE SHOP
   // -------------------------------------------------------
-  Future<bool> approveShop(String id) async {
-    final url = Uri.parse("$base/pending/approve/$id");
+ Future<bool> approveShop(String shopId) async {
+  final url = Uri.parse("$base/shops/approve/$shopId");
 
-    final res = await http.post(url, headers: headers);
+  final res = await http.put(url, headers: headers);
 
-    if (res.statusCode != 200) return false;
+  if (res.statusCode != 200) return false;
 
-    final data = jsonDecode(res.body);
-    return data["success"] == true;
-  }
-
+  final data = jsonDecode(res.body);
+  return data["success"] == true;
+}
   // -------------------------------------------------------
   // REJECT SHOP
   // -------------------------------------------------------
-  Future<bool> rejectShop(String id) async {
-    final url = Uri.parse("$base/pending/reject/$id");
+Future<bool> rejectShop(String shopId) async {
+  final url = Uri.parse("$base/shops/delete/$shopId");
 
-    final res = await http.post(
-      url,
-      headers: headers,
-      body: jsonEncode({
-        "reason": "Rejected by manager",
-      }),
-    );
+  final res = await http.delete(url, headers: headers);
 
-    if (res.statusCode != 200) return false;
+  if (res.statusCode != 200) return false;
 
-    final data = jsonDecode(res.body);
-    return data["success"] == true;
-  }
+  final data = jsonDecode(res.body);
+  return data["success"] == true;
+}
+
 }

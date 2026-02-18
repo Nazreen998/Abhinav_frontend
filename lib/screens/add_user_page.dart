@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use, prefer_interpolation_to_compose_strings
+
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/user_service.dart';

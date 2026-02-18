@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'edit_shop_page.dart';
@@ -53,7 +55,11 @@ class _ShopListPageState extends State<ShopListPage>
     final res = await ApiService.getShops();
 
     // 🔥 FIX: API returns { success, shops }
-    final List all = res;
+    final List all = res.where((shop) {
+  return shop["isApproved"] == true &&
+         shop["isDeleted"] != true;
+}).toList();
+
 
     // ROLE BASED FILTER
     if (role == "master") {
