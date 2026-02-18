@@ -77,7 +77,7 @@ class _HomePageState extends State<HomePage>
         label: "",
       ),
       const BottomNavigationBarItem(
-        icon: Tooltip(message: "Shop List", child: Icon(Icons.storefront)),
+        icon: Tooltip(message: "Shop List", child: Icon(Icons.store)),
         label: "",
       ),
     ];

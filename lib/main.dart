@@ -72,30 +72,62 @@ class SplashScreen extends StatelessWidget {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color(0xFF6BA7FF),
-              Color(0xFF007FFF),
-              Color(0xFFFF6EC7),
+              Color(0xFF002D62),
+              Color(0xFF005BBB),
+              Color(0xFF1A73E8),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
         child: Center(
-          child: const Column(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.location_on, size: 90, color: Colors.white),
-              SizedBox(height: 25),
-              Text(
-                "ABHINAV TRACKING",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    letterSpacing: 2,
-                    fontWeight: FontWeight.bold),
+              // 🔵 App Logo (Replace with your asset if needed)
+              Container(
+                height: 110,
+                width: 110,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.location_on,
+                  size: 60,
+                  color: Colors.white,
+                ),
               ),
-              SizedBox(height: 20),
-              CircularProgressIndicator(color: Colors.white),
+
+              const SizedBox(height: 30),
+
+              const Text(
+                "ABHINAV TRACKING",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  letterSpacing: 1.5,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              const Text(
+                "Smart Field Monitoring",
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+              ),
+
+              const SizedBox(height: 30),
+
+              const CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
             ],
           ),
         ),
