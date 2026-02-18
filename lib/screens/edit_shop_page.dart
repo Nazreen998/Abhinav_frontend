@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
@@ -24,7 +26,7 @@ class _EditShopPageState extends State<EditShopPage> {
         text: widget.shop["shopName"] ?? widget.shop["shop_name"]);
     addrCtrl = TextEditingController(
         text: widget.shop["shopAddress"] ?? widget.shop["address"]);
-    segment = widget.shop["segment"]?.toString().toUpperCase() ?? "FMCG";
+    segment = (widget.shop["segment"] ?? "fmcg").toString().toUpperCase();
   }
 
   @override
@@ -91,7 +93,7 @@ class _EditShopPageState extends State<EditShopPage> {
 
   Future<void> saveShop() async {
     final updated = {
-      "_id": widget.shop["_id"], // REAL MongoDB ID
+      "shop_id": widget.shop["shop_id"],  // REAL ID
       "shop_name": nameCtrl.text.trim(),
       "address": addrCtrl.text.trim(),
       "segment": segment.toLowerCase(),

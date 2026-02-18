@@ -1,3 +1,5 @@
+// ignore_for_file: unused_import, avoid_print, deprecated_member_use
+
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/user_service.dart';

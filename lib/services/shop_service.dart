@@ -10,7 +10,7 @@ class ShopService {
       "https://abhinav-backend.onrender.com/api";
 
   // ✅ FIXED ROUTE
-  String get shopBaseUrl => "$base/shops/list";
+ String get shopBaseUrl => "$base/shops";
 
   // -----------------------------
   // GET SHOPS
@@ -37,7 +37,17 @@ class ShopService {
 
     return list.map<ShopModel>((e) => ShopModel.fromJson(e)).toList();
   }
+//------------Approval shop ---------
+Future<bool> approveShop(String id) async {
+  final res = await http.put(
+    Uri.parse("$base/shops/approve/$id"),
+    headers: {
+      "Authorization": "Bearer ${AuthService.token}",
+    },
+  );
 
+  return res.statusCode == 200;
+}
   // -----------------------------
   // UPDATE SHOP
   // -----------------------------
@@ -49,10 +59,10 @@ class ShopService {
         "Content-Type": "application/json",
       },
       body: jsonEncode({
-        "shopName": data["shop_name"],
-        "shopAddress": data["address"],
-        "segment": data["segment"],
-      }),
+  "shop_name": data["shop_name"],
+  "address": data["address"],
+  "segment": data["segment"],
+}),
     );
 
     return res.statusCode == 200;
@@ -63,7 +73,7 @@ class ShopService {
   // -----------------------------
   Future<bool> deleteShop(String shopId) async {
     final res = await http.delete(
-      Uri.parse("$base/shops/delete/$shopId"),
+      Uri.parse("$base/shops/$shopId"),
       headers: {
         "Authorization": "Bearer ${AuthService.token}",
       },

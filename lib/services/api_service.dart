@@ -103,12 +103,12 @@ class ApiService {
 
   static Future<bool> updateShop(Map data) async {
     final res = await http.put(
-      Uri.parse("$baseUrl/shops/update/${data["_id"]}"),
+      Uri.parse("$baseUrl/shops/update/${data["shop_id"]}"),
       headers: headers,
       body: jsonEncode({
-        "shopName": data["shop_name"],
-        "shopAddress": data["address"],
-        "segment": data["segment"],
+         "shop_name": data["shop_name"],  // ✅ FIX
+      "address": data["address"],      // ✅ FIX
+      "segment": data["segment"],
       }),
     );
     return jsonDecode(res.body)["success"] == true;
@@ -116,7 +116,7 @@ class ApiService {
 
   static Future<bool> deleteShop(String id) async {
     final res = await http.delete(
-      Uri.parse("$baseUrl/shops/delete/$id"),
+      Uri.parse("$baseUrl/shops/$id"),
       headers: headers,
     );
     return jsonDecode(res.body)["success"] == true;
