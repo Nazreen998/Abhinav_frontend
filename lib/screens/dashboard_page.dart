@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import '../screens/log_history_filter_page.dart';
 import '../screens/shop_list_page.dart';

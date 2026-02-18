@@ -195,17 +195,19 @@ class _AddShopPageState extends State<AddShopPage> {
   }
 
   final payload = {
-    "shopName": nameController.text.trim(),
-    "address": addressController.text.trim(),
-    "latitude": lat,
-    "longitude": lng,
-    "image": base64Image,
-  };
+  "shop_name": nameController.text.trim(),
+  "address": addressController.text.trim(),
+  "lat": lat,
+  "lng": lng,
+  "segment": "pipes", // or user segment
+  "shopImage": base64Image,
+};
+
 
   setState(() => loading = true);
 
   final url = Uri.parse(
-    "https://abhinav-backend.onrender.com/api/pending/add",
+    "https://abhinav-backend.onrender.com/api/shops/add",
   );
 
   try {
