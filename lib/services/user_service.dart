@@ -19,7 +19,7 @@ class UserService {
   Future<List<UserModel>> getUsers() async {
     try {
       final res = await http.get(
-        Uri.parse("$baseUrl/all"),
+        Uri.parse(baseUrl), // ✅ correct
         headers: headers,
       );
 
@@ -37,7 +37,7 @@ class UserService {
   Future<bool> addUser(UserModel user) async {
     try {
       final res = await http.post(
-        Uri.parse("$baseUrl/addUser"),
+        Uri.parse("$baseUrl/add"),
         headers: headers,
         body: jsonEncode(user.toJson()),
       );
@@ -52,7 +52,7 @@ class UserService {
   // UPDATE USER
 Future<bool> updateUser(UserModel user) async {
   try {
-    final url = Uri.parse("$baseUrl/update/${user.id}");
+    final url = Uri.parse("$baseUrl/${user.userId}");
     print("UPDATE USER URL => $url");
 
     final body = {
@@ -86,17 +86,23 @@ Future<bool> updateUser(UserModel user) async {
 }
 
   // DELETE USER
-  Future<bool> deleteUser(String id) async {
-    try {
-      final res = await http.delete(
-        Uri.parse("$baseUrl/delete/$id"),
-        headers: headers,
-      );
+Future<bool> deleteUser(String userId) async {
+  try {
+    final url = Uri.parse("$baseUrl/$userId");
+    print("DELETE URL => $url");
 
-      final data = jsonDecode(res.body);
-      return data["success"] == true;
-    } catch (e) {
-      return false;
-    }
+    final res = await http.delete(url, headers: headers);
+
+    print("DELETE STATUS => ${res.statusCode}");
+    print("DELETE RESPONSE => ${res.body}");
+
+    if (res.statusCode != 200) return false;
+
+    final data = jsonDecode(res.body);
+    return data["success"] == true;
+  } catch (e) {
+    print("DELETE ERROR => $e");
+    return false;
   }
+}
 }
