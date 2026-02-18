@@ -8,7 +8,6 @@ import 'add_user_page.dart';
 import 'edit_user_page.dart';
 import '../utils/date_utils.dart';
 
-
 class UserListPage extends StatefulWidget {
   const UserListPage({super.key});
 
@@ -44,7 +43,8 @@ class _UserListPageState extends State<UserListPage> {
     final users = await userService.getUsers(); // corrected API call
 
     allUsers = users;
-    allUsers.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    allUsers
+        .sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     filteredUsers = allUsers;
 
     if (mounted) {
@@ -111,7 +111,7 @@ class _UserListPageState extends State<UserListPage> {
 
   @override
   Widget build(BuildContext context) {
-    // MASTER ONLY ACCESS
+    // MASTER ONLY ACCESS (UNCHANGED)
     if (auth.AuthService.currentUser?["role"]?.toLowerCase() != "master") {
       return const Scaffold(
         body: Center(
@@ -124,99 +124,129 @@ class _UserListPageState extends State<UserListPage> {
     }
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF007BFF),
-              Color(0xFF66B2FF),
-              Color(0xFFB8E0FF)
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      backgroundColor: const Color(0xFFF6F8FC),
+      body: Stack(
+        children: [
+          // ✅ CURVED HEADER BACKGROUND (Same as Filter Page)
+          Container(
+            height: 240,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF002D62),
+                  Color(0xFF005BBB),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
+              ),
+            ),
           ),
-        ),
 
-        child: SafeArea(
-          child: Column(
-            children: [
-              // ---------------- HEADER ----------------
-              Row(
+          // ✅ MAIN FLOATING CONTENT
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back,
-                        size: 28, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
+                  const SizedBox(height: 20),
+
+                  // ✅ PAGE TITLE (Same Style)
                   const Text(
-                    "User List",
+                    "Users List",
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
-                  )
-                ],
-              ),
+                  ),
 
-              const SizedBox(height: 10),
+                  const SizedBox(height: 25),
 
-              // ---------------- SEARCH BAR ----------------
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  controller: searchCtrl,
-                  decoration: InputDecoration(
-                    hintText: "Search by name, mobile, role, segment...",
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: searchCtrl.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              searchCtrl.clear();
-                              searchFilter("");
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                  // ✅ FLOATING WHITE CARD (Exact Like Filter Page)
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // 🔍 SEARCH BAR (UNCHANGED LOGIC)
+                          TextField(
+                            controller: searchCtrl,
+                            decoration: InputDecoration(
+                              hintText:
+                                  "Search by name, mobile, role, segment...",
+                              prefixIcon: const Icon(Icons.search),
+                              suffixIcon: searchCtrl.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear),
+                                      onPressed: () {
+                                        searchCtrl.clear();
+                                        searchFilter("");
+                                      },
+                                    )
+                                  : null,
+                              filled: true,
+                              fillColor: const Color(0xFFF4F7FC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 18),
+
+                          // ✅ USER LIST (SCROLLABLE INSIDE CARD)
+                          Expanded(
+                            child: loading
+                                ? const Center(
+                                    child: CircularProgressIndicator(),
+                                  )
+                                : filteredUsers.isEmpty
+                                    ? const Center(
+                                        child: Text(
+                                          "No users found",
+                                          style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.black54),
+                                        ),
+                                      )
+                                    : ListView.builder(
+                                        itemCount: filteredUsers.length,
+                                        itemBuilder: (_, i) {
+                                          return _userCard(filteredUsers[i]);
+                                        },
+                                      ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-
-              const SizedBox(height: 12),
-
-              // ---------------- USER LIST ----------------
-              Expanded(
-                child: loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : filteredUsers.isEmpty
-                        ? const Center(
-                            child: Text(
-                              "No users found",
-                              style:
-                                  TextStyle(fontSize: 18, color: Colors.black54),
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: filteredUsers.length,
-                            itemBuilder: (_, i) {
-                              return _userCard(filteredUsers[i]);
-                            },
-                          ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
 
-      // ---------------- ADD USER BUTTON ----------------
+      // FAB (UNCHANGED)
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF0066CC),
+        backgroundColor: Colors.green,
         child: const Icon(Icons.add, color: Colors.white),
         onPressed: () {
           Navigator.push(
@@ -233,61 +263,145 @@ class _UserListPageState extends State<UserListPage> {
   // ------------------------------------------------------
   Widget _userCard(UserModel u) {
     return Container(
-      padding: const EdgeInsets.all(18),
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           )
         ],
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 🔹 TOP ROW (Avatar + Name + Role Badge + Actions)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Avatar
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: const Color(0xFF1565C0),
+                child: Text(
+                  u.name.isNotEmpty ? u.name[0].toUpperCase() : "?",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
 
-      child: ListTile(
-        title: Text(
-          u.name,
+              const SizedBox(width: 14),
+
+              // Name + Role
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      u.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Color(0xFF0D47A1),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+
+                    // Role Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE3ECF7),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        u.role.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0D47A1),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 🔹 Edit & Delete Icons (Professional look)
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit,
+                        size: 20, color: Color(0xFF0D47A1)),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => EditUserPage(user: u)),
+                      ).then((_) => loadUsers());
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline,
+                        size: 20, color: Colors.red),
+                    onPressed: () => deleteUser(u),
+                  ),
+                ],
+              )
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // 🔹 Divider
+          Container(
+            height: 1,
+            color: Colors.grey.withOpacity(0.15),
+          ),
+
+          const SizedBox(height: 12),
+
+          // 🔹 DETAILS SECTION
+          _detailRow(Icons.phone, "Mobile", u.mobile),
+          const SizedBox(height: 6),
+          _detailRow(Icons.category, "Segment", u.segment),
+          const SizedBox(height: 6),
+          _detailRow(
+              Icons.access_time, "Created", formatIST(u.createdAt ?? "")),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: const Color(0xFF0D47A1)),
+        const SizedBox(width: 8),
+        Text(
+          "$label: ",
           style: const TextStyle(
-            color: Color(0xFF003366),
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
           ),
         ),
-       subtitle: Text(
-  "Mobile: ${u.mobile}"
-  "\nRole: ${u.role}"
-  "\nSegment: ${u.segment}"
-  "\nCreated: ${formatIST(u.createdAt ?? "")}",
-),
-
-        trailing: PopupMenuButton(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          icon: const Icon(Icons.more_vert, color: Color(0xFF003366)),
-          onSelected: (v) {
-            if (v == "edit") {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => EditUserPage(user: u)),
-              ).then((_) => loadUsers());
-            }
-            if (v == "delete") deleteUser(u);
-          },
-          itemBuilder: (_) => const [
-            PopupMenuItem(
-              value: "edit",
-              child: Text("Edit", style: TextStyle(color: Colors.blue)),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Colors.black87,
             ),
-            PopupMenuItem(
-              value: "delete",
-              child: Text("Delete", style: TextStyle(color: Colors.red)),
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

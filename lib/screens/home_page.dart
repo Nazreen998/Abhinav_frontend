@@ -26,7 +26,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   static const Color darkBlue = Color(0xFF002D62);
-
+  int selectedIndex = 0; // ✅ HERE
   late AnimationController _controller;
   late Animation<double> fadeAnim;
 
@@ -39,8 +39,7 @@ class _HomePageState extends State<HomePage>
       duration: const Duration(milliseconds: 600),
     );
 
-    fadeAnim =
-        CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
 
     _controller.forward();
   }
@@ -62,220 +61,181 @@ class _HomePageState extends State<HomePage>
 
     final String name = user["name"]?.toString() ?? "User";
     final String mobile = user["mobile"]?.toString() ?? "-";
-    final String role =
-        user["role"]?.toString().toLowerCase() ?? "";
+    final String role = user["role"]?.toString().toLowerCase() ?? "";
     final String segment = user["segment"]?.toString() ?? "-";
 
     final bool isMaster = role == "master";
     final bool isManager = role == "manager";
     final bool isSalesman = role == "salesman";
 
+    List<Widget> pages = [
+      LogHistoryFilterPage(user: widget.user),
+      ShopListPage(user: widget.user),
+    ];
+
+    List<BottomNavigationBarItem> navItems = [
+      const BottomNavigationBarItem(
+        icon: Tooltip(message: "History Log", child: Icon(Icons.history)),
+        label: "",
+      ),
+      const BottomNavigationBarItem(
+        icon: Tooltip(message: "Shop List", child: Icon(Icons.store)),
+        label: "",
+      ),
+    ];
+
+    if (isMaster || isManager) {
+      pages.add(PendingShopsPage(user: widget.user));
+      navItems.add(const BottomNavigationBarItem(
+        icon: Tooltip(
+            message: "Pending Shops", child: Icon(Icons.pending_actions)),
+        label: "",
+      ));
+
+      pages.add(AssignedShopsScreen(user: widget.user));
+      navItems.add(const BottomNavigationBarItem(
+        icon: Tooltip(message: "Assigned Shops", child: Icon(Icons.list_alt)),
+        label: "",
+      ));
+
+      pages.add(const AssignShopPage());
+      navItems.add(const BottomNavigationBarItem(
+        icon: Tooltip(message: "Assign Shops", child: Icon(Icons.map)),
+        label: "",
+      ));
+    }
+
+    if (isMaster) {
+      pages.add(const UserListPage());
+      navItems.add(const BottomNavigationBarItem(
+        icon: Tooltip(message: "User List", child: Icon(Icons.people)),
+        label: "",
+      ));
+    }
+
+    if (isSalesman) {
+      pages.add(const AddShopPage());
+      navItems.add(const BottomNavigationBarItem(
+        icon: Tooltip(message: "Add Shop", child: Icon(Icons.add_business)),
+        label: "",
+      ));
+
+      pages.add(const NextShopPage());
+      navItems.add(const BottomNavigationBarItem(
+        icon: Tooltip(message: "Next Shop", child: Icon(Icons.directions_walk)),
+        label: "",
+      ));
+    }
+
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            onPressed: logout,
-            icon: const Icon(Icons.logout,
-                color: darkBlue, size: 28),
+      backgroundColor: const Color(0xFFF5F7FB),
+      body: Column(
+        children: [
+          // 🔵 Compact Gradient Header (AppBar Style)
+          // 🔵 Compact Gradient Header
+          Container(
+            padding: const EdgeInsets.only(
+              top: 50,
+              left: 18,
+              right: 12,
+              bottom: 16,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(22),
+                bottomRight: Radius.circular(22),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 8,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Color(0xFFEAF0F8),
+                  child: const Icon(
+                    Icons.person,
+                    color: Color(0xFF002D62),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: name,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF002D62),
+                          ),
+                        ),
+                        TextSpan(
+                          text: " • ${role.toUpperCase()}",
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: logout,
+                  icon: const Icon(
+                    Icons.logout,
+                    color: Color(0xFF002D62),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ✅ FULL PAGE AREA (Not stacked look)
+          Expanded(
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF5F7FB),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(28),
+                  topRight: Radius.circular(28),
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(28),
+                  topRight: Radius.circular(28),
+                ),
+                child: IndexedStack(
+                  index: selectedIndex,
+                  children: pages,
+                ),
+              ),
+            ),
           ),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF6BA7FF),
-              Color(0xFF007FFF),
-              Color(0xFFFF6EC7),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: FadeTransition(
-          opacity: fadeAnim,
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              const SizedBox(height: 80),
-
-              // WELCOME CARD
-              Container(
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.blueAccent.withOpacity(0.25),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    )
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("Welcome",
-                        style: TextStyle(
-                            color: darkBlue, fontSize: 14)),
-                    const SizedBox(height: 5),
-                    Text(
-                      name,
-                      style: const TextStyle(
-                          color: darkBlue,
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 10),
-                    Text("Mobile: $mobile",
-                        style: const TextStyle(color: darkBlue)),
-                    Text("Role: ${role.toUpperCase()}",
-                        style: const TextStyle(color: darkBlue)),
-                    Text("Segment: $segment",
-                        style: const TextStyle(color: darkBlue)),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 25),
-
-              // GRID
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 18,
-                mainAxisSpacing: 18,
-                children: [
-                  _tile(Icons.history, "History Log", () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            LogHistoryFilterPage(user: widget.user),
-                      ),
-                    );
-                  }),
-
-                  _tile(Icons.storefront, "Shop List", () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            ShopListPage(user: widget.user),
-                      ),
-                    );
-                  }),
-
-                  if (isMaster || isManager)
-                    _tile(Icons.pending_actions, "Pending Shops", () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              PendingShopsPage(user: widget.user),
-                        ),
-                      );
-                    }),
-
-                  if (isMaster || isManager)
-                    _tile(Icons.list_alt, "Assigned Shops", () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              AssignedShopsScreen(user: widget.user),
-                        ),
-                      );
-                    }),
-
-                  // 🔥 THIS IS THE FIXED ONE
-                  if (isMaster || isManager)
-                    _tile(Icons.map, "Assign Shops", () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const AssignShopPage(),
-                        ),
-                      );
-                    }),
-
-                  if (isMaster)
-                    _tile(Icons.people_alt, "User List", () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const UserListPage(),
-                        ),
-                      );
-                    }),
-
-                  if (isSalesman)
-                    _tile(Icons.add_business, "Add Shop", () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const AddShopPage(),
-                        ),
-                      );
-                    }),
-
-                  if (isSalesman)
-                    _tile(Icons.directions_walk, "Next Shop", () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const NextShopPage(),
-                        ),
-                      );
-                    }),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _tile(
-      IconData icon, String title, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.9),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.blueAccent.withOpacity(0.28),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            )
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 40, color: darkBlue),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: darkBlue,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: selectedIndex,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: darkBlue,
+        unselectedItemColor: Colors.grey,
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
+        items: navItems,
+        onTap: (index) {
+          setState(() {
+            selectedIndex = index;
+          });
+        },
       ),
     );
   }

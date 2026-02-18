@@ -66,8 +66,7 @@ class _ShopListPageState extends State<ShopListPage>
       filtered = all;
     } else {
       filtered = all.where((shop) {
-        final shopSeg =
-            (shop["segment"] ?? "").toString().toLowerCase();
+        final shopSeg = (shop["segment"] ?? "").toString().toLowerCase();
         return shopSeg == segment;
       }).toList();
     }
@@ -101,107 +100,146 @@ class _ShopListPageState extends State<ShopListPage>
     final listToShow = searchResult;
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF007BFF),
-              Color(0xFF66B2FF),
-              Color(0xFFB8E0FF),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const Text(
-                    "Shop List",
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                    const Spacer(),
-
-    // 🔥 PENDING SHOPS BUTTON
-    if (role == "master" || role == "manager")
-      IconButton(
-        icon: const Icon(Icons.pending_actions,
-            color: Colors.white, size: 28),
-        onPressed: () async {
-          final refreshed = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PendingShopsPage(user: widget.user),
-            ),
-          );
-
-          // 🔥 THIS IS THE MAGIC
-          if (refreshed == true) {
-            loadShops();
-          }
-        },
-      ),
+      backgroundColor: const Color(0xFFF6F8FC),
+      body: Stack(
+        children: [
+          // ✅ CURVED PREMIUM HEADER
+          Container(
+            height: 240,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF002D62),
+                  Color(0xFF005BBB),
                 ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
+              ),
+            ),
+          ),
 
-              const SizedBox(height: 10),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 15),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  onChanged: (v) => setState(() => search = v),
-                  decoration: InputDecoration(
-                    hintText: "Search shops...",
-                    prefixIcon: const Icon(Icons.search),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                  // ✅ TOP BAR TITLE + ACTIONS
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        "Shop List",
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const Spacer(),
+
+                      // 🔥 Pending Shops Button (UNCHANGED)
+                      if (role == "master" || role == "manager")
+                        IconButton(
+                          icon: const Icon(Icons.pending_actions,
+                              color: Colors.white, size: 28),
+                          onPressed: () async {
+                            final refreshed = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    PendingShopsPage(user: widget.user),
+                              ),
+                            );
+
+                            if (refreshed == true) {
+                              loadShops();
+                            }
+                          },
+                        ),
+                    ],
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 10),
+                  const SizedBox(height: 25),
 
-              Expanded(
-                child: loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : listToShow.isEmpty
-                        ? const Center(
-                            child: Text(
-                              "No shops found",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                  // ✅ FLOATING WHITE CARD (Premium Look)
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // 🔍 SEARCH BAR
+                          TextField(
+                            onChanged: (v) => setState(() => search = v),
+                            decoration: InputDecoration(
+                              hintText: "Search shops...",
+                              prefixIcon: const Icon(Icons.search),
+                              filled: true,
+                              fillColor: const Color(0xFFF4F7FC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
                               ),
                             ),
-                          )
-                        : FadeTransition(
-                            opacity: fadeAnim,
-                            child: ListView.builder(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: listToShow.length,
-                              itemBuilder: (_, i) =>
-                                  buildShopCard(listToShow[i]),
-                            ),
                           ),
+
+                          const SizedBox(height: 18),
+
+                          // ✅ SHOP LIST INSIDE CARD
+                          Expanded(
+                            child: loading
+                                ? const Center(
+                                    child: CircularProgressIndicator(),
+                                  )
+                                : listToShow.isEmpty
+                                    ? const Center(
+                                        child: Text(
+                                          "No shops found",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.black54,
+                                          ),
+                                        ),
+                                      )
+                                    : FadeTransition(
+                                        opacity: fadeAnim,
+                                        child: ListView.builder(
+                                          itemCount: listToShow.length,
+                                          itemBuilder: (_, i) =>
+                                              buildShopCard(listToShow[i]),
+                                        ),
+                                      ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -213,39 +251,101 @@ class _ShopListPageState extends State<ShopListPage>
     final seg = shop["segment"].toString().toUpperCase();
 
     return Container(
+      margin: const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.all(18),
-      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
-        borderRadius: BorderRadius.circular(18),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.14),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
           )
         ],
+        border: Border.all(
+          color: Colors.blue.withOpacity(0.08),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 🔹 TOP ROW
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                shop["shopName"] ?? shop["shop_name"] ?? "",
-                style: const TextStyle(
-                  color: Color(0xFF003366),
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+              // ⭐ Shop Icon Avatar
+              Container(
+                height: 52,
+                width: 52,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF002D62),
+                      Color(0xFF005BBB),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.store,
+                  color: Colors.white,
+                  size: 28,
                 ),
               ),
 
-              if (role == "master" || role == "manager") ...[
+              const SizedBox(width: 14),
+
+              // Shop Name + Address
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      shop["shopName"] ?? shop["shop_name"] ?? "",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 17,
+                        color: Color(0xFF0D47A1),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            shop["shopAddress"] ?? shop["address"] ?? "",
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.black54,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // Actions
+              if (role == "master" || role == "manager")
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      icon: const Icon(
+                        Icons.edit,
+                        size: 20,
+                        color: Color(0xFF0D47A1),
+                      ),
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -258,7 +358,11 @@ class _ShopListPageState extends State<ShopListPage>
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        size: 20,
+                        color: Colors.red,
+                      ),
                       onPressed: () async {
                         final yes = await showDialog(
                           context: context,
@@ -268,13 +372,11 @@ class _ShopListPageState extends State<ShopListPage>
                                 "Are you sure you want to delete this shop?"),
                             actions: [
                               TextButton(
-                                onPressed: () =>
-                                    Navigator.pop(context, false),
+                                onPressed: () => Navigator.pop(context, false),
                                 child: const Text("Cancel"),
                               ),
                               ElevatedButton(
-                                onPressed: () =>
-                                    Navigator.pop(context, true),
+                                onPressed: () => Navigator.pop(context, true),
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.red),
                                 child: const Text("Delete"),
@@ -284,41 +386,39 @@ class _ShopListPageState extends State<ShopListPage>
                         );
 
                         if (yes == true) {
-                          final ok =
-                              await ApiService.deleteShop(shop["_id"]);
+                          final ok = await ApiService.deleteShop(shop["_id"]);
                           if (ok) loadShops();
                         }
                       },
                     ),
                   ],
-                )
-              ]
+                ),
             ],
           ),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: 14),
 
-          Text(
-            shop["shopAddress"] ?? shop["address"] ?? "",
-            style: const TextStyle(color: Colors.black54, fontSize: 15),
-          ),
-
-          const SizedBox(height: 10),
-
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade100,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              seg,
-              style: const TextStyle(
-                color: Colors.blue,
-                fontWeight: FontWeight.bold,
+          // 🔹 Segment Badge + Divider Row
+          Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  seg,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0D47A1),
+                  ),
+                ),
               ),
-            ),
+              const Spacer(),
+            ],
           ),
         ],
       ),
