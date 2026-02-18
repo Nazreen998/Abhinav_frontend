@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/user_service.dart';
@@ -93,7 +95,7 @@ class _UserListPageState extends State<UserListPage> {
 
     if (confirm != true) return;
 
-    final ok = await userService.deleteUser(u.id.toString());
+    final ok = await userService.deleteUser(u.userId);
 
     if (!mounted) return;
 

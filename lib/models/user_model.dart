@@ -1,13 +1,11 @@
 class UserModel {
-  final String? id;
-  final String userId;
+  final String? id;        // pk
+  final String userId;     // user_id
   final String name;
   final String mobile;
   final String role;
   final String segment;
   final String? password;
-
-  // ⬇️ ADD THIS
   final String? createdAt;
 
   UserModel({
@@ -18,19 +16,19 @@ class UserModel {
     required this.role,
     required this.segment,
     this.password,
-    this.createdAt, // ⬅️
+    this.createdAt,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json["_id"],
+      id: json["pk"], // ✅ FIXED
       userId: json["user_id"] ?? "",
       name: json["name"] ?? "",
       mobile: json["mobile"]?.toString() ?? "",
       role: json["role"]?.toString().toLowerCase() ?? "",
       segment: json["segment"] ?? "",
-      password: json["password"], // ✅ ADD THIS
-      createdAt: json["createdAt"] ?? json["updatedAt"], // ⬅️
+      password: json["password"],
+      createdAt: json["createdAt"],
     );
   }
 
