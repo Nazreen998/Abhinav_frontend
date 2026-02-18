@@ -17,7 +17,7 @@ class _LoginPageState extends State<LoginPage>
   bool loading = false;
   bool showPass = false;
 
-  static const Color darkBlue = Color(0xFF002D62);
+  // static const Color darkBlue = Color(0xFF002D62);
 
   late AnimationController _anim;
   late Animation<double> fadeAnim;
@@ -32,152 +32,192 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Future<void> loginUser() async {
-  if (mobileCtrl.text.isEmpty || passCtrl.text.isEmpty) {
-    _msg("Mobile & Password are required");
-    return;
+    if (mobileCtrl.text.isEmpty || passCtrl.text.isEmpty) {
+      _msg("Mobile & Password are required");
+      return;
+    }
+
+    setState(() => loading = true);
+
+    final result = await AuthService.login(
+      mobileCtrl.text.trim(),
+      passCtrl.text.trim(),
+    );
+
+    setState(() => loading = false);
+
+    if (result["success"] != true) {
+      _msg(result["message"] ?? "Login failed");
+      return;
+    }
+
+    // 🔥 IMPORTANT FIX (TOKEN SYNC)
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HomePage(
+          user: AuthService.currentUser ?? result["user"],
+        ),
+      ),
+    );
   }
 
-  setState(() => loading = true);
-
-  final result = await AuthService.login(
-    mobileCtrl.text.trim(),
-    passCtrl.text.trim(),
-  );
-
-  setState(() => loading = false);
-
- if (result["success"] != true) {
-  _msg(result["message"] ?? "Login failed");
-  return;
-}
-
-
-  // 🔥 IMPORTANT FIX (TOKEN SYNC)
-  await Future.delayed(const Duration(milliseconds: 300));
-
-  if (!mounted) return;
-
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(
-      builder: (_) => HomePage(
-        user: AuthService.currentUser ?? result["user"],
-      ),
-    ),
-  );
-}
-
-
   void _msg(String txt) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(txt)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(txt)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF6BA7FF),
-              Color(0xFF007FFF),
-              Color(0xFFFF6EC7),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: FadeTransition(
-          opacity: fadeAnim,
-          child: Padding(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.location_on, size: 100, color: darkBlue),
-                const SizedBox(height: 25),
-
-                const Text(
-                  "ABHINAV TRACKING APP",
-                  style: TextStyle(
-                    color: darkBlue,
-                    fontSize: 25,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
-                  ),
+      body: SingleChildScrollView(
+        child: Stack(
+          children: [
+            // 🔵 TOP CURVED HEADER
+            Container(
+              height: MediaQuery.of(context).size.height / 2.6,
+              width: MediaQuery.of(context).size.width,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF002D62),
+                    Color(0xFF005BBB),
+                  ],
                 ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40),
+                ),
+              ),
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.location_on, size: 90, color: Colors.white),
+                  SizedBox(height: 10),
+                  Text(
+                    "Abhinav Tracking",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
-                const SizedBox(height: 40),
-
-                _inputBox("Mobile Number", mobileCtrl),
-                const SizedBox(height: 20),
-
-                _passwordBox(),
-                const SizedBox(height: 35),
-
-                loading
-                    ? const CircularProgressIndicator(color: darkBlue)
-                    : ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: darkBlue,
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 15, horizontal: 40),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+            // ⚪ FLOATING CARD
+            Container(
+              margin: EdgeInsets.only(
+                top: MediaQuery.of(context).size.height / 3.2,
+                left: 20,
+                right: 20,
+              ),
+              child: Material(
+                elevation: 6,
+                borderRadius: BorderRadius.circular(25),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  height: MediaQuery.of(context).size.height / 1.6,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 25),
+                      const Center(
+                        child: Text(
+                          "Login",
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        onPressed: loginUser,
-                        child: const Text(
-                          "LOGIN",
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 30),
+                      const Text("Mobile Number",
+                          style: TextStyle(fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 6),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xffececf8),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: TextField(
+                          controller: mobileCtrl,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            hintText: "Enter Mobile Number",
+                            prefixIcon: Icon(Icons.phone_android),
+                          ),
                         ),
                       ),
-              ],
+                      const SizedBox(height: 20),
+                      const Text("Password",
+                          style: TextStyle(fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 6),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xffececf8),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: TextField(
+                          controller: passCtrl,
+                          obscureText: !showPass,
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            hintText: "Enter Password",
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                showPass
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () =>
+                                  setState(() => showPass = !showPass),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 35),
+                      Center(
+                        child: loading
+                            ? const CircularProgressIndicator()
+                            : GestureDetector(
+                                onTap: loginUser,
+                                child: Container(
+                                  width: 200,
+                                  height: 55,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF002D62),
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      "LOGIN",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _inputBox(String label, TextEditingController ctrl) {
-    return TextField(
-      controller: ctrl,
-      style: const TextStyle(color: darkBlue),
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.90),
-        labelText: label,
-        labelStyle: const TextStyle(color: darkBlue),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-      ),
-    );
-  }
-
-  Widget _passwordBox() {
-    return TextField(
-      controller: passCtrl,
-      obscureText: !showPass,
-      style: const TextStyle(color: darkBlue),
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.90),
-        labelText: "Password",
-        labelStyle: const TextStyle(color: darkBlue),
-        suffixIcon: IconButton(
-          onPressed: () => setState(() => showPass = !showPass),
-          icon: Icon(
-            showPass ? Icons.visibility : Icons.visibility_off,
-            color: darkBlue,
-          ),
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          ],
         ),
       ),
     );

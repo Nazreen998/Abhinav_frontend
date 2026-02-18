@@ -28,14 +28,14 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
     final role = widget.user["role"].toString().toLowerCase();
     final segment = widget.user["segment"].toString().toUpperCase();
 
-    // ---------- SEGMENT OPTIONS ----------
+    // ✅ SEGMENT OPTIONS LOGIC (UNCHANGED)
     if (role == "manager") {
       segmentOptions = ["All", segment];
     } else if (role == "salesman") {
       segmentOptions = [segment];
       segmentFilter = segment;
     } else {
-      segmentOptions = ["All", "FMCG", "PIPES"]; // You can add more if needed
+      segmentOptions = ["All", "FMCG", "PIPES"];
     }
   }
 
@@ -62,11 +62,12 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
 
   // ----------------- APPLY FILTERS -----------------
   void applyFilters() {
+    // ✅ RESULT MAPPING LOGIC (UNCHANGED)
     String resultMapped = resultFilter == "All"
         ? "All"
         : (resultFilter == "Match" ? "match" : "mismatch");
 
-    // FIX: Avoid invalid date ranges
+    // ✅ DATE RANGE VALIDATION (UNCHANGED)
     if (startDate != null && endDate != null) {
       if (endDate!.isBefore(startDate!)) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -76,6 +77,7 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
       }
     }
 
+    // ✅ NAVIGATION (UNCHANGED)
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -90,34 +92,43 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
     );
   }
 
+  // ================= UI BUILD =====================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF007BFF),
-              Color(0xFF66B2FF),
-              Color(0xFFB8E0FF),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      backgroundColor: const Color(0xFFF6F8FC),
+      body: Stack(
+        children: [
+          // ✅ CURVED HEADER BACKGROUND
+          Container(
+            height: 240,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF002D62),
+                  Color(0xFF005BBB),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
+              ),
+            ),
           ),
-        ),
 
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // HEADER
-              Row(
+          // ✅ MAIN CONTENT FLOATING CARD
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back,
-                        size: 28, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
+                  const SizedBox(height: 20),
+
+                  // ✅ PAGE TITLE INSIDE HEADER
                   const Text(
                     "Filter Logs",
                     style: TextStyle(
@@ -126,106 +137,133 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
                       color: Colors.white,
                     ),
                   ),
-                ],
-              ),
 
-              const SizedBox(height: 10),
+                  const SizedBox(height: 6),
 
-              // CONTENT
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
+                  const Text(
+                    "Choose segment, result & date range",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white70,
                     ),
                   ),
 
-                  child: Column(
-                    children: [
-                      // SEGMENT DROPDOWN
-                      DropdownButtonFormField(
-                        decoration: inputDecor("Segment"),
-                        value: segmentFilter,
-                        items: segmentOptions
-                            .map((e) => DropdownMenuItem(
-                                value: e, child: Text(e)))
-                            .toList(),
-                        onChanged: (v) => setState(() => segmentFilter = v!),
-                      ),
+                  const SizedBox(height: 25),
 
-                      const SizedBox(height: 18),
-
-                      // RESULT DROPDOWN (Match/Mismatch)
-                      DropdownButtonFormField(
-                        decoration: inputDecor("Result"),
-                        value: resultFilter,
-                        items: resultOptions
-                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                            .toList(),
-                        onChanged: (v) => setState(() => resultFilter = v!),
-                      ),
-
-                      const SizedBox(height: 25),
-
-                      // DATE BUTTONS
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: pickStart,
-                              style: dateBtn(),
-                              child: Text(
-                                startDate == null
-                                    ? "Start Date"
-                                    : "${startDate!.day}-${startDate!.month}-${startDate!.year}",
-                              ),
-                            ),
+                  // ✅ FLOATING FILTER CARD
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // ✅ SEGMENT DROPDOWN
+                          DropdownButtonFormField(
+                            decoration: inputDecor("Segment"),
+                            value: segmentFilter,
+                            items: segmentOptions
+                                .map((e) => DropdownMenuItem(
+                                      value: e,
+                                      child: Text(e),
+                                    ))
+                                .toList(),
+                            onChanged: (v) =>
+                                setState(() => segmentFilter = v!),
+                          ),
+
+                          const SizedBox(height: 18),
+
+                          // ✅ RESULT DROPDOWN
+                          DropdownButtonFormField(
+                            decoration: inputDecor("Result"),
+                            value: resultFilter,
+                            items: resultOptions
+                                .map((e) => DropdownMenuItem(
+                                      value: e,
+                                      child: Text(e),
+                                    ))
+                                .toList(),
+                            onChanged: (v) => setState(() => resultFilter = v!),
+                          ),
+
+                          const SizedBox(height: 22),
+
+                          // ✅ DATE BUTTONS
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: pickStart,
+                                  icon: const Icon(Icons.calendar_month,
+                                      size: 18),
+                                  style: dateBtn(),
+                                  label: Text(
+                                    startDate == null
+                                        ? "Start Date"
+                                        : "${startDate!.day}-${startDate!.month}-${startDate!.year}",
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: pickEnd,
+                                  icon: const Icon(Icons.calendar_month,
+                                      size: 18),
+                                  style: dateBtn(),
+                                  label: Text(
+                                    endDate == null
+                                        ? "End Date"
+                                        : "${endDate!.day}-${endDate!.month}-${endDate!.year}",
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const Spacer(),
+
+                          // ✅ APPLY BUTTON
+                          SizedBox(
+                            width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: pickEnd,
-                              style: dateBtn(),
-                              child: Text(
-                                endDate == null
-                                    ? "End Date"
-                                    : "${endDate!.day}-${endDate!.month}-${endDate!.year}",
+                              onPressed: applyFilters,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF002D62),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              child: const Text(
+                                "Show Logs",
+                                style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
                               ),
                             ),
                           ),
                         ],
                       ),
-
-                      const Spacer(),
-
-                      // APPLY FILTERS BUTTON
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: applyFilters,
-                          style: ElevatedButton.styleFrom(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: const Text(
-                            "Show Logs",
-                            style: TextStyle(fontSize: 18),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              )
-            ],
+                ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -234,18 +272,12 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
   InputDecoration inputDecor(String label) {
     return InputDecoration(
       labelText: label,
+      labelStyle: const TextStyle(color: Color(0xFF002D62)),
       filled: true,
-      fillColor: Colors.white,
+      fillColor: const Color(0xFFF4F7FC),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Colors.blueAccent),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Colors.deepPurple, width: 2),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
       ),
     );
   }
@@ -253,11 +285,12 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
   // ---------- DATE BUTTON ----------
   ButtonStyle dateBtn() {
     return ElevatedButton.styleFrom(
-      backgroundColor: Colors.blue.shade100,
-      foregroundColor: Colors.black,
-      padding: const EdgeInsets.symmetric(vertical: 13),
+      backgroundColor: const Color(0xFFE3ECF7),
+      foregroundColor: Colors.black87,
+      elevation: 0,
+      padding: const EdgeInsets.symmetric(vertical: 14),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
       ),
     );
   }

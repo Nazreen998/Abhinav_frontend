@@ -23,7 +23,7 @@ class _AbhinavAppState extends State<AbhinavApp> {
   @override
   void initState() {
     super.initState();
-         _loadInitialUser();
+    _loadInitialUser();
   }
 
   Future<void> _loadInitialUser() async {
@@ -45,9 +45,7 @@ class _AbhinavAppState extends State<AbhinavApp> {
     return MaterialApp(
       title: "Abhinav Tracking",
       debugShowCheckedModeBanner: false,
-
       home: currentPage,
-
       routes: {
         "/login": (_) => const LoginPage(),
         "/home": (_) {
@@ -56,9 +54,9 @@ class _AbhinavAppState extends State<AbhinavApp> {
           }
           return HomePage(user: AuthService.currentUser!);
         },
-         "/match": (context) => MatchPage(
-        shop: ModalRoute.of(context)!.settings.arguments,
-      ),
+        "/match": (context) => MatchPage(
+              shop: ModalRoute.of(context)!.settings.arguments,
+            ),
       },
     );
   }
@@ -83,9 +81,9 @@ class SplashScreen extends StatelessWidget {
           ),
         ),
         child: Center(
-          child: Column(
+          child: const Column(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               Icon(Icons.location_on, size: 90, color: Colors.white),
               SizedBox(height: 25),
               Text(

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/user_service.dart';
-import '../utils/date_utils.dart';
-
 
 class EditUserPage extends StatefulWidget {
   final UserModel user;
@@ -23,6 +21,8 @@ class _EditUserPageState extends State<EditUserPage> {
   String role = "salesman";
   String segment = "fmcg";
 
+  final Color darkBlue = const Color(0xFF002D62);
+
   @override
   void initState() {
     super.initState();
@@ -30,7 +30,6 @@ class _EditUserPageState extends State<EditUserPage> {
     nameCtrl = TextEditingController(text: widget.user.name);
     mobileCtrl = TextEditingController(text: widget.user.mobile);
 
-    // ⭐ password auto-fill (last 4 digits logic fallback)
     passwordCtrl = TextEditingController(
       text: widget.user.password ??
           widget.user.mobile.substring(widget.user.mobile.length - 4),
@@ -41,14 +40,7 @@ class _EditUserPageState extends State<EditUserPage> {
   }
 
   Future<void> save() async {
-  print("SAVE CLICKED");
-
-  if (!_formKey.currentState!.validate()) {
-    print("FORM INVALID");
-    return;
-  }
-
-  print("FORM VALID");
+    if (!_formKey.currentState!.validate()) return;
 
     final updated = UserModel(
       id: widget.user.id,
@@ -57,7 +49,7 @@ class _EditUserPageState extends State<EditUserPage> {
       mobile: mobileCtrl.text.trim(),
       role: role,
       segment: segment,
-      password: passwordCtrl.text.trim(), // ✅ INCLUDE PASSWORD
+      password: passwordCtrl.text.trim(),
     );
 
     bool ok = await userService.updateUser(updated);
@@ -77,65 +69,137 @@ class _EditUserPageState extends State<EditUserPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Edit User"),
-        backgroundColor: Colors.blue,
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            _field(nameCtrl, "Name"),
-            _field(mobileCtrl, "Mobile", keyboard: TextInputType.phone),
-            _field(passwordCtrl, "Password"),
-
-            const SizedBox(height: 16),
-
-            DropdownButtonFormField(
-              value: role,
-              decoration: _decor("Role"),
-              items: const [
-                DropdownMenuItem(value: "master", child: Text("Master")),
-                DropdownMenuItem(value: "manager", child: Text("Manager")),
-                DropdownMenuItem(value: "salesman", child: Text("Salesman")),
-              ],
-              onChanged: (v) => setState(() => role = v.toString()),
+      backgroundColor: Colors.grey[100],
+      body: Column(
+        children: [
+          // 🔵 Gradient Header
+          Container(
+            height: 180,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [darkBlue, Colors.blue.shade500],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
             ),
-
-            const SizedBox(height: 16),
-
-            DropdownButtonFormField(
-              value: segment,
-              decoration: _decor("Segment"),
-              items: const [
-                DropdownMenuItem(value: "all", child: Text("ALL")),
-                DropdownMenuItem(value: "fmcg", child: Text("FMCG")),
-                DropdownMenuItem(value: "pipes", child: Text("PIPES")),
-              ],
-              onChanged: (v) => setState(() => segment = v.toString()),
-            ),
-
-            const SizedBox(height: 30),
-
-            SizedBox(
-              height: 48,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+            child: SafeArea(
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                ),
-                onPressed: save,
-                child: const Text(
-                  "Save Changes",
-                  style: TextStyle(fontSize: 18, color: Colors.white),
+                  const SizedBox(width: 10),
+                  const Text(
+                    "Edit User",
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // 🔥 Floating Card Section
+          Expanded(
+            child: Transform.translate(
+              offset: const Offset(0, -40),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 12,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
+                  ),
+
+                  // ✅ Form + Scroll
+                  child: Form(
+                    key: _formKey,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          _field(nameCtrl, "Name"),
+                          _field(mobileCtrl, "Mobile",
+                              keyboard: TextInputType.phone),
+                          _field(passwordCtrl, "Password"),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField(
+                            value: role,
+                            decoration: _decor("Role"),
+                            items: const [
+                              DropdownMenuItem(
+                                  value: "master", child: Text("Master")),
+                              DropdownMenuItem(
+                                  value: "manager", child: Text("Manager")),
+                              DropdownMenuItem(
+                                  value: "salesman", child: Text("Salesman")),
+                            ],
+                            onChanged: (v) =>
+                                setState(() => role = v.toString()),
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField(
+                            value: segment,
+                            decoration: _decor("Segment"),
+                            items: const [
+                              DropdownMenuItem(
+                                  value: "all", child: Text("ALL")),
+                              DropdownMenuItem(
+                                  value: "fmcg", child: Text("FMCG")),
+                              DropdownMenuItem(
+                                  value: "pipes", child: Text("PIPES")),
+                            ],
+                            onChanged: (v) =>
+                                setState(() => segment = v.toString()),
+                          ),
+                          const SizedBox(height: 30),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: darkBlue,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              onPressed: save, // ✅ Business logic unchanged
+                              child: const Text(
+                                "Save Changes",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 40),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -156,7 +220,11 @@ class _EditUserPageState extends State<EditUserPage> {
   InputDecoration _decor(String label) {
     return InputDecoration(
       labelText: label,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      filled: true,
+      fillColor: Colors.grey[50],
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
     );
   }
 }
