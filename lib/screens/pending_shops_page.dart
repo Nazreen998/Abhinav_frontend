@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use, prefer_const_constructors
 
 import 'dart:convert';
+import 'package:abhinav_tracking/screens/home_page.dart';
 import 'package:flutter/material.dart';
 import '../models/pending_shop_model.dart';
 import '../services/pending_shop_service.dart';
@@ -8,7 +9,13 @@ import 'full_image_page.dart';
 
 class PendingShopsPage extends StatefulWidget {
   final Map<String, dynamic> user;
-  const PendingShopsPage({super.key, required this.user});
+  final bool isFromTab; // 🔥 ADD THIS
+
+  const PendingShopsPage({
+    super.key,
+    required this.user,
+    this.isFromTab = false,
+  });
 
   @override
   State<PendingShopsPage> createState() => _PendingShopsPageState();
@@ -21,8 +28,7 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
   bool loading = true;
   bool approving = false; // 🔥 FIX 1
 
-  bool get isMaster =>
-      widget.user["role"].toString().toLowerCase() == "master";
+  bool get isMaster => widget.user["role"].toString().toLowerCase() == "master";
 
   bool get isManager =>
       widget.user["role"].toString().toLowerCase() == "manager";
@@ -39,8 +45,7 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
 
     try {
       final res = await pendingService.getPendingShops();
-      pendingShops =
-          res.map((e) => PendingShopModel.fromJson(e)).toList();
+      pendingShops = res.map((e) => PendingShopModel.fromJson(e)).toList();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -66,14 +71,20 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
 
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Shop Approved Successfully")),
+        const SnackBar(
+          content: Text("Shop Approved Successfully"),
+          backgroundColor: Colors.green,
+        ),
       );
 
-      // 🔥 tell ShopListPage to refresh
-      Navigator.pop(context, true);
+      // ✅ Stay in page and refresh list
+      loadPendingShops();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Approval failed")),
+        const SnackBar(
+          content: Text("Approval failed"),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -93,7 +104,7 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
 
   @override
   Widget build(BuildContext context) {
-    // SALESMAN BLOCK
+    // SALESMAN BLOCK (UNCHANGED)
     if (!isMaster && !isManager) {
       return const Scaffold(
         body: Center(
@@ -106,63 +117,112 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
     }
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF007BFF), Color(0xFF66B2FF), Color(0xFFB8E0FF)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      backgroundColor: const Color(0xFFF6F8FC),
+      body: Stack(
+        children: [
+          // ✅ CURVED PREMIUM HEADER
+          Container(
+            height: 240,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF002D62),
+                  Color(0xFF005BBB),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
+              ),
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // ================= HEADER =================
-              Row(
+
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back,
-                        color: Colors.white, size: 28),
-                    onPressed: () => Navigator.pop(context),
+                  const SizedBox(height: 15),
+
+                  // ✅ HEADER ROW
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () {
+                          if (widget.isFromTab) {
+                            // ✅ Go back safely without creating empty HomePage
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => HomePage(
+                                  user: widget.user, // ✅ Pass same user data
+                                ),
+                              ),
+                            );
+                          } else {
+                            Navigator.pop(context);
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        "Pending Shops",
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
-                  const Text(
-                    "Pending Shops",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
+
+                  const SizedBox(height: 25),
+
+                  // ✅ FLOATING WHITE CARD BODY
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: loading
+                          ? const Center(
+                              child: CircularProgressIndicator(),
+                            )
+                          : pendingShops.isEmpty
+                              ? const Center(
+                                  child: Text(
+                                    "No Pending Shops",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                )
+                              : ListView.builder(
+                                  itemCount: pendingShops.length,
+                                  itemBuilder: (_, i) =>
+                                      _pendingCard(pendingShops[i]),
+                                ),
                     ),
                   ),
                 ],
               ),
-
-              const SizedBox(height: 10),
-
-              // ================= BODY =================
-              Expanded(
-                child: loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : pendingShops.isEmpty
-                        ? const Center(
-                            child: Text(
-                              "No Pending Shops",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: pendingShops.length,
-                            itemBuilder: (_, i) =>
-                                _pendingCard(pendingShops[i]),
-                          ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -170,104 +230,173 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
   // ================= PENDING CARD =================
   Widget _pendingCard(PendingShopModel shop) {
     return Container(
-      padding: const EdgeInsets.all(20),
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          )
         ],
+        border: Border.all(
+          color: Colors.blue.withOpacity(0.08),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // IMAGE
+          // ✅ IMAGE PREVIEW
           if (shop.shopImage != null && shop.shopImage!.isNotEmpty)
             GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) =>
-                        FullImagePage(base64Image: shop.shopImage!),
+                    builder: (_) => FullImagePage(base64Image: shop.shopImage!),
                   ),
                 );
               },
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
                 child: Image.memory(
                   base64Decode(shop.shopImage!),
-                  height: 150,
+                  height: 160,
                   width: double.infinity,
                   fit: BoxFit.cover,
                 ),
               ),
             ),
 
-          const SizedBox(height: 12),
-
-          Text(
-            shop.shopName,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF003366),
-            ),
-          ),
-
-          const SizedBox(height: 6),
-
-          Text("Address: ${shop.address}"),
-          Text("Segment: ${shop.segment}"),
-          Text(
-            "Created By: ${shop.createdByUserName}",
-            style: const TextStyle(color: Colors.black54),
-          ),
-
           const SizedBox(height: 14),
 
-          // APPROVE / REJECT
+          // ✅ SHOP NAME + PENDING BADGE
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              ElevatedButton(
-                onPressed: approving ? null : () => approveShop(shop.shopId),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              Expanded(
+                child: Text(
+                  shop.shopName,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0D47A1),
                   ),
                 ),
-                child: approving
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text("Approve"),
               ),
-              ElevatedButton(
-                onPressed: approving ? null : () => rejectShop(shop.shopId),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  "PENDING",
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
                   ),
                 ),
-                child: const Text("Reject"),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // ✅ DETAILS SECTION
+          _infoRow(Icons.location_on, "Address", shop.address),
+          const SizedBox(height: 6),
+          _infoRow(Icons.category, "Segment", shop.segment),
+          const SizedBox(height: 6),
+          _infoRow(Icons.person, "Created By", shop.createdByUserName),
+
+          const SizedBox(height: 18),
+
+          // ✅ ACTION BUTTONS (Modern Style)
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: approving ? null : () => approveShop(shop.shopId),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: approving
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          "Approve",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: approving ? null : () => rejectShop(shop.shopId),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text(
+                    "Reject",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: const Color(0xFF0D47A1)),
+        const SizedBox(width: 8),
+        Text(
+          "$label: ",
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Colors.black87,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }

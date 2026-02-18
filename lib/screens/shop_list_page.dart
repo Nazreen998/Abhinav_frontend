@@ -56,10 +56,8 @@ class _ShopListPageState extends State<ShopListPage>
 
     // 🔥 FIX: API returns { success, shops }
     final List all = res.where((shop) {
-  return shop["isApproved"] == true &&
-         shop["isDeleted"] != true;
-}).toList();
-
+      return shop["isApproved"] == true && shop["isDeleted"] != true;
+    }).toList();
 
     // ROLE BASED FILTER
     if (role == "master") {
@@ -133,11 +131,6 @@ class _ShopListPageState extends State<ShopListPage>
                   // ✅ TOP BAR TITLE + ACTIONS
                   Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      const SizedBox(width: 6),
                       const Text(
                         "Shop List",
                         style: TextStyle(

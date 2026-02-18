@@ -85,7 +85,10 @@ class _HomePageState extends State<HomePage>
     ];
 
     if (isMaster || isManager) {
-      pages.add(PendingShopsPage(user: widget.user));
+      pages.add(PendingShopsPage(
+        user: widget.user,
+        isFromTab: true,
+      ));
       navItems.add(const BottomNavigationBarItem(
         icon: Tooltip(
             message: "Pending Shops", child: Icon(Icons.pending_actions)),
@@ -214,10 +217,7 @@ class _HomePageState extends State<HomePage>
                   topLeft: Radius.circular(28),
                   topRight: Radius.circular(28),
                 ),
-                child: IndexedStack(
-                  index: selectedIndex,
-                  children: pages,
-                ),
+                child: pages[selectedIndex],
               ),
             ),
           ),
