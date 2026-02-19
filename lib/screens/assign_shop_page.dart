@@ -168,6 +168,7 @@ class _AssignShopPageState extends State<AssignShopPage> {
       final ShopModel shop = s["shop"];
 
       return {
+        "shop_id": shop.shopId,   
         "shop_name": shop.shopName,
         "address": shop.address,
         "segment": shop.segment,
