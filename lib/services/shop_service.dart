@@ -10,7 +10,7 @@ class ShopService {
       "https://abhinav-backend.onrender.com/api";
 
   // ✅ FIXED ROUTE
- String get shopBaseUrl => "$base/shops";
+ String get shopBaseUrl => "$base/shops/list";
 
   // -----------------------------
   // GET SHOPS

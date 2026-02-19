@@ -1,16 +1,17 @@
-// ignore_for_file: avoid_print, unused_import
+// ignore_for_file: avoid_print
 
 import 'package:flutter/material.dart';
 import '../services/api_service.dart' as api;
-import '../services/auth_service.dart';
 
 class ModifyAssignedPage extends StatefulWidget {
   final String salesmanId;
+  final String salesmanName;
   final List currentShops;
 
   const ModifyAssignedPage({
     super.key,
     required this.salesmanId,
+    required this.salesmanName,
     required this.currentShops,
   });
 
@@ -21,32 +22,33 @@ class ModifyAssignedPage extends StatefulWidget {
 class _ModifyAssignedPageState extends State<ModifyAssignedPage> {
   List<dynamic> allShops = [];
   List<String> selectedShopIds = [];
-  late String salesmanName; 
   bool loading = true;
 
- @override
-void initState() {
-  super.initState();
+  @override
+  void initState() {
+    super.initState();
 
-  salesmanName = widget.currentShops.isNotEmpty
-      ? widget.currentShops.first["salesman_name"]?.toString() ?? ""
-      : "";
+    selectedShopIds = widget.currentShops
+        .map<String>((e) => e["shop_id"]?.toString() ?? "")
+        .where((e) => e.isNotEmpty)
+        .toList();
 
-  selectedShopIds = widget.currentShops
-      .map<String>((e) => e["shop_id"]?.toString() ?? "")
-      .where((e) => e.isNotEmpty)
-      .toList();
+    loadShops();
+  }
 
-  loadShops();
-}
   // --------------------------------------------------
-  // LOAD SHOPS
+  // LOAD ALL APPROVED SHOPS
   // --------------------------------------------------
   Future<void> loadShops() async {
     setState(() => loading = true);
 
     try {
-      allShops = await api.ApiService.getShops();
+      final shops = await api.ApiService.getShops();
+
+      // only approved shops
+      allShops = shops
+          .where((s) => s["isApproved"] == true)
+          .toList();
     } catch (e) {
       print("❌ Load shops error: $e");
       allShops = [];
@@ -56,48 +58,45 @@ void initState() {
   }
 
   // --------------------------------------------------
-  // SAVE CHANGES
+  // SAVE CHANGES (RESET + ASSIGN)
   // --------------------------------------------------
   Future<void> saveChanges() async {
-    /// REMOVE unchecked shops
-    for (var old in widget.currentShops) {
-      final oldShopId = old["shop_id"]?.toString() ?? "";
-      if (oldShopId.isNotEmpty && !selectedShopIds.contains(oldShopId)) {
-        await api.ApiService.removeAssignedShop(old["_id"]);
-      }
-    }
+    final selectedShops = allShops
+        .where((s) =>
+            selectedShopIds.contains(
+              s["shop_id"]?.toString(),
+            ))
+        .map((s) => {
+              "shop_name": s["shop_name"],
+              "address": s["address"],
+              "segment": s["segment"],
+            })
+        .toList();
 
-    /// ADD newly checked shops
-    for (var shop in allShops) {
-      final shopId = shop["shop_id"]?.toString() ?? "";
-      final shopName = shop["shop_name"]?.toString() ?? "";
-      final shopSegment = shop["segment"]?.toString() ?? "";
-
-      if (shopId.isEmpty || shopName.isEmpty) continue;
-
-      final alreadyExists = widget.currentShops.any(
-        (e) => e["shop_id"]?.toString() == shopId,
-      );
-
-      if (selectedShopIds.contains(shopId) && !alreadyExists) {
-        await api.ApiService.assignShop(
-          shopName,
-          salesmanName,
-          shopSegment,
-        );
-      }
-    }
+    final ok = await api.ApiService.resetAndAssign(
+      widget.salesmanId,
+      widget.salesmanName,
+      selectedShops,
+    );
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Assigned Shops Updated Successfully"),
-        backgroundColor: Colors.green,
-      ),
-    );
-
-    Navigator.pop(context, true);
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Assigned Shops Updated Successfully"),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context, true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Update Failed"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // --------------------------------------------------
@@ -117,7 +116,6 @@ void initState() {
         child: SafeArea(
           child: Column(
             children: [
-              // HEADER
               Row(
                 children: [
                   IconButton(
@@ -135,9 +133,7 @@ void initState() {
                   ),
                 ],
               ),
-
               const SizedBox(height: 10),
-
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(16),
@@ -158,13 +154,10 @@ void initState() {
 
                                   final shopId =
                                       shop["shop_id"]?.toString() ?? "";
-                                  if (shopId.isEmpty) return const SizedBox();
-
                                   final shopName =
-                                      shop["shop_name"]?.toString() ??
-                                          "Unnamed Shop";
+                                      shop["shop_name"] ?? "";
                                   final address =
-                                      shop["address"]?.toString() ?? "";
+                                      shop["address"] ?? "";
 
                                   final isSelected =
                                       selectedShopIds.contains(shopId);
@@ -196,9 +189,7 @@ void initState() {
                                 },
                               ),
                             ),
-
                             const SizedBox(height: 12),
-
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(

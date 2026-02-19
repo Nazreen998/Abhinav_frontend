@@ -159,42 +159,70 @@ class ApiService {
   // --------------------------------------------------------
   // REMOVE ASSIGNED SHOP (BY assign_id)
   // --------------------------------------------------------
-  static Future<bool> removeAssignedShop(String assignId) async {
-    final res = await http.post(
-      Uri.parse("$baseUrl/assigned/remove"),
-      headers: headers,
-      body: jsonEncode({
-        "assign_id": assignId,
-      }),
-    );
+ static Future<bool> removeAssignedShop(
+  String salesmanId,
+  String sk,
+) async {
+  final res = await http.post(
+    Uri.parse("$baseUrl/assigned/remove"),
+    headers: headers,
+    body: jsonEncode({
+      "salesmanId": salesmanId,
+      "sk": sk,
+    }),
+  );
 
-    return jsonDecode(res.body)["success"] == true;
-  }
-
+  return jsonDecode(res.body)["success"] == true;
+}
   // --------------------------------------------------------
   // REORDER ASSIGNED SHOPS
   // --------------------------------------------------------
   static Future<bool> reorderAssignedShops(
-    String salesmanId,
-    List<dynamic> shops,
-  ) async {
-    final res = await http.post(
-      Uri.parse("$baseUrl/assigned/reorder"),
-      headers: headers,
-      body: jsonEncode({
-        "salesman_id": salesmanId,
-        "shops": List.generate(
-          shops.length,
-          (i) => {
-            "assign_id": shops[i]["_id"],
-            "sequence": i + 1,
-          },
-        ),
-      }),
-    );
+  String salesmanId,
+  List<String> orderSkList,
+) async {
+  final res = await http.post(
+    Uri.parse("$baseUrl/assigned/reorder"),
+    headers: headers,
+    body: jsonEncode({
+      "salesmanId": salesmanId,
+      "order": orderSkList,
+    }),
+  );
 
-    return jsonDecode(res.body)["success"] == true;
+  return jsonDecode(res.body)["success"] == true;
+}
+//reset assigned shop 
+static Future<bool> resetAndAssign(
+  String salesmanId,
+  String salesmanName,
+  List<dynamic> shops,
+) async {
+  final res = await http.post(
+    Uri.parse("$baseUrl/assigned/reset-assign"),
+    headers: headers,
+    body: jsonEncode({
+      "salesmanId": salesmanId,
+      "salesmanName": salesmanName,
+      "shops": shops,
+    }),
+  );
+
+  return jsonDecode(res.body)["success"] == true;
+}
+
+//Next shop for salesman 
+static Future<Map<String, dynamic>> getNextShops() async {
+  final url = Uri.parse("$baseUrl/nextshop/next");
+
+  final res = await http.get(url, headers: headers);
+
+  if (res.statusCode != 200) {
+    throw Exception("Failed to load next shops");
   }
+
+  return jsonDecode(res.body);
+}
 
   // --------------------------------------------------------
   // SALESMAN TODAY / COMPLETED / PENDING

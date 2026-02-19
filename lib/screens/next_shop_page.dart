@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, unused_import
 
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -28,30 +28,20 @@ class _NextShopPageState extends State<NextShopPage> {
   // ---------------------------------------------------------
   // LOAD NEXT SHOPS (FROM /assigned/salesman/today)
   // ---------------------------------------------------------
-  Future<void> loadAssignedShops() async {
-    setState(() => loading = true);
+ Future<void> loadAssignedShops() async {
+  setState(() => loading = true);
 
-    final user = AuthService.currentUser;
-    if (user == null) {
-      setState(() => loading = false);
-      return;
-    }
-
-    try {
-      final data = await ApiService.getSalesmanToday();
-
-      final pending = data["pending"] ?? [];
-
-      // 🔥 CAST TO RAW MAP
-      shops = List<Map<String, dynamic>>.from(pending);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Load error: $e")),
-      );
-    }
-
-    setState(() => loading = false);
+  try {
+    final res = await ApiService.getNextShops(); // 🔥 NEW METHOD
+    shops = List<Map<String, dynamic>>.from(res["shops"] ?? []);
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Load error: $e")),
+    );
   }
+
+  setState(() => loading = false);
+}
 
   // ---------------------------------------------------------
   // OPEN GOOGLE MAPS
