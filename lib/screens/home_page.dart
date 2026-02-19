@@ -83,7 +83,6 @@ class _HomePageState extends State<HomePage>
         label: "Shops",
       ),
     ];
-
     if (isMaster || isManager) {
       pages.add(PendingShopsPage(
         user: widget.user,
@@ -94,7 +93,8 @@ class _HomePageState extends State<HomePage>
             message: "Pending Shops", child: Icon(Icons.pending_actions)),
         label: "Pending",
       ));
-
+    }
+    if (isManager) {
       pages.add(AssignedShopsScreen(user: widget.user));
       navItems.add(const BottomNavigationBarItem(
         icon: Tooltip(message: "Assigned Shops", child: Icon(Icons.list_alt)),
