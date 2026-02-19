@@ -26,79 +26,63 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
   // --------------------------------------------------
   // LOAD ASSIGNED SHOPS (ROLE BASED)
   // --------------------------------------------------
-  Future<void> loadAssignedShops() async {
-    setState(() => loading = true);
+ Future<void> loadAssignedShops() async {
+  setState(() => loading = true);
 
-    final role = widget.user["role"].toString().toLowerCase();
-    final myName = widget.user["name"];
-    final mySegment = widget.user["segment"];
+  final role = widget.user["role"].toString().toLowerCase();
+  final mySegment = widget.user["segment"].toString().toLowerCase();
 
-    final assigned = await ApiService.getAssignedShops();
-    final allShops = await ApiService.getShops();
+  final assigned = await ApiService.getAssignedShops();
 
-    List filtered = [];
-    // FILTER
-if (role == "master") {
-  filtered = assigned;
-} else if (role == "manager") {
-  filtered = assigned
-      .where((a) =>
-          a["segment"].toString().toLowerCase() ==
-          mySegment.toString().toLowerCase())
-      .toList();
-} else {
-  // 🔥 FINAL FIX
-  filtered = assigned
-      .where((a) =>
-          a["salesman_id"].toString() ==
-          widget.user["_id"].toString())
-      .toList();
-}
+  List filtered = [];
 
-    final mapped = filtered.map((a) {
-      final match = allShops.firstWhere(
-        (s) => s["_id"] == a["shop_id"] || s["shop_id"] == a["shop_id"],
-        orElse: () => {},
-      );
-
-      return {
-        "_id": a["_id"], // 🔥 REQUIRED for remove/reorder
-        "shop_id": a["shop_id"],
-        "shop_name": a["shop_name"] ?? match["shop_name"] ?? "",
-        "address": match["address"] ?? "",
-        "segment": a["segment"] ?? "",
-        "sequence": a["sequence"] ?? 0,
-      };
-    }).toList();
-
-    mapped.sort((a, b) => a["sequence"].compareTo(b["sequence"]));
-
-    if (!mounted) return;
-    setState(() {
-      shops = mapped;
-      loading = false;
-    });
+  if (role == "master") {
+    filtered = assigned;
+  } else if (role == "manager") {
+    filtered = assigned
+        .where((a) =>
+            (a["segment"] ?? "").toString().toLowerCase() == mySegment)
+        .toList();
+  } else {
+    // salesman
+    filtered = assigned
+        .where((a) =>
+            (a["salesmanId"] ?? "").toString() ==
+            widget.user["user_id"].toString())
+        .toList();
   }
 
+  // sort by sequence
+  filtered.sort((a, b) =>
+      (a["sequence"] ?? 0).compareTo(b["sequence"] ?? 0));
+
+  if (!mounted) return;
+
+  setState(() {
+    shops = filtered;
+    loading = false;
+  });
+}
   // --------------------------------------------------
   // SAVE ORDER (MASTER / MANAGER)
   // --------------------------------------------------
   Future<void> saveOrder() async {
-    final ok = await ApiService.reorderAssignedShops(
-      widget.user["_id"],
-      shops,
-    );
+  final ok = await ApiService.reorderAssignedShops(
+    widget.user["user_id"].toString(),
+    shops.map<String>((e) => e["sk"].toString()).toList(),
+  );
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(ok ? "Order Updated" : "Update Failed"),
-        backgroundColor: ok ? Colors.green : Colors.red,
-      ),
-    );
+  if (!mounted) return;
 
-    if (ok) loadAssignedShops();
-  }
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(ok ? "Order Updated" : "Update Failed"),
+      backgroundColor: ok ? Colors.green : Colors.red,
+    ),
+  );
+
+  if (ok) loadAssignedShops();
+}
 
   @override
   Widget build(BuildContext context) {
@@ -171,11 +155,12 @@ if (role == "master") {
                                         context,
                                         MaterialPageRoute(
                                           builder: (_) =>
-                                              ModifyAssignedPage(
-                                            salesmanId:
-                                                widget.user["_id"],
-                                            currentShops: shops,
-                                          ),
+                                            ModifyAssignedPage(
+  salesmanId: widget.user["user_id"],
+  salesmanName: widget.user["name"],
+  currentShops: shops,
+)
+
                                         ),
                                       );
 
@@ -190,10 +175,11 @@ if (role == "master") {
                                     icon: const Icon(Icons.delete,
                                         color: Colors.red),
                                     onPressed: () async {
-                                      final ok =
-                                          await ApiService
-                                              .removeAssignedShop(
-                                                  shop["_id"]);
+                                      final ok = await ApiService.removeAssignedShop(
+  widget.user["user_id"].toString(),
+  shop["sk"].toString(),
+);
+
 
                                       if (ok) {
                                         loadAssignedShops();
