@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print, unused_import
+// ignore_for_file: avoid_print, unused_import, deprecated_member_use
 
 import 'dart:math';
 import 'package:flutter/foundation.dart';
@@ -175,11 +175,11 @@ class _AssignShopPageState extends State<AssignShopPage> {
     }).toList();
 
     // Step 2: Call API once
-    final success = await api.ApiService.assignShops(
-      selectedUser!.id!,
-      selectedUser!.name,
-      shopsPayload,
-    );
+   final success = await api.ApiService.resetAndAssign(
+  selectedUser!.id.toString(),
+  selectedUser!.name,
+  shopsPayload,
+);
 
     if (!mounted) return;
 

@@ -124,34 +124,34 @@ class ApiService {
   // --------------------------------------------------------
   // ASSIGNED SHOPS
   // --------------------------------------------------------
-  static Future<List<dynamic>> getAssignedShops(String salesmanId) async {
-    final res = await http.get(
-      Uri.parse("$baseUrl/assigned/list"),
-      headers: headers,
-    );
-    // 🔥 ADD THIS PRINT HERE
-    print("ASSIGNED STATUS => ${res.statusCode}");
-    print("ASSIGNED RAW RESPONSE => ${res.body}");
+ static Future<List<dynamic>> getAssignedShops(String salesmanId) async {
+  final res = await http.get(
+    Uri.parse("$baseUrl/assigned/list?salesmanId=$salesmanId"),
+    headers: headers,
+  );
 
-    if (res.statusCode != 200) return [];
-    return jsonDecode(res.body)["assigned"] ?? [];
-  }
+  print("ASSIGNED STATUS => ${res.statusCode}");
+  print("ASSIGNED RAW RESPONSE => ${res.body}");
+
+  if (res.statusCode != 200) return [];
+  return jsonDecode(res.body)["assigned"] ?? [];
+}
 
   // --------------------------------------------------------
   // ASSIGN SHOP (MASTER / MANAGER)
   // --------------------------------------------------------
-  static Future<bool> assignShops(
-    String salesmanId,
+  static Future<bool> assignShop(
+    String shopName,
     String salesmanName,
-    List<Map<String, dynamic>> shops,
+    String segment,
   ) async {
     final res = await http.post(
-      Uri.parse("$baseUrl/assigned/reset-assign"),
+      Uri.parse("$baseUrl/assigned/assign"),
       headers: headers,
       body: jsonEncode({
-        "salesmanId": salesmanId,
-        "salesmanName": salesmanName,
-        "shops": shops,
+        "shop_name": shopName,
+        "salesman_name": salesmanName,
+        "segment": segment,
       }),
     );
 
@@ -161,7 +161,12 @@ class ApiService {
     if (res.statusCode != 200) return false;
 
     final body = jsonDecode(res.body);
-    return body["success"] == true;
+
+    if (body is Map && body["success"] == true) {
+      return true;
+    }
+
+    return false;
   }
 
   // --------------------------------------------------------
@@ -201,25 +206,31 @@ class ApiService {
 
     return jsonDecode(res.body)["success"] == true;
   }
-
 //reset assigned shop
-  static Future<bool> resetAndAssign(
-    String salesmanId,
-    String salesmanName,
-    List<dynamic> shops,
-  ) async {
-    final res = await http.post(
-      Uri.parse("$baseUrl/assigned/reset-assign"),
-      headers: headers,
-      body: jsonEncode({
-        "salesmanId": salesmanId,
-        "salesmanName": salesmanName,
-        "shops": shops,
-      }),
-    );
+static Future<bool> resetAndAssign(
+  String salesmanId,
+  String salesmanName,
+  List<dynamic> shops,
+) async {
+  final res = await http.post(
+    Uri.parse("$baseUrl/assigned/reset-assign"),
+    headers: headers,
+    body: jsonEncode({
+      "salesmanId": salesmanId,
+      "salesmanName": salesmanName,
+      "shops": shops,
+    }),
+  );
 
-    return jsonDecode(res.body)["success"] == true;
-  }
+  print("RESET ASSIGN STATUS => ${res.statusCode}");
+  print("RESET ASSIGN BODY => ${res.body}");
+
+  if (res.statusCode != 200) return false;
+
+  final body = jsonDecode(res.body);
+  return body["success"] == true;
+}
+
 
 //Next shop for salesman
   static Future<Map<String, dynamic>> getNextShops() async {
