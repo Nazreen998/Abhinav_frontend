@@ -24,46 +24,25 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
   }
 
   // --------------------------------------------------
-  // LOAD ASSIGNED SHOPS (ROLE BASED)
+  // LOAD ASSIGNED SHOPS
   // --------------------------------------------------
- Future<void> loadAssignedShops() async {
-  setState(() => loading = true);
-
-  final role = widget.user["role"].toString().toLowerCase();
-  final mySegment = widget.user["segment"].toString().toLowerCase();
-
-  final assigned = await ApiService.getAssignedShops();
-
-  List filtered = [];
-
-  if (role == "master") {
-    filtered = assigned;
-  } else if (role == "manager") {
-    filtered = assigned
-        .where((a) =>
-            (a["segment"] ?? "").toString().toLowerCase() == mySegment)
-        .toList();
-  } else {
-    // salesman
-    filtered = assigned
-        .where((a) =>
-            (a["salesmanId"] ?? "").toString() ==
-            widget.user["user_id"].toString())
-        .toList();
-  }
+  Future<void> loadAssignedShops() async {
+    setState(() => loading = true);
 
     final role = widget.user["role"].toString().toLowerCase();
-    final myName = widget.user["name"];
     final mySegment = widget.user["segment"];
 
-    print("USER ID: ${widget.user["user_id"]}");
-    print("ROLE: ${widget.user["role"]}");
-
-    final assigned = await ApiService.getAssignedShops();
+    final assigned =
+        await ApiService.getAssignedShops(widget.user["user_id"].toString());
     final allShops = await ApiService.getShops();
 
+    print("ASSIGNED => $assigned");
+    print("ALL SHOPS => $allShops");
+    print("ASSIGNED TYPE => ${assigned.runtimeType}");
+    print("ALLSHOPS TYPE => ${allShops.runtimeType}");
+
     List filtered = [];
-    // FILTER
+
     if (role == "master") {
       filtered = assigned;
     } else if (role == "manager") {
@@ -73,43 +52,62 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
               mySegment.toString().toLowerCase())
           .toList();
     } else {
-      // 🔥 FINAL FIX
       filtered = assigned
           .where((a) =>
               a["salesman_id"].toString() == widget.user["user_id"].toString())
           .toList();
     }
-  // sort by sequence
-  filtered.sort((a, b) =>
-      (a["sequence"] ?? 0).compareTo(b["sequence"] ?? 0));
 
-  if (!mounted) return;
+    final mapped = filtered.map((a) {
+      final match = allShops.firstWhere(
+        (s) => s["shop_id"].toString() == a["shop_id"].toString(),
+        orElse: () => {},
+      );
 
-  setState(() {
-    shops = filtered;
-    loading = false;
-  });
-}
+      return {
+        "_id": a["_id"] ?? a["shop_id"],
+        "sk": a["sk"],
+        "shop_id": a["shop_id"],
+
+        // Take shop_name from match first
+        "shop_name": match["shop_name"] ?? a["shop_name"] ?? "",
+
+        "address": match["address"] ?? a["address"] ?? "",
+        "segment": a["segment"] ?? match["segment"] ?? "",
+        "sequence": a["sequence"] ?? 0,
+      };
+    }).toList();
+
+    mapped.sort((a, b) => a["sequence"].compareTo(b["sequence"]));
+
+    if (!mounted) return;
+
+    setState(() {
+      shops = mapped;
+      loading = false;
+    });
+  }
+
   // --------------------------------------------------
-  // SAVE ORDER (MASTER / MANAGER)
+  // SAVE ORDER
   // --------------------------------------------------
   Future<void> saveOrder() async {
-  final ok = await ApiService.reorderAssignedShops(
-    widget.user["user_id"].toString(),
-    shops.map<String>((e) => e["sk"].toString()).toList(),
-  );
+    final ok = await ApiService.reorderAssignedShops(
+      widget.user["user_id"].toString(),
+      shops.map<String>((e) => e["sk"].toString()).toList(),
+    );
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(ok ? "Order Updated" : "Update Failed"),
-      backgroundColor: ok ? Colors.green : Colors.red,
-    ),
-  );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok ? "Order Updated" : "Update Failed"),
+        backgroundColor: ok ? Colors.green : Colors.red,
+      ),
+    );
 
-  if (ok) loadAssignedShops();
-}
+    if (ok) loadAssignedShops();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -119,7 +117,7 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
       backgroundColor: const Color(0xFFF6F8FC),
       body: Stack(
         children: [
-          // 🔵 PREMIUM HEADER
+          // HEADER
           Container(
             height: 230,
             decoration: const BoxDecoration(
@@ -145,8 +143,6 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 15),
-
-                  // 🔹 HEADER ROW
                   Row(
                     children: [
                       const Text(
@@ -169,10 +165,7 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
                         ),
                     ],
                   ),
-
                   const SizedBox(height: 25),
-
-                  // 🔹 FLOATING WHITE CARD
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.all(18),
@@ -199,60 +192,6 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
                                       fontSize: 16,
                                       color: Colors.black54,
                                     ),
-                        subtitle:
-                            Text("Segment: ${shop["segment"]}"),
-                        trailing: (role == "master" ||
-                                role == "manager")
-                            ? Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // ✏️ EDIT
-                                  IconButton(
-                                    icon: const Icon(Icons.edit,
-                                        color: Colors.blue),
-                                    onPressed: () async {
-                                      final updated =
-                                          await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                            ModifyAssignedPage(
-  salesmanId: widget.user["user_id"],
-  salesmanName: widget.user["name"],
-  currentShops: shops,
-)
-
-                                        ),
-                                      );
-
-                                      if (updated == true) {
-                                        loadAssignedShops();
-                                      }
-                                    },
-                                  ),
-
-                                  // ❌ REMOVE
-                                  IconButton(
-                                    icon: const Icon(Icons.delete,
-                                        color: Colors.red),
-                                    onPressed: () async {
-                                      final ok = await ApiService.removeAssignedShop(
-  widget.user["user_id"].toString(),
-  shop["sk"].toString(),
-);
-
-
-                                      if (ok) {
-                                        loadAssignedShops();
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                                "Assigned shop removed"),
-                                          ),
-                                        );
-                                      }
-                                    },
                                   ),
                                 )
                               : ReorderableListView.builder(
@@ -265,9 +204,7 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
                                     });
                                   },
                                   itemBuilder: (context, i) {
-                                    final shop = shops[i];
-
-                                    return _shopCard(shop, i, role);
+                                    return _shopCard(shops[i], i, role);
                                   },
                                 ),
                     ),
@@ -281,6 +218,9 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
     );
   }
 
+  // --------------------------------------------------
+  // SHOP CARD UI
+  // --------------------------------------------------
   Widget _shopCard(Map shop, int i, String role) {
     return Container(
       key: ValueKey(shop["_id"]),
@@ -303,7 +243,6 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🔢 Sequence Badge
           Container(
             height: 48,
             width: 48,
@@ -326,10 +265,7 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
               ),
             ),
           ),
-
           const SizedBox(width: 14),
-
-          // 🔹 Shop Details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,58 +289,10 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
               ],
             ),
           ),
-
-          // 🔹 Role Based Actions (UNCHANGED LOGIC)
           if (role == "master" || role == "manager")
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(
-                    Icons.edit,
-                    size: 20,
-                    color: Color(0xFF0D47A1),
-                  ),
-                  onPressed: () async {
-                    final updated = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ModifyAssignedPage(
-                          salesmanId: widget.user["_id"],
-                          currentShops: shops,
-                        ),
-                      ),
-                    );
-
-                    if (updated == true) {
-                      loadAssignedShops();
-                    }
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    size: 20,
-                    color: Colors.red,
-                  ),
-                  onPressed: () async {
-                    final ok = await ApiService.removeAssignedShop(shop["_id"]);
-
-                    if (ok) {
-                      loadAssignedShops();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Assigned shop removed"),
-                        ),
-                      );
-                    }
-                  },
-                ),
-                const Icon(
-                  Icons.drag_handle,
-                  color: Colors.grey,
-                ),
-              ],
+            const Icon(
+              Icons.drag_handle,
+              color: Colors.grey,
             ),
         ],
       ),
