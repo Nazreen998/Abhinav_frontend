@@ -49,30 +49,31 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
 
     // ******** MAP TO APP FORMAT (USING VISITLOG) ******** //
     List<dynamic> all = raw.map((l) {
-      // 🔥 FIX: dt properly defined
-      DateTime dt;
+  // 🔥 FIX: dt properly defined
+  DateTime dt;
 
-      try {
-        if (l["datetime"] != null) {
-          dt = DateTime.parse(l["datetime"]);
-        } else {
-          dt = DateTime.now();
-        }
-      } catch (e) {
-        dt = DateTime.now();
-      }
+try {
+  if (l["datetime"] != null) {
+    dt = DateTime.parse(l["datetime"]);
+  } else {
+    dt = DateTime.now();
+  }
+} catch (e) {
+  dt = DateTime.now();
+}
 
-      return {
-        "shopName": l["shop_name"] ?? "",
-        "salesman": l["salesman_name"] ?? "",
-        "photoUrl": l["photo_url"] ?? "",
-        "result": l["result"] == "match",
-        "distance": double.tryParse(l["distance"].toString()) ?? 0.0,
-        "date": DateFormat("dd-MM-yyyy").format(dt),
-        "time": DateFormat("HH:mm").format(dt),
-        "segment": l["segment"] ?? "",
-      };
-    }).toList();
+return {
+  "shopName": l["shop_name"] ?? "",
+  "salesman": l["salesman_name"] ?? "",
+  "photoUrl": l["photo_url"] ?? "",
+  "result": l["result"] == "match",
+  "distance": double.tryParse(l["distance"].toString()) ?? 0.0,
+  "date": DateFormat("dd-MM-yyyy").format(dt),
+  "time": DateFormat("HH:mm").format(dt),
+  "segment": l["segment"] ?? "",
+};
+
+}).toList();
 
     // --------------------------------------------------------------------
     // ROLE BASED FILTERING
@@ -80,26 +81,23 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     List<dynamic> filtered = all;
 
     if (role == "salesman") {
-      filtered = filtered.where((l) => l["salesman"] == userName).toList();
+      filtered =
+          filtered.where((l) => l["salesman"] == userName).toList();
     }
 
     if (role == "manager") {
-      filtered = filtered
-          .where((l) =>
-              l["segment"].toString().toUpperCase() ==
-              userSegment.toUpperCase())
-          .toList();
+      filtered = filtered.where((l) =>
+          l["segment"].toString().toUpperCase() ==
+              userSegment.toUpperCase()).toList();
     }
 
     // --------------------------------------------------------------------
     // FILTER BY SEGMENT (from filter screen)
     // --------------------------------------------------------------------
     if (widget.segment != "All") {
-      filtered = filtered
-          .where((l) =>
-              l["segment"].toString().toUpperCase() ==
-              widget.segment.toUpperCase())
-          .toList();
+      filtered = filtered.where((l) =>
+          l["segment"].toString().toUpperCase() ==
+              widget.segment.toUpperCase()).toList();
     }
 
     // --------------------------------------------------------------------
@@ -146,100 +144,58 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     final mismatched = logs.where((l) => l["result"] == false).length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
-      body: Stack(
-        children: [
-          // ✅ PREMIUM CURVED HEADER
-          Container(
-            height: 240,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF002D62),
-                  Color(0xFF005BBB),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(40),
-                bottomRight: Radius.circular(40),
-              ),
-            ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF007BFF), Color(0xFF66B2FF), Color(0xFFB8E0FF)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
-
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Row(
                 children: [
-                  const SizedBox(height: 15),
-
-                  // ✅ HEADER ROW
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        "Log History",
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const Spacer(),
-
-                      // 🔄 Refresh Button
-                      IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.white),
-                        onPressed: loadLogs,
-                      ),
-                    ],
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back,
+                        size: 28, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
                   ),
-
-                  const SizedBox(height: 25),
-
-                  // ✅ FLOATING WHITE CONTENT CARD
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 18,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          buildSearchBar(),
-                          const SizedBox(height: 18),
-
-                          // ✅ PIE CHART CARD
-                          buildPieChart(matched, mismatched),
-
-                          const SizedBox(height: 10),
-
-                          // ✅ LOG LIST
-                          Expanded(child: buildList()),
-                        ],
-                      ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh, color: Colors.white),
+                    onPressed: loadLogs,
+                  ),
+                  const Text(
+                    "Log History",
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ],
               ),
-            ),
+
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                  ),
+                  child: Column(
+                    children: [
+                      buildSearchBar(),
+                      buildPieChart(matched, mismatched),
+                      Expanded(child: buildList()),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -248,97 +204,53 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     return TextField(
       onChanged: (v) => setState(() => search = v),
       decoration: InputDecoration(
-        hintText: "Search shop name...",
+        hintText: "Search shop...",
         prefixIcon: const Icon(Icons.search),
-        filled: true,
-        fillColor: const Color(0xFFF4F7FC),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(14),
         ),
       ),
     );
   }
 
   Widget buildPieChart(int match, int mismatch) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          )
-        ],
-        border: Border.all(color: Colors.blue.withOpacity(0.08)),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            "Match Summary",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0D47A1),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 180,
-            child: PieChart(
-              PieChartData(
-                centerSpaceRadius: 45,
-                sectionsSpace: 4,
-                sections: [
-                  PieChartSectionData(
-                    color: Colors.green,
-                    value: match.toDouble(),
-                    title: "Match\n$match",
-                    radius: 60,
-                    titleStyle: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  PieChartSectionData(
-                    color: Colors.red,
-                    value: mismatch.toDouble(),
-                    title: "Mismatch\n$mismatch",
-                    radius: 60,
-                    titleStyle: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      child: SizedBox(
+        height: 220,
+        child: PieChart(
+          PieChartData(
+            centerSpaceRadius: 45,
+            sections: [
+              PieChartSectionData(
+                color: Colors.green,
+                value: match.toDouble(),
+                title: "Match\n$match",
+                radius: 60,
               ),
-            ),
+              PieChartSectionData(
+                color: Colors.red,
+                value: mismatch.toDouble(),
+                title: "Mismatch\n$mismatch",
+                radius: 60,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget buildList() {
-    if (loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    if (loading) return const Center(child: CircularProgressIndicator());
 
     final result = logs.where((l) {
       return l["shopName"].toLowerCase().contains(search.toLowerCase());
     }).toList();
 
-    if (result.isEmpty) {
-      return const Center(
-        child: Text(
-          "No logs found",
-          style: TextStyle(fontSize: 15, color: Colors.black54),
-        ),
-      );
-    }
+    if (result.isEmpty) return const Center(child: Text("No logs found"));
 
     return ListView.builder(
       itemCount: result.length,
@@ -346,115 +258,53 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
         final log = result[i];
         final isMatch = log["result"] == true;
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 14),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 6),
-              )
-            ],
-            border: Border.all(
-              color: isMatch
-                  ? Colors.green.withOpacity(0.25)
-                  : Colors.red.withOpacity(0.25),
+        return Card(
+          elevation: 3,
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          child: ListTile(
+            leading: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => FullNetworkImagePage(
+                      imageUrl: log["photoUrl"],
+                    ),
+                  ),
+                );
+              },
+              child: CircleAvatar(
+                radius: 26,
+                backgroundColor: Colors.grey.shade300,
+                backgroundImage:
+                    log["photoUrl"] != "" ? NetworkImage(log["photoUrl"]) : null,
+                child: log["photoUrl"] == ""
+                    ? const Icon(Icons.photo, color: Colors.black54)
+                    : null,
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              // IMAGE
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => FullNetworkImagePage(
-                        imageUrl: log["photoUrl"],
-                      ),
-                    ),
-                  );
-                },
-                child: CircleAvatar(
-                  radius: 26,
-                  backgroundColor: Colors.grey.shade200,
-                  backgroundImage: log["photoUrl"] != ""
-                      ? NetworkImage(log["photoUrl"])
-                      : null,
-                  child: log["photoUrl"] == ""
-                      ? const Icon(Icons.photo, color: Colors.black45)
-                      : null,
-                ),
-              ),
 
-              const SizedBox(width: 14),
-
-              // DETAILS
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      log["shopName"],
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: Color(0xFF0D47A1),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "${log["date"]} • ${log["time"]}",
-                      style:
-                          const TextStyle(fontSize: 12, color: Colors.black54),
-                    ),
-                    Text(
-                      "Salesman: ${log["salesman"]}",
-                      style:
-                          const TextStyle(fontSize: 12, color: Colors.black54),
-                    ),
-                  ],
-                ),
+            title: Text(
+              "${log["shopName"]} (${isMatch ? "MATCH" : "MISMATCH"})",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isMatch ? Colors.green : Colors.red,
               ),
+            ),
 
-              // MATCH BADGE + DISTANCE
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: isMatch
-                          ? Colors.green.withOpacity(0.15)
-                          : Colors.red.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      isMatch ? "MATCH" : "MISMATCH",
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: isMatch ? Colors.green : Colors.red,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    "${log["distance"].toStringAsFixed(1)} m",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: Colors.deepPurple,
-                    ),
-                  ),
-                ],
+            subtitle: Text(
+              "${log["date"]} @ ${log["time"]}\n"
+              "Salesman: ${log["salesman"]}",
+            ),
+
+            trailing: Text(
+              "${log["distance"].toStringAsFixed(1)} m",
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.deepPurple,
               ),
-            ],
+            ),
           ),
         );
       },
