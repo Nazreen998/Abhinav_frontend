@@ -1,4 +1,4 @@
-// ignore_for_file: unused_local_variable, use_build_context_synchronously
+// ignore_for_file: unused_local_variable, use_build_context_synchronously, avoid_print, unnecessary_const, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
@@ -144,21 +144,23 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
                 children: [
                   const SizedBox(height: 15),
                   Row(
-                    children: [
-                      const Text(
-                        "Assigned Shops",
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        title: Text(
-                          shop["shop_name"],
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold),
-                        ),
-                    ],
-                  ),
+  children: [
+    IconButton(
+      icon: const Icon(Icons.arrow_back, color: Colors.white),
+      onPressed: () => Navigator.pop(context),
+    ),
+    const SizedBox(width: 6),
+    const Text(
+      "Assigned Shops",
+      style: TextStyle(
+        fontSize: 26,
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
+      ),
+    ),
+  ],
+),
+
                   const SizedBox(height: 25),
                   Expanded(
                     child: Container(
