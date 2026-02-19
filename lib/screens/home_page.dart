@@ -76,11 +76,11 @@ class _HomePageState extends State<HomePage>
     List<BottomNavigationBarItem> navItems = [
       const BottomNavigationBarItem(
         icon: Tooltip(message: "History Log", child: Icon(Icons.history)),
-        label: "",
+        label: "History",
       ),
       const BottomNavigationBarItem(
         icon: Tooltip(message: "Shop List", child: Icon(Icons.store)),
-        label: "",
+        label: "Shops",
       ),
     ];
 
@@ -92,19 +92,19 @@ class _HomePageState extends State<HomePage>
       navItems.add(const BottomNavigationBarItem(
         icon: Tooltip(
             message: "Pending Shops", child: Icon(Icons.pending_actions)),
-        label: "",
+        label: "Pending",
       ));
 
       pages.add(AssignedShopsScreen(user: widget.user));
       navItems.add(const BottomNavigationBarItem(
         icon: Tooltip(message: "Assigned Shops", child: Icon(Icons.list_alt)),
-        label: "",
+        label: "Assigned",
       ));
 
       pages.add(const AssignShopPage());
       navItems.add(const BottomNavigationBarItem(
         icon: Tooltip(message: "Assign Shops", child: Icon(Icons.map)),
-        label: "",
+        label: "Assign",
       ));
     }
 
@@ -112,7 +112,7 @@ class _HomePageState extends State<HomePage>
       pages.add(const UserListPage());
       navItems.add(const BottomNavigationBarItem(
         icon: Tooltip(message: "User List", child: Icon(Icons.people)),
-        label: "",
+        label: "User",
       ));
     }
 
@@ -120,13 +120,13 @@ class _HomePageState extends State<HomePage>
       pages.add(const AddShopPage());
       navItems.add(const BottomNavigationBarItem(
         icon: Tooltip(message: "Add Shop", child: Icon(Icons.add_business)),
-        label: "",
+        label: "Add",
       ));
 
       pages.add(const NextShopPage());
       navItems.add(const BottomNavigationBarItem(
         icon: Tooltip(message: "Next Shop", child: Icon(Icons.directions_walk)),
-        label: "",
+        label: "Next",
       ));
     }
 
@@ -228,8 +228,15 @@ class _HomePageState extends State<HomePage>
         type: BottomNavigationBarType.fixed,
         selectedItemColor: darkBlue,
         unselectedItemColor: Colors.grey,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
+        showSelectedLabels: true, // ✅ enable
+        showUnselectedLabels: true,
+        selectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+        ),
+
+        unselectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w400,
+        ),
         items: navItems,
         onTap: (index) {
           setState(() {

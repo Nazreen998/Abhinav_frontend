@@ -23,9 +23,6 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
     loadAssignedShops();
   }
 
-  // --------------------------------------------------
-  // LOAD ASSIGNED SHOPS
-  // --------------------------------------------------
   Future<void> loadAssignedShops() async {
     setState(() => loading = true);
 
@@ -36,11 +33,6 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
         await ApiService.getAssignedShops(widget.user["user_id"].toString());
     final allShops = await ApiService.getShops();
 
-    print("ASSIGNED => $assigned");
-    print("ALL SHOPS => $allShops");
-    print("ASSIGNED TYPE => ${assigned.runtimeType}");
-    print("ALLSHOPS TYPE => ${allShops.runtimeType}");
-
     List filtered = [];
 
     if (role == "master") {
@@ -48,8 +40,8 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
     } else if (role == "manager") {
       filtered = assigned
           .where((a) =>
-              a["segment"].toString().toLowerCase() ==
-              mySegment.toString().toLowerCase())
+              (a["segment"] ?? "").toString().toLowerCase() ==
+              (mySegment ?? "").toString().toLowerCase())
           .toList();
     } else {
       filtered = assigned
@@ -61,24 +53,21 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
     final mapped = filtered.map((a) {
       final match = allShops.firstWhere(
         (s) => s["shop_id"].toString() == a["shop_id"].toString(),
-        orElse: () => {},
+        orElse: () => <String, dynamic>{},
       );
 
       return {
         "_id": a["_id"] ?? a["shop_id"],
         "sk": a["sk"],
         "shop_id": a["shop_id"],
-
-        // Take shop_name from match first
         "shop_name": match["shop_name"] ?? a["shop_name"] ?? "",
-
         "address": match["address"] ?? a["address"] ?? "",
         "segment": a["segment"] ?? match["segment"] ?? "",
-        "sequence": a["sequence"] ?? 0,
+        "sequence": int.tryParse(a["sequence"]?.toString() ?? "0") ?? 0,
       };
     }).toList();
 
-    mapped.sort((a, b) => a["sequence"].compareTo(b["sequence"]));
+    mapped.sort((a, b) => (a["sequence"] ?? 0).compareTo(b["sequence"] ?? 0));
 
     if (!mounted) return;
 
@@ -88,9 +77,6 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
     });
   }
 
-  // --------------------------------------------------
-  // SAVE ORDER
-  // --------------------------------------------------
   Future<void> saveOrder() async {
     final ok = await ApiService.reorderAssignedShops(
       widget.user["user_id"].toString(),
@@ -117,7 +103,6 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
       backgroundColor: const Color(0xFFF6F8FC),
       body: Stack(
         children: [
-          // HEADER
           Container(
             height: 230,
             decoration: const BoxDecoration(
@@ -135,7 +120,6 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
               ),
             ),
           ),
-
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(18),
@@ -145,18 +129,27 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
                   const SizedBox(height: 15),
                   Row(
                     children: [
-                      const Text(
-                        "Assigned Shops",
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        title: Text(
-                          shop["shop_name"],
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold),
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Assigned Shops",
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.user["name"] ?? "",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                   const SizedBox(height: 25),
@@ -191,11 +184,13 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
                               : ReorderableListView.builder(
                                   itemCount: shops.length,
                                   onReorder: (oldIndex, newIndex) {
-                                    setState(() {
-                                      if (newIndex > oldIndex) newIndex--;
-                                      final item = shops.removeAt(oldIndex);
-                                      shops.insert(newIndex, item);
-                                    });
+                                    if (role == "master" || role == "manager") {
+                                      setState(() {
+                                        if (newIndex > oldIndex) newIndex--;
+                                        final item = shops.removeAt(oldIndex);
+                                        shops.insert(newIndex, item);
+                                      });
+                                    }
                                   },
                                   itemBuilder: (context, i) {
                                     return _shopCard(shops[i], i, role);
@@ -212,9 +207,6 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
     );
   }
 
-  // --------------------------------------------------
-  // SHOP CARD UI
-  // --------------------------------------------------
   Widget _shopCard(Map shop, int i, String role) {
     return Container(
       key: ValueKey(shop["_id"]),
@@ -265,7 +257,7 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  shop["shop_name"],
+                  shop["shop_name"]?.toString() ?? "",
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -274,7 +266,7 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  "Segment: ${shop["segment"]}",
+                  "Segment: ${shop["segment"] ?? ""}",
                   style: const TextStyle(
                     fontSize: 13,
                     color: Colors.black54,
