@@ -61,69 +61,102 @@ class _NextShopPageState extends State<NextShopPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF007BFF), Color(0xFF66B2FF), Color(0xFFB8E0FF)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      backgroundColor: const Color(0xFFF6F8FC),
+      body: Stack(
+        children: [
+          // ✅ Premium Curved Header
+          Container(
+            height: 240,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF002D62),
+                  Color(0xFF005BBB),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
+              ),
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: loading
-              ? const Center(child: CircularProgressIndicator())
-              : Column(
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back,
-                              size: 28, color: Colors.white),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        const Text(
-                          "Next Shops",
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
 
-                    const SizedBox(height: 10),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 15),
 
-                    if (shops.isEmpty)
-                      const Expanded(
-                        child: Center(
-                          child: Text(
-                            "No assigned shops found",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      Expanded(
-                        child: RefreshIndicator(
-                          onRefresh: loadAssignedShops,
-                          child: ListView.builder(
-                            padding: const EdgeInsets.all(14),
-                            itemCount: shops.length,
-                            itemBuilder: (_, i) {
-                              final s = shops[i];
-                              return shopCard(s);
-                            },
-                          ),
+                  // ✅ Header Row
+                  Row(
+                    children: [
+                      const Text(
+                        "Next Shops",
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
-                  ],
-                ),
-        ),
+                      const Spacer(),
+
+                      // Refresh Icon
+                      IconButton(
+                        icon: const Icon(Icons.refresh, color: Colors.white),
+                        onPressed: loadAssignedShops,
+                      )
+                    ],
+                  ),
+
+                  const SizedBox(height: 25),
+
+                  // ✅ Floating White Body Card
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: loading
+                          ? const Center(
+                              child: CircularProgressIndicator(),
+                            )
+                          : shops.isEmpty
+                              ? const Center(
+                                  child: Text(
+                                    "No assigned shops found",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                )
+                              : RefreshIndicator(
+                                  onRefresh: loadAssignedShops,
+                                  child: ListView.builder(
+                                    itemCount: shops.length,
+                                    itemBuilder: (_, i) => shopCard(shops[i]),
+                                  ),
+                                ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -132,75 +165,154 @@ class _NextShopPageState extends State<NextShopPage> {
   // SHOP CARD (RAW MAP)
   // ---------------------------------------------------------
   Widget shopCard(Map<String, dynamic> s) {
-    final double lat =
-        double.tryParse(s["lat"]?.toString() ?? "0") ?? 0;
-    final double lng =
-        double.tryParse(s["lng"]?.toString() ?? "0") ?? 0;
+    final double lat = double.tryParse(s["lat"]?.toString() ?? "0") ?? 0;
+    final double lng = double.tryParse(s["lng"]?.toString() ?? "0") ?? 0;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: const Color(0xFF005BBB).withOpacity(0.08),
+        ),
+        boxShadow: [
           BoxShadow(
-            color: Colors.black26,
-            blurRadius: 8,
-            offset: Offset(0, 3),
-          )
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            s["shop_name"] ?? "",
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF003366),
-            ),
+          // 🔹 Top Row (Icon + Name + Badge)
+          Row(
+            children: [
+              Container(
+                height: 50,
+                width: 50,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF002D62),
+                      Color(0xFF005BBB),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.store,
+                  color: Colors.white,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  s["shop_name"] ?? "",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0D47A1),
+                  ),
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  "ASSIGNED",
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+              ),
+            ],
           ),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: 12),
 
-          Text(
-            s["address"] ?? "",
-            style: const TextStyle(color: Colors.black54, fontSize: 15),
+          // 🔹 Address Row
+          Row(
+            children: [
+              const Icon(Icons.location_on, size: 16, color: Colors.grey),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  s["address"] ?? "",
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black54,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 10),
 
-          Text("Lat: $lat, Lng: $lng",
-              style: const TextStyle(color: Colors.black87)),
+          // 🔹 Lat/Lng
+          Text(
+            "Lat: $lat, Lng: $lng",
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.black87,
+            ),
+          ),
 
           const SizedBox(height: 18),
 
-          ElevatedButton(
-            onPressed: () => openMaps(lat, lng),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blueAccent,
-            ),
-            child: const Text("Open in Google Maps"),
-          ),
-
-          const SizedBox(height: 10),
-
-          // 🔥 PASS RAW MAP TO MATCH PAGE
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => MatchPage(shop: s),
+          // 🔹 Buttons Row
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => openMaps(lat, lng),
+                  icon: const Icon(Icons.map, size: 18, color: Colors.white),
+                  label: const Text("Maps"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF005BBB),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-            ),
-            child: const Text("MATCH"),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MatchPage(shop: s),
+                      ),
+                    );
+                  },
+                  icon:
+                      const Icon(Icons.verified, size: 18, color: Colors.white),
+                  label: const Text("MATCH"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

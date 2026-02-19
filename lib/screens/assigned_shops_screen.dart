@@ -52,6 +52,33 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
         .toList();
   }
 
+    final role = widget.user["role"].toString().toLowerCase();
+    final myName = widget.user["name"];
+    final mySegment = widget.user["segment"];
+
+    print("USER ID: ${widget.user["user_id"]}");
+    print("ROLE: ${widget.user["role"]}");
+
+    final assigned = await ApiService.getAssignedShops();
+    final allShops = await ApiService.getShops();
+
+    List filtered = [];
+    // FILTER
+    if (role == "master") {
+      filtered = assigned;
+    } else if (role == "manager") {
+      filtered = assigned
+          .where((a) =>
+              a["segment"].toString().toLowerCase() ==
+              mySegment.toString().toLowerCase())
+          .toList();
+    } else {
+      // 🔥 FINAL FIX
+      filtered = assigned
+          .where((a) =>
+              a["salesman_id"].toString() == widget.user["user_id"].toString())
+          .toList();
+    }
   // sort by sequence
   filtered.sort((a, b) =>
       (a["sequence"] ?? 0).compareTo(b["sequence"] ?? 0));
@@ -89,55 +116,89 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
     final role = widget.user["role"].toString().toLowerCase();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Assigned Shops"),
-        backgroundColor: Colors.blue,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: loadAssignedShops,
-          ),
-          if (role == "master" || role == "manager")
-            IconButton(
-              icon: const Icon(Icons.save),
-              onPressed: saveOrder,
+      backgroundColor: const Color(0xFFF6F8FC),
+      body: Stack(
+        children: [
+          // 🔵 PREMIUM HEADER
+          Container(
+            height: 230,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF002D62),
+                  Color(0xFF005BBB),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
+              ),
             ),
-        ],
-      ),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : shops.isEmpty
-              ? const Center(child: Text("No assigned shops"))
-              : ReorderableListView.builder(
-                  itemCount: shops.length,
-                  onReorder: (oldIndex, newIndex) {
-                    setState(() {
-                      if (newIndex > oldIndex) newIndex--;
-                      final item = shops.removeAt(oldIndex);
-                      shops.insert(newIndex, item);
-                    });
-                  },
-                  itemBuilder: (context, i) {
-                    final shop = shops[i];
+          ),
 
-                    return Card(
-                      key: ValueKey(shop["_id"]),
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.blue,
-                          child: Text(
-                            "${i + 1}",
-                            style:
-                                const TextStyle(color: Colors.white),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 15),
+
+                  // 🔹 HEADER ROW
+                  Row(
+                    children: [
+                      const Text(
+                        "Assigned Shops",
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.refresh, color: Colors.white),
+                        onPressed: loadAssignedShops,
+                      ),
+                      if (role == "master" || role == "manager")
+                        IconButton(
+                          icon: const Icon(Icons.save, color: Colors.white),
+                          onPressed: saveOrder,
+                        ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 25),
+
+                  // 🔹 FLOATING WHITE CARD
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
                           ),
-                        ),
-                        title: Text(
-                          shop["shop_name"],
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold),
-                        ),
+                        ],
+                      ),
+                      child: loading
+                          ? const Center(
+                              child: CircularProgressIndicator(),
+                            )
+                          : shops.isEmpty
+                              ? const Center(
+                                  child: Text(
+                                    "No assigned shops",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.black54,
+                                    ),
                         subtitle:
                             Text("Segment: ${shop["segment"]}"),
                         trailing: (role == "master" ||
@@ -193,15 +254,160 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
                                       }
                                     },
                                   ),
+                                )
+                              : ReorderableListView.builder(
+                                  itemCount: shops.length,
+                                  onReorder: (oldIndex, newIndex) {
+                                    setState(() {
+                                      if (newIndex > oldIndex) newIndex--;
+                                      final item = shops.removeAt(oldIndex);
+                                      shops.insert(newIndex, item);
+                                    });
+                                  },
+                                  itemBuilder: (context, i) {
+                                    final shop = shops[i];
 
-                                  const Icon(Icons.drag_handle),
-                                ],
-                              )
-                            : null,
+                                    return _shopCard(shop, i, role);
+                                  },
+                                ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _shopCard(Map shop, int i, String role) {
+    return Container(
+      key: ValueKey(shop["_id"]),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF005BBB).withOpacity(0.08),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 🔢 Sequence Badge
+          Container(
+            height: 48,
+            width: 48,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF002D62),
+                  Color(0xFF005BBB),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Center(
+              child: Text(
+                "${i + 1}",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 14),
+
+          // 🔹 Shop Details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  shop["shop_name"],
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0D47A1),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  "Segment: ${shop["segment"]}",
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 🔹 Role Based Actions (UNCHANGED LOGIC)
+          if (role == "master" || role == "manager")
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(
+                    Icons.edit,
+                    size: 20,
+                    color: Color(0xFF0D47A1),
+                  ),
+                  onPressed: () async {
+                    final updated = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ModifyAssignedPage(
+                          salesmanId: widget.user["_id"],
+                          currentShops: shops,
+                        ),
                       ),
                     );
+
+                    if (updated == true) {
+                      loadAssignedShops();
+                    }
                   },
                 ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 20,
+                    color: Colors.red,
+                  ),
+                  onPressed: () async {
+                    final ok = await ApiService.removeAssignedShop(shop["_id"]);
+
+                    if (ok) {
+                      loadAssignedShops();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Assigned shop removed"),
+                        ),
+                      );
+                    }
+                  },
+                ),
+                const Icon(
+                  Icons.drag_handle,
+                  color: Colors.grey,
+                ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 }

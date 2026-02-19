@@ -52,7 +52,9 @@ class _LoginPageState extends State<LoginPage>
       _msg(result["message"] ?? "Login failed");
       return;
     }
-
+    // ✅ STEP 1: PRINT FULL USER OBJECT HERE
+    print("FULL LOGIN RESPONSE USER DATA:");
+    print(result["user"]);
     // 🔥 IMPORTANT FIX (TOKEN SYNC)
     await Future.delayed(const Duration(milliseconds: 300));
 
