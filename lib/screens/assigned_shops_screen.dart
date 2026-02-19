@@ -152,16 +152,10 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.white),
-                        onPressed: loadAssignedShops,
-                      ),
-                      if (role == "master" || role == "manager")
-                        IconButton(
-                          icon: const Icon(Icons.save, color: Colors.white),
-                          onPressed: saveOrder,
+                        title: Text(
+                          shop["shop_name"],
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold),
                         ),
                     ],
                   ),
