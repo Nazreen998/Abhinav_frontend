@@ -52,44 +52,42 @@ class _MatchPageState extends State<MatchPage> {
   // CAPTURE → GPS → UPLOAD → SAVE
   // ---------------------------
   Future<void> captureAndMatch() async {
-  setState(() => processing = true);
+    setState(() => processing = true);
 
-  Position pos = await Geolocator.getCurrentPosition(
-    desiredAccuracy: LocationAccuracy.high,
-  );
+    Position pos = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
 
-  userLat = pos.latitude;
-  userLng = pos.longitude;
+    userLat = pos.latitude;
+    userLng = pos.longitude;
 
-  double shopLat = double.tryParse(widget.shop["lat"].toString()) ?? 0.0;
-  double shopLng = double.tryParse(widget.shop["lng"].toString()) ?? 0.0;
+    double shopLat = double.tryParse(widget.shop["lat"].toString()) ?? 0.0;
+    double shopLng = double.tryParse(widget.shop["lng"].toString()) ?? 0.0;
 
-  distanceMeters = calcDistance(userLat!, userLng!, shopLat, shopLng);
-  bool isMatch = distanceMeters! <= 50;
+    distanceMeters = calcDistance(userLat!, userLng!, shopLat, shopLng);
+    bool isMatch = distanceMeters! <= 50;
 
-  // 🔥 FINAL PAYLOAD (NO EXTRA FIELDS)
-  final payload = {
-    "shop_id": widget.shop["shop_id"],   // ✅ ONLY shop_id
-    "shop_name": widget.shop["shop_name"],
-    "result": isMatch ? "match" : "mismatch",
-  };
+    // 🔥 FINAL PAYLOAD (NO EXTRA FIELDS)
+    final payload = {
+      "shop_id": widget.shop["shop_id"], // ✅ ONLY shop_id
+      "shop_name": widget.shop["shop_name"],
+      "result": isMatch ? "match" : "mismatch",
+    };
 
-  await visitService.visitShop(payload);
+    await visitService.visitShop(payload);
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(
-        isMatch
-            ? "MATCH ✔ Within 50 meters"
-            : "MISMATCH ❌ Too far from shop",
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isMatch ? "MATCH ✔ Within 50 meters" : "MISMATCH ❌ Too far from shop",
+        ),
+        backgroundColor: isMatch ? Colors.green : Colors.red,
       ),
-      backgroundColor: isMatch ? Colors.green : Colors.red,
-    ),
-  );
+    );
 
-  Navigator.pop(context, true);
-  setState(() => processing = false);
-}
+    Navigator.pop(context, true);
+    setState(() => processing = false);
+  }
 
   // ---------------------------
   // UI
@@ -99,94 +97,261 @@ class _MatchPageState extends State<MatchPage> {
     final s = widget.shop;
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF007BFF), Color(0xFF66B2FF), Color(0xFFB8E0FF)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      backgroundColor: const Color(0xFFF6F8FC),
+      body: Stack(
+        children: [
+          // 🔵 PREMIUM CURVED HEADER
+          Container(
+            height: 240,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF002D62),
+                  Color(0xFF005BBB),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
+              ),
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Row(
+
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back,
-                        color: Colors.white, size: 28),
+                  const SizedBox(height: 20),
+
+                  // 🔹 HEADER
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back,
+                            color: Colors.white, size: 26),
+                      ),
+                      const SizedBox(width: 4),
+                      const Text(
+                        "Match Shop",
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ],
                   ),
-                  const Text(
-                    "Match Shop",
-                    style: TextStyle(
-                      fontSize: 26,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+
+                  const SizedBox(height: 25),
+
+                  // 🔹 FLOATING CARD
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 🏪 SHOP NAME
+                          Row(
+                            children: [
+                              const Icon(Icons.store, color: Color(0xFF005BBB)),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  s["shop_name"] ?? "",
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF0D47A1),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          // 📍 ADDRESS
+                          Row(
+                            children: [
+                              const Icon(Icons.location_on,
+                                  size: 16, color: Colors.grey),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  s["address"] ?? "",
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // 🌍 LAT LNG BADGE
+                          // 🌍 LAT LNG BADGE (NO OVERFLOW)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF4F7FC),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.my_location,
+                                    size: 16, color: Color(0xFF005BBB)),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    "Lat: ${double.parse(s["lat"].toString()).toStringAsFixed(9)}",
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    "Lng: ${double.parse(s["lng"].toString()).toStringAsFixed(9)}",
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // 📸 IMAGE PREVIEW
+                          if (previewBase64 != null)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(18),
+                              child: Image.memory(
+                                base64Decode(previewBase64!),
+                                height: 220,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+
+                          const Spacer(),
+
+                          // 📏 DISTANCE DISPLAY
+                          if (distanceMeters != null)
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF4F7FC),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.social_distance,
+                                      color: Color(0xFF002D62)),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    "Distance: ${distanceMeters!.toStringAsFixed(1)} m",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          const SizedBox(height: 20),
+
+                          // ✅ MATCH BUTTON
+                          // ✅ PREMIUM MATCH BUTTON (NOT DULL)
+                          SizedBox(
+                            width: double.infinity,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF005BBB),
+                                    Color(0xFF007BFF),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.blue.withOpacity(0.25),
+                                    blurRadius: 14,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: ElevatedButton(
+                                onPressed: processing ? null : captureAndMatch,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.camera_alt,
+                                        color: Colors.white),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      processing
+                                          ? "Processing..."
+                                          : "Capture & Match",
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
-
-              const SizedBox(height: 20),
-
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      s["shop_name"],
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(s["address"] ?? ""),
-                    Text("Lat: ${s["lat"]}, Lng: ${s["lng"]}"),
-                  ],
-                ),
-              ),
-
-              if (previewBase64 != null)
-                Container(
-                  height: 250,
-                  margin: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
-                    image: DecorationImage(
-                      image: MemoryImage(base64Decode(previewBase64!)),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-
-              if (distanceMeters != null)
-                Text(
-                  "Distance: ${distanceMeters!.toStringAsFixed(1)} m",
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold),
-                ),
-
-              const SizedBox(height: 20),
-
-              ElevatedButton(
-                onPressed: processing ? null : captureAndMatch,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                ),
-                child: Text(processing ? "Processing..." : "Capture & Match"),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

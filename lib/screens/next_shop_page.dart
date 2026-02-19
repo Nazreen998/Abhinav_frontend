@@ -217,44 +217,88 @@ class _NextShopPageState extends State<NextShopPage> {
 
           const SizedBox(height: 12),
 
-          // 🔹 LAT/LNG BADGE
+          // 🔹 PREMIUM LAT/LNG BADGE
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: const Color(0xFFF4F7FC),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Text(
-              "Lat: $lat  |  Lng: $lng",
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.black87,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.blue.withOpacity(0.08),
               ),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.my_location,
+                  size: 16,
+                  color: Color(0xFF005BBB),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Lat: ${lat.toStringAsFixed(9)}",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 14,
+                  color: Colors.grey.shade300,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Lng: ${lng.toStringAsFixed(9)}",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
           const SizedBox(height: 16),
 
           // 🔹 BUTTON ROW
+          // 🔹 PREMIUM BUTTON ROW
           Row(
             children: [
+              // ✅ MAPS BUTTON (Outlined Modern)
               Expanded(
-                child: ElevatedButton.icon(
+                child: OutlinedButton.icon(
                   onPressed: () => openMaps(lat, lng),
-                  icon: const Icon(Icons.map, size: 18),
-                  label: const Text("Maps"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE3ECF7),
-                    foregroundColor: const Color(0xFF002D62),
-                    elevation: 0,
+                  icon: const Icon(Icons.map_outlined, size: 18),
+                  label: const Text(
+                    "Maps",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF005BBB),
+                    side: BorderSide(
+                      color: const Color(0xFF005BBB).withOpacity(0.4),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                 ),
               ),
+
               const SizedBox(width: 12),
+
+              // ✅ MATCH BUTTON (Main Premium CTA)
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () {
@@ -265,13 +309,26 @@ class _NextShopPageState extends State<NextShopPage> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.check_circle_outline, size: 18),
-                  label: const Text("Match"),
+                  icon: const Icon(
+                    Icons.verified,
+                    size: 18,
+                    color: Colors.amber,
+                  ),
+                  label: const Text(
+                    "Match",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF005BBB),
+                    backgroundColor: Colors.green,
+                    elevation: 4,
+                    shadowColor: Colors.black26,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                 ),
