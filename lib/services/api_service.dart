@@ -140,6 +140,35 @@ class ApiService {
   // --------------------------------------------------------
   // ASSIGN SHOP (MASTER / MANAGER)
   // --------------------------------------------------------
+  static Future<bool> assignShop(
+    String shopName,
+    String salesmanName,
+    String segment,
+  ) async {
+    final res = await http.post(
+      Uri.parse("$baseUrl/assigned/assign"),
+      headers: headers,
+      body: jsonEncode({
+        "shop_name": shopName,
+        "salesman_name": salesmanName,
+        "segment": segment,
+      }),
+    );
+
+    print("STATUS: ${res.statusCode}");
+    print("BODY: ${res.body}");
+
+    if (res.statusCode != 200) return false;
+
+    final body = jsonDecode(res.body);
+
+    if (body is Map && body["success"] == true) {
+      return true;
+    }
+
+    return false;
+  }
+
   // --------------------------------------------------------
   // REMOVE ASSIGNED SHOP (BY assign_id)
   // --------------------------------------------------------

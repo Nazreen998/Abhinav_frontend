@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print, unused_import
+// ignore_for_file: avoid_print, unused_import, deprecated_member_use
 
 import 'dart:math';
 import 'package:flutter/foundation.dart';
@@ -145,11 +145,10 @@ class _AssignShopPageState extends State<AssignShopPage> {
     await getUserLocation();
 
     List<Map<String, dynamic>> arranged = [];
-    print("Selected Shop IDs: $selectedShopIds");
-    print("Segment Shops Count: ${segmentShops.length}");
+
+    // Step A: Filter selected shops
     for (var shop in segmentShops) {
-      print("Shop ID: ${shop.id}");
-      if (selectedShopIds.contains(shop.id)) {
+      if (selectedShopIds.contains(shop.shopId)) {
         arranged.add({
           "shop": shop,
           "distance": distance(
@@ -163,38 +162,33 @@ class _AssignShopPageState extends State<AssignShopPage> {
     }
 
     arranged.sort((a, b) => a["distance"].compareTo(b["distance"]));
-    print("Arranged Count: ${arranged.length}");
-    bool allSuccess = true;
 
-    for (var s in arranged) {
+    // ✅ Step 1: Build shopsPayload HERE
+    List<Map<String, dynamic>> shopsPayload = arranged.map((s) {
       final ShopModel shop = s["shop"];
 
-      try {
-        final result = await api.ApiService.assignShop(
-          shop.shopName,
-          selectedUser!.name,
-          shop.segment,
-        );
+      return {
+        "shop_name": shop.shopName,
+        "address": shop.address,
+        "segment": shop.segment,
+      };
+    }).toList();
 
-        if (!result) {
-          allSuccess = false;
-          showMsg("Shop assign failed for ${shop.shopName} ❌");
-          break;
-        }
-      } catch (e) {
-        allSuccess = false;
-        showMsg("Error assigning ${shop.shopName} ❌");
-        break;
-      }
-    }
+    // Step 2: Call API once
+   final success = await api.ApiService.resetAndAssign(
+  selectedUser!.id.toString(),
+  selectedUser!.name,
+  shopsPayload,
+);
 
     if (!mounted) return;
 
-    if (allSuccess) {
+    if (success) {
       showMsg("Shops Assigned Successfully 🎉", color: Colors.green);
+    } else {
+      showMsg("Shop Assignment Failed ❌");
     }
 
-    // Optional: clear selection after assign
     setState(() {
       selectedShopIds.clear();
     });
