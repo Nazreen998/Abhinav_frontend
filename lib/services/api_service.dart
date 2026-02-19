@@ -140,18 +140,18 @@ class ApiService {
   // --------------------------------------------------------
   // ASSIGN SHOP (MASTER / MANAGER)
   // --------------------------------------------------------
-  static Future<bool> assignShop(
-    String shopName,
+  static Future<bool> assignShops(
+    String salesmanId,
     String salesmanName,
-    String segment,
+    List<Map<String, dynamic>> shops,
   ) async {
     final res = await http.post(
-      Uri.parse("$baseUrl/assigned/assign"),
+      Uri.parse("$baseUrl/assigned/reset-assign"),
       headers: headers,
       body: jsonEncode({
-        "shop_name": shopName,
-        "salesman_name": salesmanName,
-        "segment": segment,
+        "salesmanId": salesmanId,
+        "salesmanName": salesmanName,
+        "shops": shops,
       }),
     );
 
@@ -161,12 +161,7 @@ class ApiService {
     if (res.statusCode != 200) return false;
 
     final body = jsonDecode(res.body);
-
-    if (body is Map && body["success"] == true) {
-      return true;
-    }
-
-    return false;
+    return body["success"] == true;
   }
 
   // --------------------------------------------------------
