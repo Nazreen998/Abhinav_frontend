@@ -363,9 +363,8 @@ class _NextShopPageState extends State<NextShopPage> {
                       ),
                     );
 
-                    if (result == true) {
-                      await loadAssignedShops(); // refresh from backend
-                    }
+                    // ✅ Always refresh after returning
+                    await loadAssignedShops();
                   },
                   icon: const Icon(
                     Icons.verified,

@@ -283,4 +283,30 @@ class ApiService {
       return [];
     }
   }
+
+  // ================= Modify Assignment Date =================
+  static Future<bool> modifyAssignmentDate({
+    required String salesmanId,
+    required String oldSk,
+    required String newDate,
+  }) async {
+    final body = {
+      "salesmanId": salesmanId,
+      "oldSk": oldSk,
+      "newDate": newDate,
+    };
+
+    print("MODIFY BODY => $body");
+
+    final res = await http.post(
+      Uri.parse("$baseUrl/assigned/modify-date"),
+      headers: headers, // make sure it has Content-Type + Authorization
+      body: jsonEncode(body),
+    );
+
+    print("MODIFY STATUS => ${res.statusCode}");
+    print("MODIFY RAW => ${res.body}");
+
+    return res.statusCode == 200;
+  }
 }
