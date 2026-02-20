@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'match_page.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import 'package:intl/intl.dart';
 
 class NextShopPage extends StatefulWidget {
   const NextShopPage({super.key});
@@ -16,6 +17,7 @@ class NextShopPage extends StatefulWidget {
 class _NextShopPageState extends State<NextShopPage> {
   // 🔥 IMPORTANT: RAW MAP LIST (NO ShopModel)
   List<Map<String, dynamic>> shops = [];
+  bool refreshing = false;
 
   bool loading = true;
 
@@ -29,18 +31,27 @@ class _NextShopPageState extends State<NextShopPage> {
   // LOAD NEXT SHOPS (FROM /assigned/salesman/today)
   // ---------------------------------------------------------
   Future<void> loadAssignedShops() async {
-    setState(() => loading = true);
+    setState(() {
+      loading = true;
+      refreshing = true;
+    });
 
     try {
-      final res = await ApiService.getNextShops(); // 🔥 NEW METHOD
-      shops = List<Map<String, dynamic>>.from(res["shops"] ?? []);
+      final res = await ApiService.getNextShops();
+
+      setState(() {
+        shops = List<Map<String, dynamic>>.from(res["shops"] ?? []);
+      });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Load error: $e")),
       );
     }
 
-    setState(() => loading = false);
+    setState(() {
+      loading = false;
+      refreshing = false;
+    });
   }
 
   // ---------------------------------------------------------
@@ -56,6 +67,16 @@ class _NextShopPageState extends State<NextShopPage> {
         const SnackBar(content: Text("Could not open Google Maps")),
       );
     }
+  }
+
+  //Formatted to indian time
+  String formatIndianTime(String isoDate) {
+    DateTime utcTime = DateTime.parse(isoDate);
+
+    // Convert to IST (+5:30)
+    DateTime istTime = utcTime.add(const Duration(hours: 5, minutes: 30));
+
+    return DateFormat("dd MMM yyyy • hh:mm a").format(istTime);
   }
 
   @override
@@ -92,16 +113,31 @@ class _NextShopPageState extends State<NextShopPage> {
                   const SizedBox(height: 20),
 
                   // ✅ HEADER TITLE
-                  const Row(
+                  Row(
                     children: [
-                      SizedBox(width: 4),
-                      Text(
+                      const SizedBox(width: 4),
+                      const Text(
                         "Next Shops",
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
                           letterSpacing: 0.4,
+                        ),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () async {
+                          await loadAssignedShops();
+                        },
+                        child: AnimatedRotation(
+                          turns: refreshing ? 1 : 0,
+                          duration: const Duration(milliseconds: 600),
+                          child: const Icon(
+                            Icons.refresh,
+                            color: Colors.white,
+                            size: 28,
+                          ),
                         ),
                       ),
                     ],
@@ -144,7 +180,7 @@ class _NextShopPageState extends State<NextShopPage> {
                                     itemCount: shops.length,
                                     itemBuilder: (_, i) {
                                       final s = shops[i];
-                                      return shopCard(s);
+                                      return shopCard(s, i);
                                     },
                                   ),
                                 ),
@@ -162,9 +198,10 @@ class _NextShopPageState extends State<NextShopPage> {
   // ---------------------------------------------------------
   // SHOP CARD (RAW MAP)
   // ---------------------------------------------------------
-  Widget shopCard(Map<String, dynamic> s) {
+  Widget shopCard(Map<String, dynamic> s, int index) {
     final double lat = double.tryParse(s["lat"]?.toString() ?? "0") ?? 0;
     final double lng = double.tryParse(s["lng"]?.toString() ?? "0") ?? 0;
+    final assignedAt = s["createdAt"] ?? "";
 
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
@@ -195,7 +232,24 @@ class _NextShopPageState extends State<NextShopPage> {
               color: Color(0xFF0D47A1),
             ),
           ),
-
+          if (assignedAt.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                children: [
+                  const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                  const SizedBox(width: 6),
+                  Text(
+                    "Assigned: ${formatIndianTime(assignedAt)}",
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           const SizedBox(height: 6),
 
           // 🔹 ADDRESS
@@ -301,13 +355,19 @@ class _NextShopPageState extends State<NextShopPage> {
               // ✅ MATCH BUTTON (Main Premium CTA)
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+                    final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => MatchPage(shop: s),
                       ),
                     );
+
+                    if (result == true) {
+                      setState(() {
+                        shops.removeAt(index); // ✅ remove that shop
+                      });
+                    }
                   },
                   icon: const Icon(
                     Icons.verified,
