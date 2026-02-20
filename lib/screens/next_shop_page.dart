@@ -365,7 +365,9 @@ class _NextShopPageState extends State<NextShopPage> {
 
                     if (result == true) {
                       setState(() {
-                        shops.removeAt(index); // ✅ remove that shop
+                        shops.removeWhere(
+                          (shop) => shop["shop_id"] == s["shop_id"],
+                        );
                       });
                     }
                   },
