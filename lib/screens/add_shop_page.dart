@@ -235,7 +235,16 @@ class _AddShopPageState extends State<AddShopPage> {
 
       if (data["success"] == true) {
         _success("Shop submitted for approval");
-        if (mounted) Navigator.pop(context);
+
+        // ✅ Reset form instead of pop (avoid black screen)
+        nameController.clear();
+        addressController.clear();
+        base64Image = null;
+        imageFile = null;
+        lat = null;
+        lng = null;
+
+        setState(() {});
       } else {
         _error(data["message"] ?? "Submit failed");
       }
