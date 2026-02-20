@@ -85,8 +85,8 @@ class _MatchPageState extends State<MatchPage> {
       ),
     );
 
-    Navigator.pop(context, isMatch);
-    // setState(() => processing = false);
+    Navigator.pop(context, true);
+    setState(() => processing = false);
   }
 
   // ---------------------------
