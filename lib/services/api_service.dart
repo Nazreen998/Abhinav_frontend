@@ -124,15 +124,19 @@ class ApiService {
   // --------------------------------------------------------
   // ASSIGNED SHOPS
   // --------------------------------------------------------
-static Future<List<dynamic>> getAssignedShops(String salesmanId) async {
+ static Future<List<dynamic>> getAssignedShops(String salesmanId) async {
   final res = await http.get(
     Uri.parse("$baseUrl/assigned/list?salesmanId=$salesmanId"),
     headers: headers,
   );
 
+  print("ASSIGNED STATUS => ${res.statusCode}");
+  print("ASSIGNED RAW RESPONSE => ${res.body}");
+
   if (res.statusCode != 200) return [];
   return jsonDecode(res.body)["assigned"] ?? [];
 }
+
   // --------------------------------------------------------
   // ASSIGN SHOP (MASTER / MANAGER)
   // --------------------------------------------------------
@@ -202,31 +206,31 @@ static Future<List<dynamic>> getAssignedShops(String salesmanId) async {
 
     return jsonDecode(res.body)["success"] == true;
   }
+
 //reset assigned shop
-static Future<bool> resetAndAssign(
-  String salesmanId,
-  String salesmanName,
-  List<dynamic> shops,
-) async {
-  final res = await http.post(
-    Uri.parse("$baseUrl/assigned/reset-assign"),
-    headers: headers,
-    body: jsonEncode({
-      "salesmanId": salesmanId,
-      "salesmanName": salesmanName,
-      "shops": shops,
-    }),
-  );
+  static Future<bool> resetAndAssign(
+    String salesmanId,
+    String salesmanName,
+    List<dynamic> shops,
+  ) async {
+    final res = await http.post(
+      Uri.parse("$baseUrl/assigned/reset-assign"),
+      headers: headers,
+      body: jsonEncode({
+        "salesmanId": salesmanId,
+        "salesmanName": salesmanName,
+        "shops": shops,
+      }),
+    );
 
-  print("RESET ASSIGN STATUS => ${res.statusCode}");
-  print("RESET ASSIGN BODY => ${res.body}");
+    print("RESET ASSIGN STATUS => ${res.statusCode}");
+    print("RESET ASSIGN BODY => ${res.body}");
 
-  if (res.statusCode != 200) return false;
+    if (res.statusCode != 200) return false;
 
-  final body = jsonDecode(res.body);
-  return body["success"] == true;
-}
-
+    final body = jsonDecode(res.body);
+    return body["success"] == true;
+  }
 
 //Next shop for salesman
   static Future<Map<String, dynamic>> getNextShops() async {

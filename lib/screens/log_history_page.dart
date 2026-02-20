@@ -44,27 +44,31 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     final userName = widget.user["name"].toString();
     final userSegment = widget.user["segment"].toString();
 
+    print("👤 ROLE => $role");
+    print("👤 USER NAME => $userName");
+    print("👤 USER SEGMENT => $userSegment");
+
     // ******** GET FROM VisitLog API ******** //
     List<dynamic> raw = await ApiService.getLogs();
 
+    print("✅ RAW LOG COUNT => ${raw.length}");
+    if (raw.isNotEmpty) {
+      print("✅ RAW FIRST ITEM => ${raw[0]}");
+    }
+
     // ******** MAP TO APP FORMAT (USING VISITLOG) ******** //
     List<dynamic> all = raw.map((l) {
-      // 🔥 FIX: dt properly defined
       DateTime dt;
 
       try {
-        if (l["datetime"] != null) {
-          dt = DateTime.parse(l["datetime"]);
-        } else {
-          dt = DateTime.now();
-        }
+        dt = DateTime.parse(l["createdAt"]);
       } catch (e) {
         dt = DateTime.now();
       }
 
       return {
         "shopName": l["shop_name"] ?? "",
-        "salesman": l["salesman_name"] ?? "",
+        "salesman": l["salesmanName"] ?? "",
         "photoUrl": l["photo_url"] ?? "",
         "result": l["result"] == "match",
         "distance": double.tryParse(l["distance"].toString()) ?? 0.0,
@@ -74,13 +78,25 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
       };
     }).toList();
 
+    print("✅ AFTER MAP COUNT => ${all.length}");
+    if (all.isNotEmpty) {
+      print("✅ MAPPED FIRST SALESMAN => ${all[0]["salesman"]}");
+    }
+
     // --------------------------------------------------------------------
     // ROLE BASED FILTERING
     // --------------------------------------------------------------------
     List<dynamic> filtered = all;
 
     if (role == "salesman") {
-      filtered = filtered.where((l) => l["salesman"] == userName).toList();
+      filtered = filtered.where((l) {
+        return l["salesman"]
+            .toString()
+            .toLowerCase()
+            .contains(userName.toLowerCase());
+      }).toList();
+
+      print("✅ AFTER SALESMAN FILTER => ${filtered.length}");
     }
 
     if (role == "manager") {
@@ -89,6 +105,8 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
               l["segment"].toString().toUpperCase() ==
               userSegment.toUpperCase())
           .toList();
+
+      print("✅ AFTER MANAGER FILTER => ${filtered.length}");
     }
 
     // --------------------------------------------------------------------
@@ -100,6 +118,8 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
               l["segment"].toString().toUpperCase() ==
               widget.segment.toUpperCase())
           .toList();
+
+      print("✅ AFTER SEGMENT FILTER => ${filtered.length}");
     }
 
     // --------------------------------------------------------------------
@@ -108,6 +128,8 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     if (widget.result != "All") {
       bool wantMatch = widget.result.toLowerCase() == "match";
       filtered = filtered.where((l) => l["result"] == wantMatch).toList();
+
+      print("✅ AFTER RESULT FILTER => ${filtered.length}");
     }
 
     // --------------------------------------------------------------------
@@ -128,9 +150,13 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
 
         return true;
       }).toList();
+
+      print("✅ AFTER DATE FILTER => ${filtered.length}");
     }
 
     logs = filtered;
+
+    print("📌 FINAL LOGS COUNT => ${logs.length}");
 
     if (!mounted) return;
     setState(() => loading = false);

@@ -364,9 +364,7 @@ class _NextShopPageState extends State<NextShopPage> {
                     );
 
                     if (result == true) {
-                      setState(() {
-                        shops.removeAt(index); // ✅ remove that shop
-                      });
+                      await loadAssignedShops(); // refresh from backend
                     }
                   },
                   icon: const Icon(
