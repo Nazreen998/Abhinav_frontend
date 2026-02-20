@@ -79,35 +79,44 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
   // --------------------------------------------------
   // LOAD ASSIGNED SHOPS (by salesmanId)
   // --------------------------------------------------
-  Future<void> loadAssignedForSalesman(String salesmanId) async {
-    setState(() => loading = true);
+ Future<void> loadAssignedForSalesman(String salesmanId) async {
+  setState(() => loading = true);
 
-    final assigned = await ApiService.getAssignedShops(salesmanId);
-    print("ASSIGNED FROM API => $assigned");
+  final assigned = await ApiService.getAssignedShops(salesmanId);
 
-    final mapped = assigned.map<Map<String, dynamic>>((a) {
-      return {
-        "_id": (a["assignment_id"] ?? a["sk"]).toString(),
+  print("ASSIGNED FROM API => $assigned");
+  print("ASSIGNED LENGTH => ${assigned.length}");
+
+  final List<Map<String, dynamic>> mapped = [];
+
+  for (final a in assigned) {
+    try {
+      mapped.add({
+        "_id": (a["assignment_id"] ?? a["sk"] ?? "").toString(),
         "sk": (a["sk"] ?? "").toString(),
         "shop_id": (a["shop_id"] ?? "").toString(),
         "shop_name": (a["shop_name"] ?? "").toString(),
         "address": (a["address"] ?? "").toString(),
         "segment": (a["segment"] ?? "").toString(),
-        "sequence": (a["sequence"] ?? 0) is int
-            ? a["sequence"]
-            : int.tryParse(a["sequence"].toString()) ?? 0,
-      };
-    }).toList();
-
-    mapped.sort((x, y) => (x["sequence"] as int).compareTo(y["sequence"] as int));
-
-    if (!mounted) return;
-    setState(() {
-      shops = mapped;
-      loading = false;
-    });
+        "sequence": int.tryParse((a["sequence"] ?? "0").toString()) ?? 0,
+      });
+    } catch (e) {
+      print("❌ MAPPING ERROR => $e");
+    }
   }
 
+  mapped.sort((x, y) => (x["sequence"] as int).compareTo(y["sequence"] as int));
+
+  print("MAPPED LENGTH => ${mapped.length}");
+  print("MAPPED => $mapped");
+
+  if (!mounted) return;
+
+  setState(() {
+    shops = mapped;
+    loading = false;
+  });
+}
   // --------------------------------------------------
   // SAVE ORDER (reorder API call)
   // --------------------------------------------------
