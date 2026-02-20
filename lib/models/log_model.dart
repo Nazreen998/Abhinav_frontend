@@ -18,7 +18,7 @@ class LogModel {
   });
 
   Map<String, dynamic> toJson() => {
-        "salesmanId": userId,
+        "salesman_id": userId,
         "salesman_name": salesman,
         "shop_id": shopId,
         "shop_name": shopName,

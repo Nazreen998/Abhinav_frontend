@@ -124,18 +124,18 @@ class ApiService {
   // --------------------------------------------------------
   // ASSIGNED SHOPS
   // --------------------------------------------------------
- static Future<List<dynamic>> getAssignedShops(String salesmanId) async {
-  final res = await http.get(
-    Uri.parse("$baseUrl/assigned/list?salesmanId=$salesmanId"),
-    headers: headers,
-  );
+  static Future<List<dynamic>> getAssignedShops(String salesmanId) async {
+    final res = await http.get(
+      Uri.parse("$baseUrl/assigned/list?salesmanId=$salesmanId"),
+      headers: headers,
+    );
 
-  print("ASSIGNED STATUS => ${res.statusCode}");
-  print("ASSIGNED RAW RESPONSE => ${res.body}");
+    print("ASSIGNED STATUS => ${res.statusCode}");
+    print("ASSIGNED RAW RESPONSE => ${res.body}");
 
-  if (res.statusCode != 200) return [];
-  return jsonDecode(res.body)["assigned"] ?? [];
-}
+    if (res.statusCode != 200) return [];
+    return jsonDecode(res.body)["assigned"] ?? [];
+  }
 
   // --------------------------------------------------------
   // ASSIGN SHOP (MASTER / MANAGER)
