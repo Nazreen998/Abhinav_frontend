@@ -18,7 +18,7 @@ class AssignService {
     required double lng,
   }) async {
     final body = {
-      "salesman_id": userId.toString(),
+      "salesmanId": userId.toString(),
       "shops": shopIds,
       "salesman_lat": lat,
       "salesman_lng": lng,

@@ -1,8 +1,7 @@
-// ignore_for_file: unused_local_variable, use_build_context_synchronously, avoid_print, unnecessary_const, deprecated_member_use
+// ignore_for_file: use_build_context_synchronously, avoid_print, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import 'modify_assigned_page.dart';
 
 class AssignedShopsScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -14,72 +13,112 @@ class AssignedShopsScreen extends StatefulWidget {
 }
 
 class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
-  List<dynamic> shops = [];
+  List<Map<String, dynamic>> shops = [];
   bool loading = true;
+
+  // Manager/Master dropdown
+  List<dynamic> users = [];
+  String? selectedSalesmanId;
+
+  String get role => (widget.user["role"] ?? "").toString().toLowerCase();
+  String get mySegment => (widget.user["segment"] ?? "").toString().toLowerCase();
 
   @override
   void initState() {
     super.initState();
-    loadAssignedShops();
+
+    // ✅ Salesman -> direct load
+    if (role == "salesman") {
+      loadAssignedForSalesman(widget.user["user_id"].toString());
+    } else {
+      // ✅ Manager/Master -> load salesman list first
+      loadUsers();
+    }
   }
 
-  Future<void> loadAssignedShops() async {
+  // --------------------------------------------------
+  // LOAD USERS (only for manager/master)
+  // --------------------------------------------------
+  Future<void> loadUsers() async {
     setState(() => loading = true);
 
-    final role = widget.user["role"].toString().toLowerCase();
-    final mySegment = widget.user["segment"];
+    final all = await ApiService.getUsers();
 
-    final assigned =
-        await ApiService.getAssignedShops(widget.user["user_id"].toString());
-    final allShops = await ApiService.getShops();
+    // only salesman
+    final salesmen = all.where((u) {
+      return (u["role"] ?? "").toString().toLowerCase() == "salesman";
+    }).toList();
 
-    List filtered = [];
-
-    if (role == "master") {
-      filtered = assigned;
-    } else if (role == "manager") {
-      filtered = assigned
-          .where((a) =>
-              (a["segment"] ?? "").toString().toLowerCase() ==
-              (mySegment ?? "").toString().toLowerCase())
-          .toList();
-    } else {
-      filtered = assigned
-          .where((a) =>
-              a["salesman_id"].toString() == widget.user["user_id"].toString())
-          .toList();
+    // manager -> only same segment salesmen
+    List<dynamic> filtered = salesmen;
+    if (role == "manager") {
+      filtered = salesmen.where((u) {
+        return (u["segment"] ?? "").toString().toLowerCase() == mySegment;
+      }).toList();
     }
 
-    final mapped = filtered.map((a) {
-      final match = allShops.firstWhere(
-        (s) => s["shop_id"].toString() == a["shop_id"].toString(),
-        orElse: () => <String, dynamic>{},
-      );
+    final firstId =
+        filtered.isNotEmpty ? filtered[0]["user_id"].toString() : null;
 
+    setState(() {
+      users = filtered;
+      selectedSalesmanId = firstId;
+    });
+
+    // load assigned for first salesman automatically
+    if (firstId != null) {
+      await loadAssignedForSalesman(firstId);
+    } else {
+      setState(() {
+        shops = [];
+        loading = false;
+      });
+    }
+  }
+
+  // --------------------------------------------------
+  // LOAD ASSIGNED SHOPS (by salesmanId)
+  // --------------------------------------------------
+  Future<void> loadAssignedForSalesman(String salesmanId) async {
+    setState(() => loading = true);
+
+    final assigned = await ApiService.getAssignedShops(salesmanId);
+    print("ASSIGNED FROM API => $assigned");
+
+    final mapped = assigned.map<Map<String, dynamic>>((a) {
       return {
-        "_id": a["_id"] ?? a["shop_id"],
-        "sk": a["sk"],
-        "shop_id": a["shop_id"],
-        "shop_name": match["shop_name"] ?? a["shop_name"] ?? "",
-        "address": match["address"] ?? a["address"] ?? "",
-        "segment": a["segment"] ?? match["segment"] ?? "",
-        "sequence": int.tryParse(a["sequence"]?.toString() ?? "0") ?? 0,
+        "_id": (a["assignment_id"] ?? a["sk"]).toString(),
+        "sk": (a["sk"] ?? "").toString(),
+        "shop_id": (a["shop_id"] ?? "").toString(),
+        "shop_name": (a["shop_name"] ?? "").toString(),
+        "address": (a["address"] ?? "").toString(),
+        "segment": (a["segment"] ?? "").toString(),
+        "sequence": (a["sequence"] ?? 0) is int
+            ? a["sequence"]
+            : int.tryParse(a["sequence"].toString()) ?? 0,
       };
     }).toList();
 
-    mapped.sort((a, b) => (a["sequence"] ?? 0).compareTo(b["sequence"] ?? 0));
+    mapped.sort((x, y) => (x["sequence"] as int).compareTo(y["sequence"] as int));
 
     if (!mounted) return;
-
     setState(() {
       shops = mapped;
       loading = false;
     });
   }
 
+  // --------------------------------------------------
+  // SAVE ORDER (reorder API call)
+  // --------------------------------------------------
   Future<void> saveOrder() async {
+    final salesmanIdToUse =
+        role == "salesman" ? widget.user["user_id"].toString() : selectedSalesmanId;
+
+    if (salesmanIdToUse == null) return;
+
     final ok = await ApiService.reorderAssignedShops(
-      widget.user["user_id"].toString(),
+      salesmanIdToUse,
       shops.map<String>((e) => e["sk"].toString()).toList(),
     );
 
@@ -87,30 +126,58 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(ok ? "Order Updated" : "Update Failed"),
+        content: Text(ok ? "Order Updated ✅" : "Update Failed ❌"),
         backgroundColor: ok ? Colors.green : Colors.red,
       ),
     );
 
-    if (ok) loadAssignedShops();
+    if (ok) loadAssignedForSalesman(salesmanIdToUse);
+  }
+
+  // --------------------------------------------------
+  // DELETE ASSIGNED SHOP
+  // --------------------------------------------------
+  Future<void> deleteAssignedShop(String sk) async {
+    final salesmanIdToUse =
+        role == "salesman" ? widget.user["user_id"].toString() : selectedSalesmanId;
+
+    if (salesmanIdToUse == null) return;
+
+    final ok = await ApiService.removeAssignedShop(salesmanIdToUse, sk);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok ? "Removed ✅" : "Remove Failed ❌"),
+        backgroundColor: ok ? Colors.green : Colors.red,
+      ),
+    );
+
+    if (ok) loadAssignedForSalesman(salesmanIdToUse);
   }
 
   @override
   Widget build(BuildContext context) {
-    final role = widget.user["role"].toString().toLowerCase();
+    final canEdit = role == "manager" || role == "master";
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8FC),
+      floatingActionButton: canEdit
+          ? FloatingActionButton.extended(
+              onPressed: shops.isEmpty ? null : saveOrder,
+              label: const Text("Save Order"),
+              icon: const Icon(Icons.save),
+            )
+          : null,
       body: Stack(
         children: [
+          // HEADER
           Container(
             height: 230,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  Color(0xFF002D62),
-                  Color(0xFF005BBB),
-                ],
+                colors: [Color(0xFF002D62), Color(0xFF005BBB)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -120,6 +187,7 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
               ),
             ),
           ),
+
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(18),
@@ -127,32 +195,60 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 15),
+
+                  // TOP BAR
                   Row(
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Assigned Shops",
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            widget.user["name"] ?? "",
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ],
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        "Assigned Shops",
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 25),
+
+                  const SizedBox(height: 14),
+
+                  // ✅ DROPDOWN (only manager/master)
+                  if (canEdit)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: DropdownButton<String>(
+                        value: selectedSalesmanId,
+                        isExpanded: true,
+                        underline: const SizedBox(),
+                        hint: const Text("Select Salesman"),
+                        items: users.map((u) {
+                          final id = u["user_id"].toString();
+                          final name = (u["name"] ?? "").toString();
+                          final seg = (u["segment"] ?? "").toString();
+                          return DropdownMenuItem(
+                            value: id,
+                            child: Text("$name ($seg)"),
+                          );
+                        }).toList(),
+                        onChanged: (v) async {
+                          if (v == null) return;
+                          setState(() => selectedSalesmanId = v);
+                          await loadAssignedForSalesman(v);
+                        },
+                      ),
+                    ),
+
+                  const SizedBox(height: 18),
+
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.all(18),
@@ -168,32 +264,28 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
                         ],
                       ),
                       child: loading
-                          ? const Center(
-                              child: CircularProgressIndicator(),
-                            )
+                          ? const Center(child: CircularProgressIndicator())
                           : shops.isEmpty
                               ? const Center(
                                   child: Text(
                                     "No assigned shops",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.black54,
-                                    ),
+                                    style: TextStyle(fontSize: 16, color: Colors.black54),
                                   ),
                                 )
                               : ReorderableListView.builder(
                                   itemCount: shops.length,
-                                  onReorder: (oldIndex, newIndex) {
-                                    if (role == "master" || role == "manager") {
-                                      setState(() {
-                                        if (newIndex > oldIndex) newIndex--;
-                                        final item = shops.removeAt(oldIndex);
-                                        shops.insert(newIndex, item);
-                                      });
-                                    }
-                                  },
+                                  buildDefaultDragHandles: false,
+                                  onReorder: canEdit
+                                      ? (oldIndex, newIndex) {
+                                          setState(() {
+                                            if (newIndex > oldIndex) newIndex--;
+                                            final item = shops.removeAt(oldIndex);
+                                            shops.insert(newIndex, item);
+                                          });
+                                        }
+                                      : (a, b) {}, // salesman -> no reorder
                                   itemBuilder: (context, i) {
-                                    return _shopCard(shops[i], i, role);
+                                    return _shopCard(shops[i], i, canEdit);
                                   },
                                 ),
                     ),
@@ -207,7 +299,10 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
     );
   }
 
-  Widget _shopCard(Map shop, int i, String role) {
+  // --------------------------------------------------
+  // SHOP CARD UI
+  // --------------------------------------------------
+  Widget _shopCard(Map<String, dynamic> shop, int i, bool canEdit) {
     return Container(
       key: ValueKey(shop["_id"]),
       margin: const EdgeInsets.only(bottom: 16),
@@ -215,9 +310,7 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF005BBB).withOpacity(0.08),
-        ),
+        border: Border.all(color: const Color(0xFF005BBB).withOpacity(0.08)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.06),
@@ -229,35 +322,30 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Sequence badge
           Container(
             height: 48,
             width: 48,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [
-                  Color(0xFF002D62),
-                  Color(0xFF005BBB),
-                ],
-              ),
+              gradient: const LinearGradient(colors: [Color(0xFF002D62), Color(0xFF005BBB)]),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Center(
               child: Text(
                 "${i + 1}",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
           ),
           const SizedBox(width: 14),
+
+          // Shop info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  shop["shop_name"]?.toString() ?? "",
+                  (shop["shop_name"] ?? "").toString(),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -266,20 +354,29 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  "Segment: ${shop["segment"] ?? ""}",
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.black54,
-                  ),
+                  "Segment: ${(shop["segment"] ?? "").toString()}",
+                  style: const TextStyle(fontSize: 13, color: Colors.black54),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  (shop["address"] ?? "").toString(),
+                  style: const TextStyle(fontSize: 12, color: Colors.black45),
                 ),
               ],
             ),
           ),
-          if (role == "master" || role == "manager")
-            const Icon(
-              Icons.drag_handle,
-              color: Colors.grey,
+
+          // Delete + Drag
+          if (canEdit) ...[
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () => deleteAssignedShop(shop["sk"].toString()),
             ),
+            ReorderableDragStartListener(
+              index: i,
+              child: const Icon(Icons.drag_handle, color: Colors.grey),
+            ),
+          ],
         ],
       ),
     );
