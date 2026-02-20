@@ -364,11 +364,7 @@ class _NextShopPageState extends State<NextShopPage> {
                     );
 
                     if (result == true) {
-                      setState(() {
-                        shops.removeWhere(
-                          (shop) => shop["shop_id"] == s["shop_id"],
-                        );
-                      });
+                      await loadAssignedShops(); // refresh from backend
                     }
                   },
                   icon: const Icon(
