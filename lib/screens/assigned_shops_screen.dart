@@ -36,26 +36,25 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
     }
   }
 
-  // --------------------------------------------------
-  // LOAD USERS (only for manager/master)
-  // --------------------------------------------------
-  Future<void> loadUsers() async {
+  String formatDate(String iso) {
+    try {
+      final dt = DateTime.parse(iso).toLocal();
+      return "${dt.day}-${dt.month}-${dt.year}";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  Future<void> loadAssignedShops() async {
     setState(() => loading = true);
 
     final all = await ApiService.getUsers();
 
-    // only salesman
-    final salesmen = all.where((u) {
-      return (u["role"] ?? "").toString().toLowerCase() == "salesman";
-    }).toList();
-
-    // manager -> only same segment salesmen
-    List<dynamic> filtered = salesmen;
-    if (role == "manager") {
-      filtered = salesmen.where((u) {
-        return (u["segment"] ?? "").toString().toLowerCase() == mySegment;
-      }).toList();
-    }
+    final assigned =
+        await ApiService.getAssignedShops(widget.user["user_id"].toString());
+    final allShops = await ApiService.getShops();
+    print("ASSIGNED COUNT => ${assigned.length}");
+    print("ASSIGNED DATA => $assigned");
 
     final firstId =
         filtered.isNotEmpty ? filtered[0]["user_id"].toString() : null;
@@ -76,11 +75,25 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
     }
   }
 
-  // --------------------------------------------------
-  // LOAD ASSIGNED SHOPS (by salesmanId)
-  // --------------------------------------------------
- Future<void> loadAssignedForSalesman(String salesmanId) async {
-  setState(() => loading = true);
+    final mapped = filtered.map((a) {
+      final match = allShops.firstWhere(
+        (s) => s["shop_id"].toString() == a["shop_id"].toString(),
+        orElse: () => <String, dynamic>{},
+      );
+
+      return {
+        "_id": a["_id"] ?? a["shop_id"],
+        "sk": a["sk"],
+        "shop_id": a["shop_id"],
+        "shop_name": match["shop_name"] ?? a["shop_name"] ?? "",
+        "salesmanId": a["salesmanId"], // 👈 MUST ADD
+        "assignedTo": a["salesmanName"] ?? "",
+        "assignedDate": a["createdAt"] ?? "",
+        "address": match["address"] ?? a["address"] ?? "",
+        "segment": a["segment"] ?? match["segment"] ?? "",
+        "sequence": int.tryParse(a["sequence"]?.toString() ?? "0") ?? 0,
+      };
+    }).toList();
 
   final assigned = await ApiService.getAssignedShops(salesmanId);
 
@@ -105,21 +118,46 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
     }
   }
 
-  mapped.sort((x, y) => (x["sequence"] as int).compareTo(y["sequence"] as int));
+  Future<void> _changeAssignmentDate(Map shop) async {
+    print("EDIT CLICKED");
+    print("SALESMAN ID => ${shop["salesmanId"]}");
+    print("OLD SK => ${shop["sk"]}");
 
-  print("MAPPED LENGTH => ${mapped.length}");
-  print("MAPPED => $mapped");
+    DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2024),
+      lastDate: DateTime(2030),
+    );
 
-  if (!mounted) return;
+    if (picked == null) return;
 
-  setState(() {
-    shops = mapped;
-    loading = false;
-  });
-}
-  // --------------------------------------------------
-  // SAVE ORDER (reorder API call)
-  // --------------------------------------------------
+    final newDate =
+        "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+
+    print("NEW DATE => $newDate");
+
+    final ok = await ApiService.modifyAssignmentDate(
+      salesmanId: shop["salesmanId"],
+      oldSk: shop["sk"],
+      newDate: newDate,
+    );
+
+    print("API RESULT => $ok");
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+            ok ? "Assignment date updated" : "Failed to update assignment"),
+        backgroundColor: ok ? Colors.green : Colors.red,
+      ),
+    );
+
+    if (ok) loadAssignedShops();
+  }
+
   Future<void> saveOrder() async {
     final salesmanIdToUse =
         role == "salesman" ? widget.user["user_id"].toString() : selectedSalesmanId;
@@ -181,18 +219,25 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
           : null,
       body: Stack(
         children: [
-          // HEADER
-          Container(
-            height: 230,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF002D62), Color(0xFF005BBB)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(40),
-                bottomRight: Radius.circular(40),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 260, // little extra smooth look
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF002D62),
+                    Color(0xFF005BBB),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40),
+                ),
               ),
             ),
           ),
@@ -260,6 +305,7 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
 
                   Expanded(
                     child: Container(
+                      margin: const EdgeInsets.only(top: 20),
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -314,30 +360,31 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
   Widget _shopCard(Map<String, dynamic> shop, int i, bool canEdit) {
     return Container(
       key: ValueKey(shop["_id"]),
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(18),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF005BBB).withOpacity(0.08)),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.06),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Sequence badge
+          // 🔵 Number Badge
           Container(
-            height: 48,
-            width: 48,
+            height: 44,
+            width: 44,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [Color(0xFF002D62), Color(0xFF005BBB)]),
-              borderRadius: BorderRadius.circular(14),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF002D62), Color(0xFF005BBB)],
+              ),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
               child: Text(
@@ -346,40 +393,114 @@ class _AssignedShopsScreenState extends State<AssignedShopsScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 14),
 
-          // Shop info
+          const SizedBox(width: 12),
+
+          // 📦 Shop Details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Shop Name
                 Text(
-                  (shop["shop_name"] ?? "").toString(),
+                  shop["shop_name"] ?? "",
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF0D47A1),
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  "Segment: ${(shop["segment"] ?? "").toString()}",
-                  style: const TextStyle(fontSize: 13, color: Colors.black54),
+
+                const SizedBox(height: 4),
+
+                // Address
+                Row(
+                  children: [
+                    const Icon(Icons.location_on,
+                        size: 14, color: Colors.redAccent),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        shop["address"] ?? "",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black54,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  (shop["address"] ?? "").toString(),
-                  style: const TextStyle(fontSize: 12, color: Colors.black45),
+
+                const SizedBox(height: 5),
+
+                // Segment + Assigned To in single row
+                Row(
+                  children: [
+                    const Icon(Icons.category,
+                        size: 14, color: Colors.blueGrey),
+                    const SizedBox(width: 4),
+                    Text(
+                      shop["segment"] ?? "",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Icon(Icons.person, size: 14, color: Colors.green),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        shop["assignedTo"] ?? "",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black87,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 5),
+
+                // Date
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today,
+                        size: 12, color: Colors.orange),
+                    const SizedBox(width: 4),
+                    Text(
+                      formatDate(shop["assignedDate"]),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.black45,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
 
-          // Delete + Drag
-          if (canEdit) ...[
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: () => deleteAssignedShop(shop["sk"].toString()),
+          // ✏️ Edit & 🗑 Delete (Only for manager/master)
+          if (role == "manager" || role == "master")
+            Column(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 18, color: Colors.blue),
+                  onPressed: () {
+                    _changeAssignmentDate(shop);
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+                  onPressed: () {
+                    // TODO: Call delete API
+                  },
+                ),
+              ],
             ),
             ReorderableDragStartListener(
               index: i,
