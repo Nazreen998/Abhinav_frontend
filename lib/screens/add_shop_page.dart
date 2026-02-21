@@ -31,6 +31,7 @@ class _AddShopPageState extends State<AddShopPage> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
 
+  String? selectedSegment;
   File? imageFile;
   String? base64Image;
 
@@ -185,6 +186,7 @@ class _AddShopPageState extends State<AddShopPage> {
     // ================= BASIC VALIDATION =================
     if (nameController.text.isEmpty) return _error("Enter shop name");
     if (addressController.text.isEmpty) return _error("Enter address");
+    if (selectedSegment == null) return _error("Select segment");
     if (base64Image == null) return _error("Select a photo");
     if (lat == null || lng == null) return _error("Location not detected");
 
@@ -199,7 +201,7 @@ class _AddShopPageState extends State<AddShopPage> {
       "address": addressController.text.trim(),
       "lat": lat,
       "lng": lng,
-      "segment": "pipes", // or user segment
+      "segment": selectedSegment,
       "shopImage": base64Image,
     };
 
@@ -255,11 +257,19 @@ class _AddShopPageState extends State<AddShopPage> {
   }
 
   void _error(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: Colors.red,
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
   void _success(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: Colors.green,
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
   // ==========================================
@@ -349,10 +359,30 @@ class _AddShopPageState extends State<AddShopPage> {
                             controller: addressController,
                             decoration: inputDecor("Address"),
                           ),
-                          const SizedBox(height: 25),
 
 // ✅ ACTION SECTION CARD (Makes buttons not feel alone)
+                          const SizedBox(height: 18),
 
+                          DropdownButtonFormField<String>(
+                            value: selectedSegment,
+                            decoration: inputDecor("Select Segment"),
+                            items: const [
+                              DropdownMenuItem(
+                                value: "fmcg",
+                                child: Text("FMCG"),
+                              ),
+                              DropdownMenuItem(
+                                value: "pipes",
+                                child: Text("Pipes"),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                selectedSegment = value;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 25),
                           Column(
                             children: [
                               // 📷 TAKE PHOTO BUTTON (Outlined Premium)

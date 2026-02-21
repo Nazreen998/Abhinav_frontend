@@ -27,6 +27,7 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
   List<PendingShopModel> pendingShops = [];
   bool loading = true;
   bool approving = false; // 🔥 FIX 1
+  bool rejecting = false;
 
   bool get isMaster => widget.user["role"].toString().toLowerCase() == "master";
 
@@ -91,13 +92,24 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
 
   // ================= REJECT =================
   Future<void> rejectShop(String id) async {
-    final ok = await pendingService.rejectShop(id);
-    if (!mounted) return;
+    if (rejecting) return;
 
+    setState(() => rejecting = true);
+    final ok = await pendingService.rejectShop(id);
+    setState(() => rejecting = false);
+    if (!mounted) return;
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Shop Rejected")),
+        SnackBar(
+          content: const Text(
+            "Shop Rejected",
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
+
       loadPendingShops();
     }
   }
@@ -350,7 +362,7 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
               const SizedBox(width: 14),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: approving ? null : () => rejectShop(shop.shopId),
+                  onPressed: rejecting ? null : () => rejectShop(shop.shopId),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     shape: RoundedRectangleBorder(
@@ -358,13 +370,22 @@ class _PendingShopsPageState extends State<PendingShopsPage> {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: const Text(
-                    "Reject",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: rejecting
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          "Reject",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
             ],

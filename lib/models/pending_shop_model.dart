@@ -30,9 +30,8 @@ class PendingShopModel {
       lng: double.tryParse((json["lng"] ?? 0).toString()) ?? 0,
       segment: (json["segment"] ?? "").toString().toLowerCase(),
       createdAt: json["createdAt"] ?? "",
-      createdByUserName: json["createdByUserName"] ??
-          json["createdByUserName"] ??
-          "Salesman",
+      createdByUserName:
+          json["createdByUserName"] ?? json["createdByUserName"] ?? "Salesman",
       shopImage: json["shopImage"]?.toString(),
     );
   }

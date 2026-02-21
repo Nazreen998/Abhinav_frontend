@@ -68,8 +68,21 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  void _msg(String txt) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(txt)));
+  void _msg(String txt, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          txt,
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   @override
