@@ -56,7 +56,7 @@ class _ShopListPageState extends State<ShopListPage>
 
     // 🔥 FIX: API returns { success, shops }
     final List all = res.where((shop) {
-      return shop["isApproved"] == true && shop["isDeleted"] != true;
+      return shop["status"] == "approved" && shop["isDeleted"] != true;
     }).toList();
 
     // ROLE BASED FILTER

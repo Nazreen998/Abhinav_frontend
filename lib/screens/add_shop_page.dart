@@ -241,6 +241,7 @@ class _AddShopPageState extends State<AddShopPage> {
         // ✅ Reset form instead of pop (avoid black screen)
         nameController.clear();
         addressController.clear();
+        selectedSegment == null;
         base64Image = null;
         imageFile = null;
         lat = null;

@@ -15,7 +15,7 @@ class PendingShopService {
   // GET PENDING SHOPS (MASTER / MANAGER)
   // -------------------------------------------------------
   Future<List<dynamic>> getPendingShops() async {
-    final url = Uri.parse("$base/shops/list");
+    final url = Uri.parse("$base/pending/list");
 
     final res = await http.get(url, headers: headers);
     print("RAW RESPONSE:");
