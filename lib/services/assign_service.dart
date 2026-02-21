@@ -16,6 +16,7 @@ class AssignService {
     required List<String> shopIds,
     required double lat,
     required double lng,
+    
   }) async {
     final body = {
       "salesmanId": userId.toString(),
