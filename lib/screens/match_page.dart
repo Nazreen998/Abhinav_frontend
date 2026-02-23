@@ -66,12 +66,13 @@ class _MatchPageState extends State<MatchPage> {
 
     distanceMeters = calcDistance(userLat!, userLng!, shopLat, shopLng);
     bool isMatch = distanceMeters! <= 50;
-
+    print("Distance sending: $distanceMeters");
     // 🔥 FINAL PAYLOAD (NO EXTRA FIELDS)
     final payload = {
       "shop_id": widget.shop["shop_id"], // ✅ ONLY shop_id
       "shop_name": widget.shop["shop_name"],
       "result": isMatch ? "match" : "mismatch",
+      "distance": distanceMeters,
     };
 
     await visitService.visitShop(payload);
