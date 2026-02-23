@@ -80,6 +80,6 @@ class ShopService {
       },
     );
 
-    return res.statusCode == 200;
-  }
+  return res.statusCode == 200;
+}
 }
