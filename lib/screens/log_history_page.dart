@@ -61,11 +61,10 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
       DateTime dt;
 
       try {
-        dt = DateTime.parse(l["createdAt"]);
+        dt = DateTime.parse(l["createdAt"]).toLocal();
       } catch (e) {
         dt = DateTime.now();
       }
-
       return {
         "shopName": l["shop_name"] ?? "",
         "salesman": l["salesmanName"] ?? "",
@@ -73,7 +72,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
         "result": l["result"] == "match",
         "distance": double.tryParse(l["distance"].toString()) ?? 0.0,
         "date": DateFormat("dd-MM-yyyy").format(dt),
-        "time": DateFormat("HH:mm").format(dt),
+        "time": DateFormat("hh:mm a").format(dt).toUpperCase(),
         "segment": l["segment"] ?? "",
       };
     }).toList();
