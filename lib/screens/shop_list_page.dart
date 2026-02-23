@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/shop_service.dart';
 import 'edit_shop_page.dart';
 import 'pending_shops_page.dart';
 
@@ -377,12 +378,16 @@ class _ShopListPageState extends State<ShopListPage>
                             ],
                           ),
                         );
-
-                        if (yes == true) {
-                          final ok = await ApiService.deleteShop(shop["_id"]);
-                          if (ok) loadShops();
+final shopId = shop["shop_id"]?.toString();
+if (shopId == null || shopId.isEmpty) {
+  print("❌ shop_id missing");
+  return;
+}
+final ok = await ShopService().deleteShop(shopId);
+print("DELETE OK? $ok");
+if (ok) {loadShops();
+}
                         }
-                      },
                     ),
                   ],
                 ),

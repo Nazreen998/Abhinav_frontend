@@ -71,14 +71,17 @@ Future<bool> approveShop(String id) async {
   // -----------------------------
   // DELETE SHOP
   // -----------------------------
-  Future<bool> deleteShop(String shopId) async {
-    final res = await http.delete(
-      Uri.parse("$base/shops/$shopId"),
-      headers: {
-        "Authorization": "Bearer ${AuthService.token}",
-      },
-    );
+Future<bool> deleteShop(String shopId) async {
+  final res = await http.delete(
+    Uri.parse("$base/shops/delete/$shopId"),
+    headers: {
+      "Authorization": "Bearer ${AuthService.token}",
+    },
+  );
 
-    return res.statusCode == 200;
-  }
+  print("DELETE STATUS: ${res.statusCode}");
+  print("DELETE BODY: ${res.body}");
+
+  return res.statusCode == 200;
+}
 }

@@ -112,15 +112,6 @@ class ApiService {
     );
     return jsonDecode(res.body)["success"] == true;
   }
-
-  static Future<bool> deleteShop(String id) async {
-    final res = await http.delete(
-      Uri.parse("$baseUrl/shops/$id"),
-      headers: headers,
-    );
-    return jsonDecode(res.body)["success"] == true;
-  }
-
   // --------------------------------------------------------
   // ASSIGNED SHOPS
   // --------------------------------------------------------
