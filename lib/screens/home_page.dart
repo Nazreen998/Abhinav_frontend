@@ -2,12 +2,11 @@
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'assigned_shops_screen.dart';
+
 import 'shop_list_page.dart';
 import 'pending_shops_page.dart';
 import 'user_list_page.dart';
-import 'assign_shop_page.dart';
-import 'next_shop_page.dart';
+
 import 'log_history_filter_page.dart';
 import 'add_shop_page.dart';
 
@@ -94,19 +93,6 @@ class _HomePageState extends State<HomePage>
         label: "Pending",
       ));
     }
-    if (isManager) {
-      pages.add(AssignedShopsScreen(user: widget.user));
-      navItems.add(const BottomNavigationBarItem(
-        icon: Tooltip(message: "Assigned Shops", child: Icon(Icons.list_alt)),
-        label: "Assigned",
-      ));
-
-      pages.add(const AssignShopPage());
-      navItems.add(const BottomNavigationBarItem(
-        icon: Tooltip(message: "Assign Shops", child: Icon(Icons.map)),
-        label: "Assign",
-      ));
-    }
 
     if (isMaster) {
       pages.add(const UserListPage());
@@ -121,12 +107,6 @@ class _HomePageState extends State<HomePage>
       navItems.add(const BottomNavigationBarItem(
         icon: Tooltip(message: "Add Shop", child: Icon(Icons.add_business)),
         label: "Add",
-      ));
-
-      pages.add(const NextShopPage());
-      navItems.add(const BottomNavigationBarItem(
-        icon: Tooltip(message: "Next Shop", child: Icon(Icons.directions_walk)),
-        label: "Next",
       ));
     }
 

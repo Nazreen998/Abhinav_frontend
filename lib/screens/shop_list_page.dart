@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'edit_shop_page.dart';
 import 'pending_shops_page.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'match_page.dart';
 
 class ShopListPage extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -46,24 +48,37 @@ class _ShopListPageState extends State<ShopListPage>
   }
 
   // ------------------------------------------------------
+  // openMaps
+  // ------------------------------------------------------
+  Future<void> openMaps(double lat, double lng) async {
+    final Uri url = Uri.parse(
+      "https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving",
+    );
+
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Could not open Google Maps")),
+      );
+    }
+  }
+
+  // ------------------------------------------------------
   // LOAD SHOPS (FIXED)
   // ------------------------------------------------------
   Future<void> loadShops() async {
     if (!mounted) return;
     setState(() => loading = true);
 
-    final res = await ApiService.getShops();
+    final List res = await ApiService.getShops();
 
-    // 🔥 FIX: API returns { success, shops }
-    final List all = res.where((shop) {
+    final approved = res.where((shop) {
       return shop["status"] == "approved" && shop["isDeleted"] != true;
     }).toList();
 
-    // ROLE BASED FILTER
     if (role == "master") {
-      filtered = all;
+      filtered = approved;
     } else {
-      filtered = all.where((shop) {
+      filtered = approved.where((shop) {
         final shopSeg = (shop["segment"] ?? "").toString().toLowerCase();
         return shopSeg == segment;
       }).toList();
@@ -240,179 +255,344 @@ class _ShopListPageState extends State<ShopListPage>
   // ------------------------------------------------------
   // SHOP CARD
   // ------------------------------------------------------
-  Widget buildShopCard(Map shop) {
-    final seg = shop["segment"].toString().toUpperCase();
+  Widget buildShopCard(Map<String, dynamic> shop) {
+    final double lat = double.tryParse(shop["lat"]?.toString() ?? "0") ?? 0;
+    final double lng = double.tryParse(shop["lng"]?.toString() ?? "0") ?? 0;
 
+    final seg = (shop["segment"] ?? "").toString().toUpperCase();
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 14,
             offset: const Offset(0, 8),
           )
         ],
         border: Border.all(
-          color: Colors.blue.withOpacity(0.08),
+          color: Colors.blue.withOpacity(0.06),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🔹 TOP ROW
+          // 🔹 SHOP NAME
+          Text(
+            shop["shopName"] ?? shop["shop_name"] ?? "",
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0D47A1),
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          // 🔹 ADDRESS + SEGMENT
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ⭐ Shop Icon Avatar
-              Container(
-                height: 52,
-                width: 52,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF002D62),
-                      Color(0xFF005BBB),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.store,
-                  color: Colors.white,
-                  size: 28,
-                ),
-              ),
-
-              const SizedBox(width: 14),
-
-              // Shop Name + Address
+              const Icon(Icons.location_on, size: 16, color: Colors.grey),
+              const SizedBox(width: 4),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      shop["shopName"] ?? shop["shop_name"] ?? "",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17,
-                        color: Color(0xFF0D47A1),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.location_on,
-                          size: 16,
-                          color: Colors.grey,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            shop["shopAddress"] ?? shop["address"] ?? "",
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Colors.black54,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                child: Text(
+                  shop["shopAddress"] ?? shop["address"] ?? "",
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black54,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-
-              // Actions
-              if (role == "master" || role == "manager")
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.edit,
-                        size: 20,
-                        color: Color(0xFF0D47A1),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => EditShopPage(shop: shop),
-                          ),
-                        ).then((refresh) {
-                          if (refresh == true) loadShops();
-                        });
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        size: 20,
-                        color: Colors.red,
-                      ),
-                      onPressed: () async {
-                        final yes = await showDialog(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                            title: const Text("Delete Shop?"),
-                            content: const Text(
-                                "Are you sure you want to delete this shop?"),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: const Text("Cancel"),
-                              ),
-                              ElevatedButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red),
-                                child: const Text("Delete"),
-                              ),
-                            ],
-                          ),
-                        );
-
-                        if (yes == true) {
-                          final ok = await ApiService.deleteShop(shop["_id"]);
-                          if (ok) loadShops();
-                        }
-                      },
-                    ),
-                  ],
-                ),
-            ],
-          ),
-
-          const SizedBox(height: 14),
-
-          // 🔹 Segment Badge + Divider Row
-          Row(
-            children: [
+              const SizedBox(width: 8),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.12),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF005BBB), Color(0xFF003F8C)],
+                  ),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   seg,
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0D47A1),
+                    color: Colors.white,
                   ),
                 ),
               ),
-              const Spacer(),
             ],
           ),
+
+          const SizedBox(height: 12),
+
+          // 🔹 LAT / LNG
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F7FC),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.blue.withOpacity(0.08),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.my_location,
+                    size: 16, color: Color(0xFF005BBB)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Lat: ${lat.toStringAsFixed(6)}",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 14,
+                  color: Colors.grey.shade300,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Lng: ${lng.toStringAsFixed(6)}",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // 🔹 SALESMAN BUTTONS
+          if (role == "salesman") ...[
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => openMaps(lat, lng),
+                    icon: const Icon(Icons.map_outlined, size: 18),
+                    label: const Text(
+                      "Maps",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF005BBB),
+                      side: BorderSide(
+                        color: const Color(0xFF005BBB).withOpacity(0.4),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // ✅ MATCH BUTTON (Main Premium CTA)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MatchPage(shop: shop),
+                        ),
+                      );
+
+                      // ✅ Always refresh after returning
+                      await loadShops();
+                    },
+                    icon: const Icon(
+                      Icons.verified,
+                      size: 18,
+                      color: Colors.amber,
+                    ),
+                    label: const Text(
+                      "Match",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      elevation: 4,
+                      shadowColor: Colors.black26,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+
+          // 🔹 MASTER / MANAGER FOOTER
+          // 🔹 MASTER / MANAGER FOOTER (Enhanced UI)
+          if (role == "master" || role == "manager") ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                // 👤 Created By (Styled)
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.person,
+                          size: 14,
+                          color: Colors.black54,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          shop["createdByUserName"] ?? "Unknown",
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // ✏️ Edit (Soft Button Style)
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D47A1).withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.edit,
+                      size: 18,
+                      color: Color(0xFF0D47A1),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EditShopPage(shop: shop),
+                        ),
+                      ).then((refresh) {
+                        if (refresh == true) loadShops();
+                      });
+                    },
+                  ),
+                ),
+
+                const SizedBox(width: 6),
+
+                // 🗑 Delete (Soft Red)
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: Colors.red,
+                    ),
+                    onPressed: () async {
+                      final yes = await showDialog(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          title: const Text("Delete Shop?"),
+                          content: const Text(
+                              "Are you sure you want to delete this shop?"),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text("Cancel"),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red),
+                              child: const Text("Delete"),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (yes == true) {
+                        final id = shop["shop_id"]?.toString();
+
+                        if (id == null || id.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text("Shop ID missing"),
+                              backgroundColor: Colors.orange,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          return;
+                        }
+
+                        final ok = await ApiService.deleteShop(id);
+
+                        if (ok) {
+                          loadShops();
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text("Shop deleted successfully"),
+                              backgroundColor: Colors.green,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text("Failed to delete shop"),
+                              backgroundColor: Colors.red,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

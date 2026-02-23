@@ -42,6 +42,11 @@ class AuthService {
       );
 
       final data = jsonDecode(res.body);
+      print("LOGIN FULL RESPONSE: $data");
+      print("LOGIN USER: ${data["user"]}");
+      print("LOGIN ROLE: ${data["user"]?["role"]}");
+      print("LOGIN SEGMENT: ${data["user"]?["segment"]}");
+      print("LOGIN TOKEN: ${data["token"]}");
 
       // ❌ Login failed
       if (data["success"] != true) {

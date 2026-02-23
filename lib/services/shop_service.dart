@@ -6,11 +6,10 @@ import '../models/shop_model.dart';
 import '../services/auth_service.dart';
 
 class ShopService {
-  static const String base =
-      "https://abhinav-backend.onrender.com/api";
+  static const String base = "https://abhinav-backend.onrender.com/api";
 
   // ✅ FIXED ROUTE
- String get shopBaseUrl => "$base/shops/list";
+  String get shopBaseUrl => "$base/shops/list";
 
   // -----------------------------
   // GET SHOPS
@@ -37,17 +36,19 @@ class ShopService {
 
     return list.map<ShopModel>((e) => ShopModel.fromJson(e)).toList();
   }
-//------------Approval shop ---------
-Future<bool> approveShop(String id) async {
-  final res = await http.put(
-    Uri.parse("$base/shops/approve/$id"),
-    headers: {
-      "Authorization": "Bearer ${AuthService.token}",
-    },
-  );
 
-  return res.statusCode == 200;
-}
+//------------Approval shop ---------
+  Future<bool> approveShop(String id) async {
+    final res = await http.put(
+      Uri.parse("$base/shops/approve/$id"),
+      headers: {
+        "Authorization": "Bearer ${AuthService.token}",
+      },
+    );
+
+    return res.statusCode == 200;
+  }
+
   // -----------------------------
   // UPDATE SHOP
   // -----------------------------
@@ -59,10 +60,10 @@ Future<bool> approveShop(String id) async {
         "Content-Type": "application/json",
       },
       body: jsonEncode({
-  "shop_name": data["shop_name"],
-  "address": data["address"],
-  "segment": data["segment"],
-}),
+        "shop_name": data["shop_name"],
+        "address": data["address"],
+        "segment": data["segment"],
+      }),
     );
 
     return res.statusCode == 200;
@@ -73,7 +74,7 @@ Future<bool> approveShop(String id) async {
   // -----------------------------
   Future<bool> deleteShop(String shopId) async {
     final res = await http.delete(
-      Uri.parse("$base/shops/$shopId"),
+      Uri.parse("$base/shops/delete/$shopId"),
       headers: {
         "Authorization": "Bearer ${AuthService.token}",
       },

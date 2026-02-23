@@ -356,7 +356,7 @@ class _NextShopPageState extends State<NextShopPage> {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () async {
-                    final result = await Navigator.push(
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => MatchPage(shop: s),
