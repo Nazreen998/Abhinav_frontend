@@ -47,9 +47,7 @@ class _EditShopPageState extends State<EditShopPage> {
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 20),
-
             TextField(
               controller: addrCtrl,
               decoration: const InputDecoration(
@@ -57,9 +55,7 @@ class _EditShopPageState extends State<EditShopPage> {
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 20),
-
             DropdownButtonFormField(
               value: segment,
               items: ["FMCG", "PIPES"]
@@ -71,14 +67,13 @@ class _EditShopPageState extends State<EditShopPage> {
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 30),
-
             ElevatedButton(
               onPressed: saveShop,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 40),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 40),
               ),
               child: const Text(
                 "Save Changes",
@@ -93,7 +88,7 @@ class _EditShopPageState extends State<EditShopPage> {
 
   Future<void> saveShop() async {
     final updated = {
-      "shop_id": widget.shop["shop_id"],  // REAL ID
+      "shop_id": widget.shop["shop_id"], // REAL ID
       "shop_name": nameCtrl.text.trim(),
       "address": addrCtrl.text.trim(),
       "segment": segment.toLowerCase(),
@@ -104,10 +99,19 @@ class _EditShopPageState extends State<EditShopPage> {
     if (!mounted) return;
 
     if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Shop updated successfully ✅"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 800));
       Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Shop update failed")),
+        const SnackBar(
+            content: Text("Shop update failed"), backgroundColor: Colors.red),
       );
     }
   }
