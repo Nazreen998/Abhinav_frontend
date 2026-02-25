@@ -7,6 +7,9 @@ import 'edit_shop_page.dart';
 import 'pending_shops_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'match_page.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
+import 'dart:io';
 
 class ShopListPage extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -46,6 +49,64 @@ class _ShopListPageState extends State<ShopListPage>
     fadeAnim = CurvedAnimation(parent: controller, curve: Curves.easeIn);
 
     loadShops();
+  }
+
+  Future<void> showImageUploadDialog(Map<String, dynamic> shop) async {
+    final ImagePicker picker = ImagePicker();
+    String? base64Image;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Upload Shop Image"),
+          content: const Text("Select image to upload."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final XFile? pickedFile =
+                    await picker.pickImage(source: ImageSource.gallery);
+
+                if (pickedFile == null) return;
+
+                final bytes = await File(pickedFile.path).readAsBytes();
+
+                base64Image = base64Encode(bytes);
+
+                final ok = await ApiService.updateShopImage(
+                  shop["shop_id"],
+                  base64Image!,
+                );
+
+                if (ok) {
+                  Navigator.pop(context);
+                  await loadShops();
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Image uploaded successfully"),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Upload failed"),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text("Upload"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // ------------------------------------------------------
@@ -259,8 +320,11 @@ class _ShopListPageState extends State<ShopListPage>
   Widget buildShopCard(Map<String, dynamic> shop) {
     final double lat = double.tryParse(shop["lat"]?.toString() ?? "0") ?? 0;
     final double lng = double.tryParse(shop["lng"]?.toString() ?? "0") ?? 0;
-
     final seg = (shop["segment"] ?? "").toString().toUpperCase();
+
+    final String imageUrl = (shop["shopImage"] ?? "").toString();
+    final bool imageEmpty = imageUrl.isEmpty;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.all(18),
@@ -281,6 +345,59 @@ class _ShopListPageState extends State<ShopListPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 🔹 SHOP IMAGE
+          Stack(
+            children: [
+              ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: imageEmpty
+                      ? Container(
+                          height: 160,
+                          width: double.infinity,
+                          color: Colors.grey.shade200,
+                          child: const Center(
+                            child:
+                                Icon(Icons.store, size: 40, color: Colors.grey),
+                          ),
+                        )
+                      : Image.memory(
+                          base64Decode(imageUrl),
+                          height: 160,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        )),
+
+              // 🔥 ADD BADGE (only salesman + image empty)
+              if (role == "salesman" && imageEmpty)
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: GestureDetector(
+                    onTap: () => showImageUploadDialog(shop),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 6,
+                          )
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.add,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
           // 🔹 SHOP NAME
           Text(
             shop["shopName"] ?? shop["shop_name"] ?? "",

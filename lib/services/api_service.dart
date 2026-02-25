@@ -309,4 +309,20 @@ class ApiService {
 
     return res.statusCode == 200;
   }
+
+// ================= Update shop image =================
+  static Future<bool> updateShopImage(String id, String base64Image) async {
+    final res = await http.put(
+      Uri.parse("$baseUrl/shops/update-image/$id"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${auth.AuthService.token}",
+      },
+      body: jsonEncode({
+        "shopImage": base64Image,
+      }),
+    );
+
+    return res.statusCode == 200;
+  }
 }
