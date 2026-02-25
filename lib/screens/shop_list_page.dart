@@ -345,111 +345,114 @@ class _ShopListPageState extends State<ShopListPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🔹 SHOP IMAGE
-          Stack(
-            children: [
-              ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: imageEmpty
-                      ? Container(
-                          height: 160,
-                          width: double.infinity,
-                          color: Colors.grey.shade200,
-                          child: const Center(
-                            child:
-                                Icon(Icons.store, size: 40, color: Colors.grey),
-                          ),
-                        )
-                      : Image.memory(
-                          base64Decode(imageUrl),
-                          height: 160,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        )),
-
-              // 🔥 ADD BADGE (only salesman + image empty)
-              if (role == "salesman" && imageEmpty)
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: GestureDetector(
-                    onTap: () => showImageUploadDialog(shop),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 6,
-                          )
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        size: 18,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-          // 🔹 SHOP NAME
-          Text(
-            shop["shopName"] ?? shop["shop_name"] ?? "",
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0D47A1),
-            ),
-          ),
-
-          const SizedBox(height: 6),
-
-          // 🔹 ADDRESS + SEGMENT
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.location_on, size: 16, color: Colors.grey),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  shop["shopAddress"] ?? shop["address"] ?? "",
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.black54,
+              // 🔹 THUMBNAIL IMAGE
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: imageEmpty
+                        ? Container(
+                            height: 75,
+                            width: 75,
+                            color: Colors.grey.shade200,
+                            child: const Icon(
+                              Icons.store,
+                              size: 28,
+                              color: Colors.grey,
+                            ),
+                          )
+                        : Image.memory(
+                            base64Decode(imageUrl),
+                            height: 75,
+                            width: 75,
+                            fit: BoxFit.cover,
+                          ),
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                  if (role == "salesman" && imageEmpty)
+                    Positioned(
+                      bottom: -2,
+                      right: -2,
+                      child: GestureDetector(
+                        onTap: () => showImageUploadDialog(shop),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(
+                            Icons.add,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF005BBB), Color(0xFF003F8C)],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  seg,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+
+              const SizedBox(width: 14),
+
+              // 🔹 SHOP DETAILS
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      shop["shopName"] ?? shop["shop_name"] ?? "",
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0D47A1),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on,
+                            size: 14, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            shop["shopAddress"] ?? shop["address"] ?? "",
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.black54,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF005BBB).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        seg,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF005BBB),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
           // 🔹 LAT / LNG
           Container(
