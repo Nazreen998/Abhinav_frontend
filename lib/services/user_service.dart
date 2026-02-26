@@ -36,73 +36,81 @@ class UserService {
   // ADD USER
   Future<bool> addUser(UserModel user) async {
     try {
+      print("🔑 TOKEN: ${AuthService.token}");
+      final body = jsonEncode(user.toJson());
+
+      print("📤 SENDING DATA: $body");
+
       final res = await http.post(
         Uri.parse("$baseUrl/add"),
         headers: headers,
-        body: jsonEncode(user.toJson()),
+        body: body,
       );
+
+      print("🔵 STATUS CODE: ${res.statusCode}");
+      print("🔵 RAW RESPONSE: ${res.body}");
 
       final data = jsonDecode(res.body);
       return data["success"] == true;
     } catch (e) {
+      print("🔥 FRONTEND ERROR: $e");
       return false;
     }
   }
 
   // UPDATE USER
-Future<bool> updateUser(UserModel user) async {
-  try {
-    final url = Uri.parse("$baseUrl/${user.userId}");
-    print("UPDATE USER URL => $url");
+  Future<bool> updateUser(UserModel user) async {
+    try {
+      final url = Uri.parse("$baseUrl/${user.userId}");
+      print("UPDATE USER URL => $url");
 
-    final body = {
-      "name": user.name,
-      "mobile": user.mobile,
-      "role": user.role,
-      "segment": user.segment,
-      "password": user.password,
-    };
+      final body = {
+        "name": user.name,
+        "mobile": user.mobile,
+        "role": user.role,
+        "segment": user.segment,
+        "password": user.password,
+      };
 
-    print("UPDATE USER BODY => $body");
+      print("UPDATE USER BODY => $body");
 
-    final res = await http.put(
-      url,
-      headers: headers,
-      body: jsonEncode(body),
-    );
+      final res = await http.put(
+        url,
+        headers: headers,
+        body: jsonEncode(body),
+      );
 
-    print("UPDATE USER STATUS => ${res.statusCode}");
-    print("UPDATE USER RESPONSE => ${res.body}");
+      print("UPDATE USER STATUS => ${res.statusCode}");
+      print("UPDATE USER RESPONSE => ${res.body}");
 
-    if (res.statusCode != 200) return false;
+      if (res.statusCode != 200) return false;
 
-    final data = jsonDecode(res.body);
-    return data["success"] == true;
-
-  } catch (e) {
-    print("UPDATE USER ERROR => $e");
-    return false;
+      final data = jsonDecode(res.body);
+      return data["success"] == true;
+    } catch (e) {
+      print("UPDATE USER ERROR => $e");
+      return false;
+    }
   }
-}
 
   // DELETE USER
-Future<bool> deleteUser(String userId) async {
-  try {
-    final url = Uri.parse("$baseUrl/$userId");
-    print("DELETE URL => $url");
+  Future<bool> deleteUser(String userId) async {
+    try {
+      final url = Uri.parse("$baseUrl/$userId");
+      print("DELETE URL => $url");
 
-    final res = await http.delete(url, headers: headers);
+      final res = await http.delete(url, headers: headers);
 
-    print("DELETE STATUS => ${res.statusCode}");
-    print("DELETE RESPONSE => ${res.body}");
+      print("DELETE STATUS => ${res.statusCode}");
+      print("DELETE RESPONSE => ${res.body}");
 
-    if (res.statusCode != 200) return false;
+      if (res.statusCode != 200) return false;
 
-    final data = jsonDecode(res.body);
-    return data["success"] == true;
-  } catch (e) {
-    print("DELETE ERROR => $e");
-    return false;
+      final data = jsonDecode(res.body);
+      return data["success"] == true;
+    } catch (e) {
+      print("DELETE ERROR => $e");
+      return false;
+    }
   }
-}
 }
