@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'home_page.dart';
+import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -124,7 +125,32 @@ class _LoginPageState extends State<LoginPage>
                 ],
               ),
             ),
-
+            Positioned(
+              top: 50,
+              right: 20,
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RegisterPage()),
+                  );
+                },
+                child: Column(
+                  children: const [
+                    Icon(Icons.app_registration, color: Colors.white, size: 28),
+                    SizedBox(height: 4),
+                    Text(
+                      "Register",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ),
             // ⚪ FLOATING CARD
             Container(
               margin: EdgeInsets.only(

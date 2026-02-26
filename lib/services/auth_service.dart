@@ -95,4 +95,28 @@ class AuthService {
         "Content-Type": "application/json",
         if (token != null) "Authorization": "Bearer $token",
       };
+
+  static Future<Map<String, dynamic>> registerMaster(
+    String companyName,
+    String name,
+    String mobile,
+    String password,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseApi/register-master"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "companyName": companyName,
+          "name": name,
+          "mobile": mobile,
+          "password": password,
+        }),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {"success": false, "message": e.toString()};
+    }
+  }
 }
