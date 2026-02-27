@@ -19,7 +19,7 @@ class UserService {
   Future<List<UserModel>> getUsers() async {
     try {
       final res = await http.get(
-        Uri.parse(baseUrl), // ✅ correct
+        Uri.parse("$baseUrl/list"), // ✅ correct
         headers: headers,
       );
 
