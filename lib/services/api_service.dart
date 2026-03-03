@@ -51,7 +51,7 @@ class ApiService {
   // --------------------------------------------------------
   static Future<List<dynamic>> getUsers() async {
     final res = await http.get(
-       Uri.parse("$baseUrl/users/"),
+      Uri.parse("$baseUrl/users/"),
       headers: headers,
     );
     if (res.statusCode != 200) return [];
@@ -69,7 +69,7 @@ class ApiService {
 
   static Future<bool> updateUser(String id, Map<String, dynamic> data) async {
     final res = await http.put(
-       Uri.parse("$baseUrl/users/$id"),
+      Uri.parse("$baseUrl/users/$id"),
       headers: headers,
       body: jsonEncode(data),
     );
@@ -324,5 +324,24 @@ class ApiService {
     );
 
     return res.statusCode == 200;
+  }
+
+  static Future<bool> deleteVisit(String pk, String sk) async {
+    try {
+      final response = await http.delete(
+        Uri.parse("$baseUrl/visit/delete"),
+        headers: headers,
+        body: jsonEncode({
+          "pk": pk,
+          "sk": sk,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      return data["success"] == true;
+    } catch (e) {
+      print("❌ DELETE ERROR => $e");
+      return false;
+    }
   }
 }
