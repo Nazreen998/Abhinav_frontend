@@ -69,14 +69,19 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
       }
       return {
         "shopName": l["shop_name"] ?? "",
-        "salesman": l["salesmanName"] ?? "",
+       "salesman": l["salesmanName"] ??
+    (widget.user["role"].toString().toLowerCase() == "salesman"
+        ? widget.user["name"]
+        : l["salesmanName"] ?? ""),
         "photoUrl": l["photo_url"] ?? "",
         "result": l["result"] == "match",
         "distance": double.tryParse(l["distance"].toString()) ?? 0.0,
         "date": DateFormat("dd-MM-yyyy").format(dt),
         "time": DateFormat("hh:mm a").format(dt).toUpperCase(),
         "segment": l["segment"] ?? "",
-        "duration": l["durationSec"] ?? 0,  
+        "duration": (l["durationSec"] != null)
+    ? (l["durationSec"] as num).toDouble()
+    : 0.0,
       };
     }).toList();
 
