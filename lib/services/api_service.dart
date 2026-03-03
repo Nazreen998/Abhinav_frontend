@@ -326,6 +326,7 @@ class ApiService {
     return res.statusCode == 200;
   }
 
+// ================= delete logs by master/manager=================
   static Future<bool> deleteVisit(String pk, String sk) async {
     try {
       final response = await http.delete(
@@ -342,6 +343,37 @@ class ApiService {
     } catch (e) {
       print("❌ DELETE ERROR => $e");
       return false;
+    }
+  }
+
+// ================= Report for master/manager =================
+  static Future<Map<String, dynamic>?> getDashboardReport(
+      String startDate, String endDate) async {
+    try {
+      final uri = Uri.https(
+        "abhinav-backend.onrender.com",
+        "/api/history/reports/dashboard",
+        {
+          "startDate": startDate,
+          "endDate": endDate,
+        },
+      );
+
+      print("FINAL URI => $uri");
+
+      final response = await http.get(uri, headers: headers);
+
+      print("STATUS => ${response.statusCode}");
+      print("BODY => ${response.body}");
+
+      if (response.statusCode != 200) return null;
+
+      final data = jsonDecode(response.body);
+
+      return data["success"] == true ? data : null;
+    } catch (e) {
+      print("Dashboard API Error => $e");
+      return null;
     }
   }
 }
