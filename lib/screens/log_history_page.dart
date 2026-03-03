@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print, deprecated_member_use, unused_local_variable
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -66,8 +68,6 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
         dt = DateTime.now();
       }
       return {
-        "pk": l["pk"],
-        "sk": l["sk"],
         "shopName": l["shop_name"] ?? "",
         "salesman": l["salesmanName"] ?? "",
         "photoUrl": l["photo_url"] ?? "",
@@ -76,6 +76,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
         "date": DateFormat("dd-MM-yyyy").format(dt),
         "time": DateFormat("hh:mm a").format(dt).toUpperCase(),
         "segment": l["segment"] ?? "",
+        "duration": l["durationSec"] ?? 0,  
       };
     }).toList();
 
@@ -164,45 +165,6 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
   }
 
   // --------------------------------------------------------------------
-  // DELETE VISIT (BY pk & sk)
-  // --------------------------------------------------------------------
-  Future<void> confirmDelete(dynamic log) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Delete Visit"),
-        content: const Text("Are you sure you want to hide this visit?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text("Delete"),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      bool success = await ApiService.deleteVisit(log["pk"], log["sk"]);
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Visit hidden successfully")),
-        );
-
-        loadLogs(); // 🔄 Refresh list
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Delete failed")),
-        );
-      }
-    }
-  }
-  // --------------------------------------------------------------------
   // UI STARTS
   // --------------------------------------------------------------------
 
@@ -210,6 +172,8 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
   Widget build(BuildContext context) {
     final matched = logs.where((l) => l["result"] == true).length;
     final mismatched = logs.where((l) => l["result"] == false).length;
+    final totalDuration = logs.fold<double>(
+ 0, (sum, l) => sum + ((l["duration"] ?? 0) as num).toDouble(),);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8FC),
@@ -296,8 +260,35 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                           ),
                         ],
                       ),
+                      // 🔥 TOTAL DURATION SUMMARY
+
                       child: Column(
                         children: [
+                          
+const SizedBox(height: 18),
+                          Container(
+  padding: const EdgeInsets.all(12),
+  decoration: BoxDecoration(
+    color: const Color(0xFFE3ECF7),
+    borderRadius: BorderRadius.circular(16),
+  ),
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      const Text(
+        "Total Call Duration",
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      Text(
+        "${(totalDuration / 60).toStringAsFixed(2)} mins",
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Colors.blue,
+        ),
+      ),
+    ],
+  ),
+),
                           // 🔍 PREMIUM SEARCH BAR
                           buildSearchBar(),
 
@@ -397,153 +388,117 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
       itemBuilder: (_, i) {
         final log = result[i];
         final isMatch = log["result"] == true;
-        final role = widget.user["role"].toString().toLowerCase();
-        final canDelete = role == "master" || role == "manager";
-        return Stack(
-          children: [
-            Container(
-              margin: const EdgeInsets.only(bottom: 14),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-                border: Border.all(
-                  color: Colors.blue.withOpacity(0.06),
-                ),
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // IMAGE
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => FullNetworkImagePage(
-                            imageUrl: log["photoUrl"],
-                          ),
-                        ),
-                      );
-                    },
-                    child: CircleAvatar(
-                      radius: 26,
-                      backgroundColor: const Color(0xFFF4F7FC),
-                      backgroundImage: log["photoUrl"] != ""
-                          ? NetworkImage(log["photoUrl"])
-                          : null,
-                      child: log["photoUrl"] == ""
-                          ? const Icon(Icons.photo, color: Colors.black54)
-                          : null,
+            ],
+            border: Border.all(
+              color: Colors.blue.withOpacity(0.06),
+            ),
+          ),
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+
+            // ✅ IMAGE
+            leading: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => FullNetworkImagePage(
+                      imageUrl: log["photoUrl"],
                     ),
                   ),
-
-                  const SizedBox(width: 12),
-
-                  // CONTENT
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 🔥 SHOP NAME + DELETE
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                log["shopName"],
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ),
-                            if (canDelete)
-                              InkWell(
-                                onTap: () => confirmDelete(log),
-                                borderRadius: BorderRadius.circular(8),
-                                child: const Padding(
-                                  padding: EdgeInsets.all(4),
-                                  child: Icon(
-                                    Icons.delete_outline,
-                                    size: 18,
-                                    color: Colors.red,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 4),
-
-                        // MATCH / MISMATCH
-                        Text(
-                          isMatch ? "MATCH" : "MISMATCH",
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: isMatch ? Colors.green : Colors.red,
-                          ),
-                        ),
-
-                        const SizedBox(height: 6),
-
-                        // DATE
-                        Text(
-                          "${log["date"]} @ ${log["time"]}",
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.black54,
-                          ),
-                        ),
-
-                        const SizedBox(height: 6),
-
-                        // SALESMAN + DISTANCE
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                "Salesman: ${log["salesman"]}",
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF4F7FC),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                "${log["distance"].toStringAsFixed(1)} m",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: Color(0xFF002D62),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                );
+              },
+              child: CircleAvatar(
+                radius: 26,
+                backgroundColor: const Color(0xFFF4F7FC),
+                backgroundImage: log["photoUrl"] != ""
+                    ? NetworkImage(log["photoUrl"])
+                    : null,
+                child: log["photoUrl"] == ""
+                    ? const Icon(Icons.photo, color: Colors.black54)
+                    : null,
               ),
             ),
-          ],
+
+            // ✅ TITLE
+            title: Text(
+              "${log["shopName"]} (${isMatch ? "MATCH" : "MISMATCH"})",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: isMatch ? Colors.green : Colors.red,
+              ),
+            ),
+
+            // ✅ SUBTITLE WITH SPACING FIX
+            subtitle: Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    const SizedBox(height: 4),
+
+    Text(
+      "${log["date"]} @ ${log["time"]}",
+      style: const TextStyle(
+        fontSize: 13,
+        color: Colors.black54,
+      ),
+    ),
+
+    const SizedBox(height: 4),
+
+    Text(
+      "Salesman: ${log["salesman"]}",
+      style: const TextStyle(
+        fontSize: 13,
+        color: Colors.black54,
+      ),
+    ),
+
+    const SizedBox(height: 4),
+
+    Text(
+      "Duration: ${((log["duration"] ?? 0) / 60).toStringAsFixed(2)} mins",
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: Colors.blue,
+      ),
+    ),
+  ],
+),
+            // ✅ DISTANCE BADGE
+            trailing: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F7FC),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Text(
+                "${log["distance"].toStringAsFixed(1)} m",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: Color(0xFF002D62),
+                ),
+              ),
+            ),
+          ),
         );
       },
     );
