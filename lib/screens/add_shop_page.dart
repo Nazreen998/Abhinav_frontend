@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
 import 'dart:convert';
 import 'dart:io';
@@ -30,7 +30,9 @@ class AddShopPage extends StatefulWidget {
 class _AddShopPageState extends State<AddShopPage> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
-
+  final TextEditingController primaryPhoneController = TextEditingController();
+  final TextEditingController secondaryPhoneController = TextEditingController();
+  String? selectedShopType;
   String? selectedSegment;
   File? imageFile;
   String? base64Image;
@@ -189,6 +191,8 @@ class _AddShopPageState extends State<AddShopPage> {
     if (selectedSegment == null) return _error("Select segment");
     if (base64Image == null) return _error("Select a photo");
     if (lat == null || lng == null) return _error("Location not detected");
+    if (primaryPhoneController.text.isEmpty) {return _error("Enter primary phone");}
+    if (selectedShopType == null) { return _error("Select shop type");}
 
     // ================= TOKEN CHECK (🔥 MAIN FIX) =================
     if (AuthService.token == null) {
@@ -203,6 +207,9 @@ class _AddShopPageState extends State<AddShopPage> {
       "lng": lng,
       "segment": selectedSegment,
       "shopImage": base64Image,
+      "primaryPhone": primaryPhoneController.text.trim(),
+      "secondaryPhone": secondaryPhoneController.text.trim(),
+      "shopType": selectedShopType,
     };
 
     setState(() => loading = true);
@@ -360,7 +367,47 @@ class _AddShopPageState extends State<AddShopPage> {
                             controller: addressController,
                             decoration: inputDecor("Address"),
                           ),
+const SizedBox(height: 18),
 
+TextField(
+  controller: primaryPhoneController,
+  keyboardType: TextInputType.phone,
+  decoration: inputDecor("Primary Phone"),
+),
+
+const SizedBox(height: 18),
+
+TextField(
+  controller: secondaryPhoneController,
+  keyboardType: TextInputType.phone,
+  decoration: inputDecor("Secondary Phone (Optional)"),
+),
+
+const SizedBox(height: 18),
+
+DropdownButtonFormField<String>(
+  value: selectedShopType,
+  decoration: inputDecor("Shop Type"),
+  items: const [
+    DropdownMenuItem(
+      value: "office",
+      child: Text("Office"),
+    ),
+    DropdownMenuItem(
+      value: "warehouse",
+      child: Text("Warehouse"),
+    ),
+    DropdownMenuItem(
+      value: "godown",
+      child: Text("Godown"),
+    ),
+  ],
+  onChanged: (value) {
+    setState(() {
+      selectedShopType = value;
+    });
+  },
+),
 // ✅ ACTION SECTION CARD (Makes buttons not feel alone)
                           const SizedBox(height: 18),
 
