@@ -79,9 +79,13 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
         "date": DateFormat("dd-MM-yyyy").format(dt),
         "time": DateFormat("hh:mm a").format(dt).toUpperCase(),
         "segment": l["segment"] ?? "",
+<<<<<<< HEAD
         "duration": (l["durationSec"] != null)
     ? (l["durationSec"] as num).toDouble()
     : 0.0,
+=======
+        "duration": l["durationSec"] ?? 0,
+>>>>>>> 8f4e99692703d828d0e60b55d512d5e9a49e7281
       };
     }).toList();
 
@@ -178,7 +182,9 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     final matched = logs.where((l) => l["result"] == true).length;
     final mismatched = logs.where((l) => l["result"] == false).length;
     final totalDuration = logs.fold<double>(
- 0, (sum, l) => sum + ((l["duration"] ?? 0) as num).toDouble(),);
+      0,
+      (sum, l) => sum + ((l["duration"] ?? 0) as num).toDouble(),
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8FC),
@@ -269,40 +275,34 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
 
                       child: Column(
                         children: [
-                          
-const SizedBox(height: 18),
+                          const SizedBox(height: 18),
                           Container(
-  padding: const EdgeInsets.all(12),
-  decoration: BoxDecoration(
-    color: const Color(0xFFE3ECF7),
-    borderRadius: BorderRadius.circular(16),
-  ),
-  child: Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      const Text(
-        "Total Call Duration",
-        style: TextStyle(fontWeight: FontWeight.bold),
-      ),
-      Text(
-        "${(totalDuration / 60).toStringAsFixed(2)} mins",
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          color: Colors.blue,
-        ),
-      ),
-    ],
-  ),
-),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE3ECF7),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  "Total Call Duration",
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  "${(totalDuration / 60).toStringAsFixed(2)} mins",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           // 🔍 PREMIUM SEARCH BAR
                           buildSearchBar(),
 
-                          const SizedBox(height: 18),
-
-                          // 📊 PREMIUM PIE CHART
-                          buildPieChart(matched, mismatched),
-
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 20),
 
                           // ✅ LOG LIST
                           Expanded(child: buildList()),
@@ -330,50 +330,6 @@ const SizedBox(height: 18),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
-        ),
-      ),
-    );
-  }
-
-  Widget buildPieChart(int match, int mismatch) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F7FC),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.blue.withOpacity(0.10),
-        ),
-      ),
-      child: SizedBox(
-        height: 210,
-        child: PieChart(
-          PieChartData(
-            centerSpaceRadius: 50,
-            sectionsSpace: 4,
-            sections: [
-              PieChartSectionData(
-                color: Colors.green,
-                value: match.toDouble(),
-                title: "Match\n$match",
-                radius: 65,
-                titleStyle: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              PieChartSectionData(
-                color: Colors.red,
-                value: mismatch.toDouble(),
-                title: "Mismatch\n$mismatch",
-                radius: 65,
-                titleStyle: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -450,40 +406,35 @@ const SizedBox(height: 18),
 
             // ✅ SUBTITLE WITH SPACING FIX
             subtitle: Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    const SizedBox(height: 4),
-
-    Text(
-      "${log["date"]} @ ${log["time"]}",
-      style: const TextStyle(
-        fontSize: 13,
-        color: Colors.black54,
-      ),
-    ),
-
-    const SizedBox(height: 4),
-
-    Text(
-      "Salesman: ${log["salesman"]}",
-      style: const TextStyle(
-        fontSize: 13,
-        color: Colors.black54,
-      ),
-    ),
-
-    const SizedBox(height: 4),
-
-    Text(
-      "Duration: ${((log["duration"] ?? 0) / 60).toStringAsFixed(2)} mins",
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: Colors.blue,
-      ),
-    ),
-  ],
-),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                Text(
+                  "${log["date"]} @ ${log["time"]}",
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Salesman: ${log["salesman"]}",
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Duration: ${((log["duration"] ?? 0) / 60).toStringAsFixed(2)} mins",
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue,
+                  ),
+                ),
+              ],
+            ),
             // ✅ DISTANCE BADGE
             trailing: Container(
               padding: const EdgeInsets.symmetric(

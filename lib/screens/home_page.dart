@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use, unused_local_variable, prefer_const_constructors
 
+import 'package:abhinav_tracking/screens/report_page.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 
@@ -67,21 +68,31 @@ class _HomePageState extends State<HomePage>
     final bool isManager = role == "manager";
     final bool isSalesman = role == "salesman";
 
-    List<Widget> pages = [
-      LogHistoryFilterPage(user: widget.user),
-      ShopListPage(user: widget.user),
-    ];
+    List<Widget> pages = [];
+    List<BottomNavigationBarItem> navItems = [];
 
-    List<BottomNavigationBarItem> navItems = [
-      const BottomNavigationBarItem(
-        icon: Tooltip(message: "History Log", child: Icon(Icons.history)),
-        label: "History",
-      ),
-      const BottomNavigationBarItem(
-        icon: Tooltip(message: "Shop List", child: Icon(Icons.store)),
-        label: "Shops",
-      ),
-    ];
+// ✅ Dashboard for Master & Manager
+    if (isMaster || isManager) {
+      pages.add(DashboardPage(user: widget.user));
+      navItems.add(const BottomNavigationBarItem(
+        icon: Tooltip(message: "Dashboard", child: Icon(Icons.dashboard)),
+        label: "Dashboard",
+      ));
+    }
+
+// History
+    pages.add(LogHistoryFilterPage(user: widget.user));
+    navItems.add(const BottomNavigationBarItem(
+      icon: Tooltip(message: "History Log", child: Icon(Icons.history)),
+      label: "History",
+    ));
+
+// Shops
+    pages.add(ShopListPage(user: widget.user));
+    navItems.add(const BottomNavigationBarItem(
+      icon: Tooltip(message: "Shop List", child: Icon(Icons.store)),
+      label: "Shops",
+    ));
     if (isMaster || isManager) {
       pages.add(PendingShopsPage(
         user: widget.user,
