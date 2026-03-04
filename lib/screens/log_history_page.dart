@@ -1,7 +1,6 @@
 // ignore_for_file: avoid_print, deprecated_member_use, unused_local_variable
 
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import 'full_network_image_page.dart';
