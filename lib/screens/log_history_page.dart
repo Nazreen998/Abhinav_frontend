@@ -79,13 +79,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
         "date": DateFormat("dd-MM-yyyy").format(dt),
         "time": DateFormat("hh:mm a").format(dt).toUpperCase(),
         "segment": l["segment"] ?? "",
-<<<<<<< HEAD
-        "duration": (l["durationSec"] != null)
-    ? (l["durationSec"] as num).toDouble()
-    : 0.0,
-=======
         "duration": l["durationSec"] ?? 0,
->>>>>>> 8f4e99692703d828d0e60b55d512d5e9a49e7281
       };
     }).toList();
 
