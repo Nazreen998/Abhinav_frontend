@@ -60,6 +60,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     // ******** MAP TO APP FORMAT (USING VISITLOG) ******** //
     List<dynamic> all = raw.map((l) {
       DateTime dt;
+      bool isCall = (l["durationSec"] ?? 0) > 0;
 
       try {
         dt = DateTime.parse(l["createdAt"]).toLocal();
@@ -73,15 +74,16 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                 ? widget.user["name"]
                 : l["salesmanName"] ?? ""),
         "photoUrl": l["photo_url"] ?? "",
-        "result": l["result"] == "match",
+        "result": isCall ? null : l["result"] == "match",
+        "isCall": isCall,
         "distance": double.tryParse(l["distance"].toString()) ?? 0.0,
         "date": DateFormat("dd-MM-yyyy").format(dt),
         "time": DateFormat("hh:mm a").format(dt).toUpperCase(),
-  "segment": l["segment"] ?? "",
-  "duration": (l["durationSec"] != null)
-      ? (l["durationSec"] as num).toDouble()
-      : 0.0,
-};
+        "segment": l["segment"] ?? "",
+        "duration": (l["durationSec"] != null)
+            ? (l["durationSec"] as num).toDouble()
+            : 0.0,
+      };
     }).toList();
 
     print("✅ AFTER MAP COUNT => ${all.length}");
@@ -169,13 +171,28 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
   }
 
   // --------------------------------------------------------------------
+  // Formatting duration from seconds to "X mins" or "Y sec"
+  // --------------------------------------------------------------------
+  String formatDuration(double seconds) {
+    if (seconds < 60) {
+      return "${seconds.toStringAsFixed(0)} sec";
+    } else {
+      double mins = seconds / 60;
+      return "${mins.toStringAsFixed(2)} mins";
+    }
+  }
+
+  // --------------------------------------------------------------------
   // UI STARTS
   // --------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
-    final matched = logs.where((l) => l["result"] == true).length;
-    final mismatched = logs.where((l) => l["result"] == false).length;
+    final matched =
+        logs.where((l) => l["isCall"] == false && l["result"] == true).length;
+
+    final mismatched =
+        logs.where((l) => l["isCall"] == false && l["result"] == false).length;
     final totalDuration = logs.fold<double>(
       0,
       (sum, l) => sum + ((l["duration"] ?? 0) as num).toDouble(),
@@ -285,7 +302,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                                   style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
                                 Text(
-                                  "${(totalDuration / 60).toStringAsFixed(2)} mins",
+                                  formatDuration(totalDuration),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: Colors.blue,
@@ -343,7 +360,22 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
       itemCount: result.length,
       itemBuilder: (_, i) {
         final log = result[i];
+        final isCall = log["isCall"] == true;
         final isMatch = log["result"] == true;
+
+        String label;
+        Color color;
+
+        if (isCall) {
+          label = "CALL";
+          color = Colors.orange;
+        } else if (isMatch) {
+          label = "MATCH";
+          color = Colors.green;
+        } else {
+          label = "MISMATCH";
+          color = Colors.red;
+        }
 
         return Container(
           margin: const EdgeInsets.only(bottom: 14),
@@ -391,11 +423,11 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
 
             // ✅ TITLE
             title: Text(
-              "${log["shopName"]} (${isMatch ? "MATCH" : "MISMATCH"})",
+              "${log["shopName"]} ($label)",
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
-                color: isMatch ? Colors.green : Colors.red,
+                color: color,
               ),
             ),
 
@@ -404,6 +436,7 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
+
                 Text(
                   "${log["date"]} @ ${log["time"]}",
                   style: const TextStyle(
@@ -411,7 +444,9 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                     color: Colors.black54,
                   ),
                 ),
+
                 const SizedBox(height: 4),
+
                 Text(
                   "Salesman: ${log["salesman"]}",
                   style: const TextStyle(
@@ -419,15 +454,19 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                     color: Colors.black54,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  "Duration: ${((log["duration"] ?? 0) / 60).toStringAsFixed(2)} mins",
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blue,
+
+                // 🔥 SHOW ONLY FOR CALLS
+                if (isCall) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    "Duration: ${formatDuration((log["duration"] ?? 0).toDouble())}",
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blue,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
             // ✅ DISTANCE BADGE
