@@ -40,10 +40,10 @@ class UserService {
       final body = jsonEncode(user.toJson());
 
       print("📤 SENDING DATA: $body");
-
-      final res = await http.post(
-        Uri.parse("$baseUrl/add"),
-        headers: headers,
+                                   
+      final res = await http.post(            
+        Uri.parse("$baseUrl/add"),                 
+        headers: headers,              
         body: body,
       );
 

@@ -77,15 +77,11 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
         "distance": double.tryParse(l["distance"].toString()) ?? 0.0,
         "date": DateFormat("dd-MM-yyyy").format(dt),
         "time": DateFormat("hh:mm a").format(dt).toUpperCase(),
-        "segment": l["segment"] ?? "",
-<<<<<<< HEAD
-        "duration": (l["durationSec"] != null)
-    ? (l["durationSec"] as num).toDouble()
-    : 0.0,
-=======
-        "duration": l["durationSec"] ?? 0,
->>>>>>> 8f4e99692703d828d0e60b55d512d5e9a49e7281
-      };
+  "segment": l["segment"] ?? "",
+  "duration": (l["durationSec"] != null)
+      ? (l["durationSec"] as num).toDouble()
+      : 0.0,
+};
     }).toList();
 
     print("✅ AFTER MAP COUNT => ${all.length}");

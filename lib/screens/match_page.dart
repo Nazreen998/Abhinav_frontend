@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously, unused_import
+// ignore_for_file: use_build_context_synchronously, unused_import, deprecated_member_use, avoid_print
 
 import 'dart:convert';
 import 'dart:math';
