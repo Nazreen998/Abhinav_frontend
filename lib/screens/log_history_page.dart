@@ -68,6 +68,8 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
         dt = DateTime.now();
       }
       return {
+        "pk": l["pk"],
+        "sk": l["sk"],
         "shopName": l["shop_name"] ?? "",
         "salesman": l["salesmanName"] ??
             (widget.user["role"].toString().toLowerCase() == "salesman"
@@ -182,6 +184,86 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     }
   }
 
+  Future<void> confirmDelete(dynamic log) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Delete Visit"),
+        content: const Text("Are you sure you want to hide this visit?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      bool success = await ApiService.deleteVisit(log["pk"], log["sk"]);
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.green.shade600,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            margin: const EdgeInsets.all(14),
+            content: Row(
+              children: const [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    "Visit hidden successfully",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+        loadLogs(); // 🔄 Refresh list
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red.shade600,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            margin: const EdgeInsets.all(14),
+            content: Row(
+              children: const [
+                Icon(Icons.error, color: Colors.white),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    "Delete failed",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    }
+  }
   // --------------------------------------------------------------------
   // UI STARTS
   // --------------------------------------------------------------------
@@ -376,7 +458,8 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
           label = "MISMATCH";
           color = Colors.red;
         }
-
+        final role = widget.user["role"].toString().toLowerCase();
+        final canDelete = role == "master" || role == "manager";
         return Container(
           margin: const EdgeInsets.only(bottom: 14),
           padding: const EdgeInsets.all(14),
@@ -394,100 +477,142 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
               color: Colors.blue.withOpacity(0.06),
             ),
           ),
-          child: ListTile(
-            contentPadding: EdgeInsets.zero,
-
-            // ✅ IMAGE
-            leading: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => FullNetworkImagePage(
-                      imageUrl: log["photoUrl"],
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // IMAGE
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => FullNetworkImagePage(
+                        imageUrl: log["photoUrl"],
+                      ),
                     ),
-                  ),
-                );
-              },
-              child: CircleAvatar(
-                radius: 26,
-                backgroundColor: const Color(0xFFF4F7FC),
-                backgroundImage: log["photoUrl"] != ""
-                    ? NetworkImage(log["photoUrl"])
-                    : null,
-                child: log["photoUrl"] == ""
-                    ? const Icon(Icons.photo, color: Colors.black54)
-                    : null,
-              ),
-            ),
-
-            // ✅ TITLE
-            title: Text(
-              "${log["shopName"]} ($label)",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-                color: color,
-              ),
-            ),
-
-            // ✅ SUBTITLE WITH SPACING FIX
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 4),
-
-                Text(
-                  "${log["date"]} @ ${log["time"]}",
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.black54,
-                  ),
+                  );
+                },
+                child: CircleAvatar(
+                  radius: 26,
+                  backgroundColor: const Color(0xFFF4F7FC),
+                  backgroundImage: log["photoUrl"] != ""
+                      ? NetworkImage(log["photoUrl"])
+                      : null,
+                  child: log["photoUrl"] == ""
+                      ? const Icon(Icons.photo, color: Colors.black54)
+                      : null,
                 ),
+              ),
 
-                const SizedBox(height: 4),
+              const SizedBox(width: 12),
 
-                Text(
-                  "Salesman: ${log["salesman"]}",
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.black54,
-                  ),
-                ),
-
-                // 🔥 SHOW ONLY FOR CALLS
-                if (isCall) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    "Duration: ${formatDuration((log["duration"] ?? 0).toDouble())}",
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.blue,
+              // CONTENT
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 🔥 SHOP NAME + DELETE
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            log["shopName"],
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                        if (canDelete)
+                          InkWell(
+                            onTap: () => confirmDelete(log),
+                            borderRadius: BorderRadius.circular(8),
+                            child: const Padding(
+                              padding: EdgeInsets.all(4),
+                              child: Icon(
+                                Icons.delete_outline,
+                                size: 18,
+                                color: Colors.red,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                  ),
-                ],
-              ],
-            ),
-            // ✅ DISTANCE BADGE
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F7FC),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Text(
-                "${log["distance"].toStringAsFixed(1)} m",
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  color: Color(0xFF002D62),
+
+                    const SizedBox(height: 4),
+
+                    // MATCH / MISMATCH / CALL
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    // DATE
+                    Text(
+                      "${log["date"]} @ ${log["time"]}",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    // SALESMAN + DISTANCE
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            "Salesman: ${log["salesman"]}",
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF4F7FC),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            "${log["distance"].toStringAsFixed(1)} m",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: Color(0xFF002D62),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // CALL DURATION
+                    if (isCall) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        "Duration: ${formatDuration((log["duration"] ?? 0).toDouble())}",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            ),
+            ],
           ),
         );
       },
