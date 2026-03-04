@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import '../services/shop_service.dart';
+
 import 'edit_shop_page.dart';
 import 'pending_shops_page.dart';
 import 'package:url_launcher/url_launcher.dart';

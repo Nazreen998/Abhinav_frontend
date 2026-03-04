@@ -1,16 +1,12 @@
 // ignore_for_file: deprecated_member_use
 
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
 class DashboardPage extends StatefulWidget {
   final Map<String, dynamic> user;
 
-  const DashboardPage({
-    super.key,
-    required this.user,
-  });
+  const DashboardPage({super.key, required this.user});
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -40,10 +36,7 @@ class _DashboardPageState extends State<DashboardPage> {
     final endStr =
         "${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}";
 
-    final result = await ApiService.getDashboardReport(
-      startStr,
-      endStr,
-    );
+    final result = await ApiService.getDashboardReport(startStr, endStr);
 
     if (mounted) {
       setState(() {
@@ -90,10 +83,7 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
         child: Text(
           text,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -105,17 +95,11 @@ class _DashboardPageState extends State<DashboardPage> {
       backgroundColor: const Color(0xFFF6F8FC),
       body: Stack(
         children: [
-          // 🔵 HEADER GRADIENT
           Container(
             height: 240,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  Color(0xFF002D62),
-                  Color(0xFF005BBB),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                colors: [Color(0xFF002D62), Color(0xFF005BBB)],
               ),
               borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(40),
@@ -123,7 +107,6 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ),
           ),
-
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(18),
@@ -131,29 +114,19 @@ class _DashboardPageState extends State<DashboardPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 20),
-
                   const Text(
                     "Dashboard",
                     style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
                   ),
-
                   const SizedBox(height: 6),
-
                   const Text(
                     "Performance overview",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white70,
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.white70),
                   ),
-
                   const SizedBox(height: 20),
-
-                  // 📅 DATE RANGE
                   Row(
                     children: [
                       Expanded(
@@ -161,12 +134,10 @@ class _DashboardPageState extends State<DashboardPage> {
                           onPressed: pickStartDate,
                           icon: const Icon(Icons.calendar_today, size: 16),
                           label: Text(
-                            "${startDate.day}-${startDate.month}-${startDate.year}",
-                          ),
+                              "${startDate.day}-${startDate.month}-${startDate.year}"),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: darkBlue,
-                            elevation: 0,
                           ),
                         ),
                       ),
@@ -176,12 +147,10 @@ class _DashboardPageState extends State<DashboardPage> {
                           onPressed: pickEndDate,
                           icon: const Icon(Icons.calendar_today, size: 16),
                           label: Text(
-                            "${endDate.day}-${endDate.month}-${endDate.year}",
-                          ),
+                              "${endDate.day}-${endDate.month}-${endDate.year}"),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: darkBlue,
-                            elevation: 0,
                           ),
                         ),
                       ),
@@ -191,10 +160,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       )
                     ],
                   ),
-
                   const SizedBox(height: 10),
-
-                  // ⚡ QUICK FILTERS
                   Row(
                     children: [
                       quickChip("Today", () {
@@ -224,10 +190,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       }),
                     ],
                   ),
-
                   const SizedBox(height: 25),
-
-                  // 📊 CONTENT CARD
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.all(18),
@@ -236,23 +199,19 @@ class _DashboardPageState extends State<DashboardPage> {
                         borderRadius: BorderRadius.circular(22),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 18,
-                            offset: const Offset(0, 8),
-                          ),
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 18)
                         ],
                       ),
                       child: loading
                           ? const Center(child: CircularProgressIndicator())
-                          : (data == null)
-                              ? const Center(child: Text("No data"))
-                              : Column(
-                                  children: [
-                                    buildSummaryCards(),
-                                    const SizedBox(height: 20),
-                                    Expanded(child: buildSalesmanList()),
-                                  ],
-                                ),
+                          : Column(
+                              children: [
+                                buildSummaryCards(),
+                                const SizedBox(height: 20),
+                                Expanded(child: buildSalesmanList())
+                              ],
+                            ),
                     ),
                   ),
                 ],
@@ -265,71 +224,66 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget buildSummaryCards() {
-    final totalVisits = data?["totalVisits"] ?? 0;
-    final totalMatch = data?["totalMatch"] ?? 0;
-    final totalMismatch = data?["totalMismatch"] ?? 0;
+    final visits = data?["totalVisits"] ?? 0;
+    final calls = data?["totalCalls"] ?? 0;
+    final match = data?["totalMatch"] ?? 0;
+    final mismatch = data?["totalMismatch"] ?? 0;
 
-    final List reps = List.from(data?["salesmanPerformance"] ?? []);
-
-    final activeReps = reps.length;
-
-    final matchPercent =
-        totalVisits == 0 ? 0 : ((totalMatch / totalVisits) * 100).round();
-
-    final avgPerRep =
-        activeReps == 0 ? 0 : (totalVisits / activeReps).toStringAsFixed(1);
-    return GridView.count(
-      shrinkWrap: true,
-      crossAxisCount: 2,
-      childAspectRatio: 1.6,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      physics: const NeverScrollableScrollPhysics(),
+    return Column(
       children: [
-        summaryCard("Total Visits", totalVisits.toString()),
-        summaryCard("Match %", "$matchPercent%"),
-        summaryCard("Active Reps", activeReps.toString()),
-        summaryCard("Avg / Rep", avgPerRep.toString()),
+        summaryCard(Icons.store, "Visits", visits, Colors.blue, Icons.phone,
+            "Calls", calls, Colors.orange),
+        const SizedBox(height: 12),
+        summaryCard(Icons.check_circle, "Match", match, Colors.green,
+            Icons.cancel, "Mismatch", mismatch, Colors.red),
       ],
     );
   }
 
-  Widget summaryCard(String title, String value) {
+  Widget summaryCard(IconData i1, String t1, int v1, Color c1, IconData i2,
+      String t2, int v2, Color c2) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFF4F7FC),
         borderRadius: BorderRadius.circular(18),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Row(
         children: [
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Colors.black54,
-            ),
-          ),
+          Expanded(child: summaryItem(i1, t1, v1, c1)),
+          Container(width: 1, height: 40, color: Colors.grey.shade300),
+          Expanded(child: summaryItem(i2, t2, v2, c2)),
         ],
       ),
     );
   }
 
-  Widget buildSalesmanList() {
-    final list = data!["salesmanPerformance"] as List;
+  Widget summaryItem(IconData icon, String title, int value, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        CircleAvatar(
+          radius: 18,
+          backgroundColor: color.withOpacity(0.15),
+          child: Icon(icon, color: color, size: 18),
+        ),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(value.toString(),
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(title,
+                style: const TextStyle(fontSize: 12, color: Colors.black54)),
+          ],
+        ),
+      ],
+    );
+  }
 
-    if (list.isEmpty) {
-      return const Center(child: Text("No reps data"));
-    }
+  Widget buildSalesmanList() {
+    final list = data?["salesmanPerformance"] ?? [];
 
     return ListView.builder(
       itemCount: list.length,
@@ -337,35 +291,60 @@ class _DashboardPageState extends State<DashboardPage> {
         final rep = list[i];
 
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(14),
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withOpacity(0.06),
                 blurRadius: 10,
               ),
             ],
           ),
-          child: Row(
+          child: Column(
             children: [
-              Expanded(
-                child: Text(
-                  rep["name"],
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: darkBlue,
+                    child: Text(rep["name"][0],
+                        style: const TextStyle(color: Colors.white)),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  Text(rep["name"],
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
               ),
-              Text("Visits: ${rep["visits"]}"),
-              const SizedBox(width: 10),
-              Text("Match: ${rep["match"]}"),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  stat("Visits", rep["visits"], Colors.blue),
+                  stat("Calls", rep["calls"], Colors.orange),
+                  stat("Match", rep["match"], Colors.green),
+                  stat("Mismatch", rep["mismatch"], Colors.red),
+                ],
+              )
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget stat(String title, int value, Color color) {
+    return Column(
+      children: [
+        Text(value.toString(),
+            style: TextStyle(
+                fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+        const SizedBox(height: 4),
+        Text(title,
+            style: const TextStyle(fontSize: 11, color: Colors.black54)),
+      ],
     );
   }
 }

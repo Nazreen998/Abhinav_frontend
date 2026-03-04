@@ -1,7 +1,6 @@
 // ignore_for_file: avoid_print, deprecated_member_use, unused_local_variable
 
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import 'full_network_image_page.dart';
@@ -69,17 +68,23 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
       }
       return {
         "shopName": l["shop_name"] ?? "",
-       "salesman": l["salesmanName"] ??
-    (widget.user["role"].toString().toLowerCase() == "salesman"
-        ? widget.user["name"]
-        : l["salesmanName"] ?? ""),
+        "salesman": l["salesmanName"] ??
+            (widget.user["role"].toString().toLowerCase() == "salesman"
+                ? widget.user["name"]
+                : l["salesmanName"] ?? ""),
         "photoUrl": l["photo_url"] ?? "",
         "result": l["result"] == "match",
         "distance": double.tryParse(l["distance"].toString()) ?? 0.0,
         "date": DateFormat("dd-MM-yyyy").format(dt),
         "time": DateFormat("hh:mm a").format(dt).toUpperCase(),
         "segment": l["segment"] ?? "",
+<<<<<<< HEAD
+        "duration": (l["durationSec"] != null)
+    ? (l["durationSec"] as num).toDouble()
+    : 0.0,
+=======
         "duration": l["durationSec"] ?? 0,
+>>>>>>> 8f4e99692703d828d0e60b55d512d5e9a49e7281
       };
     }).toList();
 
