@@ -206,27 +206,15 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   const SizedBox(height: 25),
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
-                              blurRadius: 18)
-                        ],
-                      ),
-                      child: loading
-                          ? const Center(child: CircularProgressIndicator())
-                          : Column(
-                              children: [
-                                buildSummaryCards(),
-                                const SizedBox(height: 20),
-                                Expanded(child: buildSalesmanList())
-                              ],
-                            ),
-                    ),
+                    child: loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : Column(
+                            children: [
+                              buildSummaryCards(),
+                              const SizedBox(height: 12),
+                              Expanded(child: buildSalesmanList())
+                            ],
+                          ),
                   ),
                 ],
               ),
@@ -243,31 +231,49 @@ class _DashboardPageState extends State<DashboardPage> {
     final match = data?["totalMatch"] ?? 0;
     final mismatch = data?["totalMismatch"] ?? 0;
 
-    return Column(
+    return Row(
       children: [
-        summaryCard(Icons.store, "Visits", visits, Colors.blue, Icons.phone,
-            "Calls", calls, Colors.orange),
-        const SizedBox(height: 12),
-        summaryCard(Icons.check_circle, "Match", match, Colors.green,
-            Icons.cancel, "Mismatch", mismatch, Colors.red),
+        Expanded(
+            child: summaryMini(Icons.store, "Visits", visits, Colors.blue)),
+        const SizedBox(width: 6),
+        Expanded(
+            child: summaryMini(Icons.phone, "Calls", calls, Colors.orange)),
+        const SizedBox(width: 6),
+        Expanded(
+            child:
+                summaryMini(Icons.check_circle, "Match", match, Colors.green)),
+        const SizedBox(width: 6),
+        Expanded(
+            child: summaryMini(Icons.cancel, "Mismatch", mismatch, Colors.red)),
       ],
     );
   }
 
-  Widget summaryCard(IconData i1, String t1, int v1, Color c1, IconData i2,
-      String t2, int v2, Color c2) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F7FC),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          Expanded(child: summaryItem(i1, t1, v1, c1)),
-          Container(width: 1, height: 40, color: Colors.grey.shade300),
-          Expanded(child: summaryItem(i2, t2, v2, c2)),
-        ],
+  Widget summaryMini(IconData icon, String title, int value, Color color) {
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 12,
+              backgroundColor: color.withOpacity(0.15),
+              child: Icon(icon, color: color, size: 14),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value.toString(),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 10, color: Colors.black54),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -277,9 +283,9 @@ class _DashboardPageState extends State<DashboardPage> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         CircleAvatar(
-          radius: 18,
+          radius: 14,
           backgroundColor: color.withOpacity(0.15),
-          child: Icon(icon, color: color, size: 18),
+          child: Icon(icon, color: color, size: 16),
         ),
         const SizedBox(width: 10),
         Column(
@@ -306,8 +312,8 @@ class _DashboardPageState extends State<DashboardPage> {
         final int duration = rep["callDuration"] ?? 0;
 
         return Container(
-          margin: const EdgeInsets.only(bottom: 14),
-          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
@@ -323,6 +329,7 @@ class _DashboardPageState extends State<DashboardPage> {
               Row(
                 children: [
                   CircleAvatar(
+                    radius: 16,
                     backgroundColor: darkBlue,
                     child: Text(rep["name"][0],
                         style: const TextStyle(color: Colors.white)),
@@ -330,10 +337,10 @@ class _DashboardPageState extends State<DashboardPage> {
                   const SizedBox(width: 10),
                   Text(rep["name"],
                       style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
+                          fontSize: 14, fontWeight: FontWeight.bold)),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(child: stat("Visits", rep["visits"], Colors.blue)),
@@ -364,12 +371,12 @@ class _DashboardPageState extends State<DashboardPage> {
       children: [
         Text(displayValue,
             style: TextStyle(
-                fontSize: title == "Duration" ? 14 : 16,
+                fontSize: title == "Duration" ? 12 : 14,
                 fontWeight: FontWeight.bold,
                 color: color)),
         const SizedBox(height: 4),
         Text(title,
-            style: const TextStyle(fontSize: 11, color: Colors.black54)),
+            style: const TextStyle(fontSize: 10, color: Colors.black54)),
       ],
     );
   }
