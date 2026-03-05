@@ -25,7 +25,27 @@ class AuthService {
       currentUser = jsonDecode(savedUser);
     }
   }
+static Future<void> saveToken(String t) async {
+    token = t;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("token", t);
+  }
 
+  static Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString("token");
+  }
+ static Future<void> saveShopsToPrefs(List shops) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString("shops_cache", jsonEncode(shops));
+}
+
+static Future<List> getShopsFromPrefs() async {
+  final prefs = await SharedPreferences.getInstance();
+  final raw = prefs.getString("shops_cache");
+  if (raw == null) return [];
+  return jsonDecode(raw) as List;
+}
   // ---------------------------------------------------------
   // LOGIN
   // ---------------------------------------------------------
