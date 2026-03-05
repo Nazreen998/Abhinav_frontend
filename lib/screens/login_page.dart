@@ -1,9 +1,12 @@
 // ignore_for_file: prefer_const_constructors, deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../services/auth_service.dart';
 import 'home_page.dart';
 import 'register_page.dart';
+import '../services/call_log_service.dart';
+import '../services/api_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -34,6 +37,16 @@ class _LoginPageState extends State<LoginPage>
     _anim.forward();
   }
 
+  Future<void> requestPermissions() async {
+    var phone = await Permission.phone.request();
+
+    if (phone.isGranted) {
+      print("Phone permission granted");
+    } else {
+      print("Phone permission denied");
+    }
+  }
+
   Future<void> loginUser() async {
     if (mobileCtrl.text.isEmpty || passCtrl.text.isEmpty) {
       _msg("Mobile & Password are required");
@@ -53,6 +66,14 @@ class _LoginPageState extends State<LoginPage>
       _msg(result["message"] ?? "Login failed");
       return;
     }
+    // 🔥 CALL LOG PERMISSION HERE
+    await requestPermissions();
+
+    // 🔹 shops fetch
+    final shops = await ApiService.getShops();
+
+    // 🔹 start call log tracking
+    CallLogService.start(shops);
 
     // 🔥 IMPORTANT FIX (TOKEN SYNC)
     await Future.delayed(const Duration(milliseconds: 300));

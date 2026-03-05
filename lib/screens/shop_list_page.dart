@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-
+import 'dart:async';
 import 'edit_shop_page.dart';
 import 'pending_shops_page.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -35,6 +35,9 @@ class _ShopListPageState extends State<ShopListPage>
   DateTime? callStartTime;
   String role = "";
   String segment = "";
+  Timer? callLogTimer;
+
+  int? lastCallTimestamp;
 
   @override
   void initState() {
@@ -52,56 +55,56 @@ class _ShopListPageState extends State<ShopListPage>
 
     loadShops();
   }
- Future<void> makeCall(Map<String, dynamic> shop) async {
-  final primary = shop["primaryPhone"];
-  final secondary = shop["secondaryPhone"];
 
-  String? phone;
+  Future<void> makeCall(Map<String, dynamic> shop) async {
+    final primary = shop["primaryPhone"];
+    final secondary = shop["secondaryPhone"];
 
-  if (primary != null && primary.toString().isNotEmpty) {
-    phone = primary.toString();
-  } else if (secondary != null && secondary.toString().isNotEmpty) {
-    phone = secondary.toString();
+    String? phone;
+
+    if (primary != null && primary.toString().isNotEmpty) {
+      phone = primary.toString();
+    } else if (secondary != null && secondary.toString().isNotEmpty) {
+      phone = secondary.toString();
+    }
+
+    if (phone == null || phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No phone number available")),
+      );
+      return;
+    }
+
+    callStartTime = DateTime.now();
+
+    final uri = Uri.parse("tel:$phone");
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+
+    await Future.delayed(const Duration(seconds: 5));
+
+    final duration = DateTime.now().difference(callStartTime!).inSeconds;
+
+    await saveCallLog(shop["shop_id"], phone, duration);
   }
 
-  if (phone == null || phone.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("No phone number available")),
+  Future<void> saveCallLog(String shopId, String phone, int duration) async {
+    await http.post(
+      Uri.parse(
+          "https://abhinav-backend.onrender.com/api/shops/$shopId/add-call"),
+      headers: {
+        "Authorization": "Bearer ${AuthService.token}",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({
+        "fromNumber": phone,
+        "durationSec": duration,
+      }),
     );
-    return;
   }
 
-  callStartTime = DateTime.now();
-
-  final uri = Uri.parse("tel:$phone");
-
-  if (await canLaunchUrl(uri)) {
-    await launchUrl(uri);
-  }
-
-  await Future.delayed(const Duration(seconds: 5));
-
-  final duration =
-      DateTime.now().difference(callStartTime!).inSeconds;
-
-  await saveCallLog(shop["shop_id"], phone, duration);
-}
-Future<void> saveCallLog(
-    String shopId, String phone, int duration) async {
-
-  await http.post(
-    Uri.parse(
-        "https://abhinav-backend.onrender.com/api/shops/$shopId/add-call"),
-    headers: {
-      "Authorization": "Bearer ${AuthService.token}",
-      "Content-Type": "application/json",
-    },
-    body: jsonEncode({
-      "fromNumber": phone,
-      "durationSec": duration,
-    }),
-  );
-}
   Future<void> showImageUploadDialog(Map<String, dynamic> shop) async {
     final ImagePicker picker = ImagePicker();
     String? base64Image;
@@ -365,6 +368,13 @@ Future<void> saveCallLog(
     );
   }
 
+  @override
+  void dispose() {
+    callLogTimer?.cancel();
+    controller.dispose();
+    super.dispose();
+  }
+
   // ------------------------------------------------------
   // SHOP CARD
   // ------------------------------------------------------
@@ -552,77 +562,77 @@ Future<void> saveCallLog(
 
           // 🔹 SALESMAN BUTTONS
           if (role == "salesman" || role == "manager") ...[
-  Row(
-    children: [
-      // MAPS
-      Expanded(
-        child: OutlinedButton.icon(
-          onPressed: () => openMaps(lat, lng),
-          icon: const Icon(Icons.map_outlined, size: 18),
-          label: const Text("Maps"),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFF005BBB),
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+            Row(
+              children: [
+                // MAPS
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => openMaps(lat, lng),
+                    icon: const Icon(Icons.map_outlined, size: 18),
+                    label: const Text("Maps"),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF005BBB),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // CALL BUTTON
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => makeCall(shop),
+                    icon: const Icon(Icons.call, size: 18, color: Colors.white),
+                    label: const Text(
+                      "Call",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // MATCH
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MatchPage(shop: shop),
+                        ),
+                      );
+                      await loadShops();
+                    },
+                    icon: const Icon(Icons.verified,
+                        size: 18, color: Colors.amber),
+                    label: const Text(
+                      "Match",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ),
-      ),
-
-      const SizedBox(width: 8),
-
-      // CALL BUTTON
-      Expanded(
-        child: ElevatedButton.icon(
-          onPressed: () => makeCall(shop),
-          icon: const Icon(Icons.call, size: 18, color: Colors.white),
-          label: const Text(
-            "Call",
-            style: TextStyle(color: Colors.white),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ),
-      ),
-
-      const SizedBox(width: 8),
-
-      // MATCH
-      Expanded(
-        child: ElevatedButton.icon(
-          onPressed: () async {
-            await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => MatchPage(shop: shop),
-              ),
-            );
-            await loadShops();
-          },
-          icon: const Icon(Icons.verified,
-              size: 18, color: Colors.amber),
-          label: const Text(
-            "Match",
-            style: TextStyle(color: Colors.white),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ),
-      ),
-    ],
-  ),
-],
+          ],
 
           // 🔹 MASTER / MANAGER FOOTER
           // 🔹 MASTER / MANAGER FOOTER (Enhanced UI)
