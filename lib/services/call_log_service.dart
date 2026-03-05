@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:async';
 import 'dart:convert';
 import 'package:call_log/call_log.dart';
@@ -14,7 +16,7 @@ class CallLogService {
     _timer?.cancel();
 
     _timer = Timer.periodic(
-      const Duration(seconds: 20),
+      const Duration(seconds: 5),
       (timer) {
         checkCallLogs(shops);
       },
@@ -29,66 +31,72 @@ class CallLogService {
     return digits.substring(digits.length - 10);
   }
 
-  static Future<void> checkCallLogs(List shops) async {
-    print("Checking call logs...");
+ static Future<void> checkCallLogs(List shops) async {
+  print("Checking call logs...");
 
-    Iterable<CallLogEntry> entries = await CallLog.get();
+  Iterable<CallLogEntry> entries = await CallLog.get();
 
-    if (entries.isEmpty) return;
+  if (entries.isEmpty) return;
 
-    final now = DateTime.now();
+  final now = DateTime.now();
 
-    final todayStart = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).millisecondsSinceEpoch;
+  final todayStart = DateTime(
+    now.year,
+    now.month,
+    now.day,
+  ).millisecondsSinceEpoch;
 
-    for (var entry in entries) {
-      final number = entry.number ?? "";
-      final duration = entry.duration ?? 0;
-      final timestamp = entry.timestamp ?? 0;
+  final nowMillis = DateTime.now().millisecondsSinceEpoch;
 
-      // old calls skip
-      if (timestamp < todayStart) continue;
+  for (var entry in entries) {
 
-      // missed call skip
-      if (duration == 0) continue;
+    final number = entry.number ?? "";
+    final duration = entry.duration ?? 0;
+    final timestamp = entry.timestamp ?? 0;
 
-      // duplicate skip
-      if (lastCallTimestamp != null && timestamp <= lastCallTimestamp!) {
-        continue;
-      }
+    // skip calls from previous days
+    if (timestamp < todayStart) continue;
 
-      final normalizedNumber = normalizePhone(number);
+    // skip missed calls
+    if (duration == 0) continue;
 
-      for (var shop in shops) {
-        final primary = normalizePhone(shop["primaryPhone"] ?? "");
-        final secondary = normalizePhone(shop["secondaryPhone"] ?? "");
+    // wait for android to update duration
+    if (nowMillis - timestamp < 10000) continue;
 
-        if (normalizedNumber.endsWith(primary) ||
-            normalizedNumber.endsWith(secondary)) {
-          print("Matched shop ${shop["shop_name"]}");
-          print("Saving call $normalizedNumber duration $duration");
-
-          await saveCallLog(
-            shop["shop_id"],
-            normalizedNumber,
-            duration,
-          );
-
-          break;
-        }
-      }
-
-      if (lastCallTimestamp == null || timestamp > lastCallTimestamp!) {
-        lastCallTimestamp = timestamp;
-      }
-
-      break;
+    // skip duplicates
+    if (lastCallTimestamp != null && timestamp <= lastCallTimestamp!) {
+      continue;
     }
-  }
 
+    final normalizedNumber = normalizePhone(number);
+
+    for (var shop in shops) {
+
+      final primary = normalizePhone(shop["primaryPhone"] ?? "");
+      final secondary = normalizePhone(shop["secondaryPhone"] ?? "");
+
+      if (normalizedNumber.endsWith(primary) ||
+          normalizedNumber.endsWith(secondary)) {
+
+        print("Matched shop ${shop["shop_name"]}");
+        print("Saving call $normalizedNumber duration $duration");
+
+        await saveCallLog(
+          shop["shop_id"],
+          normalizedNumber,
+          duration,
+        );
+
+        break;
+      }
+    }
+
+    if (lastCallTimestamp == null || timestamp > lastCallTimestamp!) {
+      lastCallTimestamp = timestamp;
+    }
+
+  }
+}
   static Future<void> saveCallLog(
       String shopId, String phone, int duration) async {
     try {
