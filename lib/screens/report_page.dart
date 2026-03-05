@@ -46,6 +46,20 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  String formatDuration(int seconds) {
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    final secs = seconds % 60;
+
+    if (hours > 0) {
+      return "${hours}h ${minutes}m";
+    } else if (minutes > 0) {
+      return "${minutes}m ${secs}s";
+    } else {
+      return "${secs}s";
+    }
+  }
+
   Future<void> pickStartDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -289,6 +303,7 @@ class _DashboardPageState extends State<DashboardPage> {
       itemCount: list.length,
       itemBuilder: (_, i) {
         final rep = list[i];
+        final int duration = rep["callDuration"] ?? 0;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 14),
@@ -320,12 +335,13 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
               const SizedBox(height: 12),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  stat("Visits", rep["visits"], Colors.blue),
-                  stat("Calls", rep["calls"], Colors.orange),
-                  stat("Match", rep["match"], Colors.green),
-                  stat("Mismatch", rep["mismatch"], Colors.red),
+                  Expanded(child: stat("Visits", rep["visits"], Colors.blue)),
+                  Expanded(child: stat("Calls", rep["calls"], Colors.orange)),
+                  Expanded(child: stat("Match", rep["match"], Colors.green)),
+                  Expanded(
+                      child: stat("Mismatch", rep["mismatch"], Colors.red)),
+                  Expanded(child: stat("Duration", duration, Colors.purple)),
                 ],
               )
             ],
@@ -336,11 +352,21 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget stat(String title, int value, Color color) {
+    String displayValue;
+
+    if (title == "Duration") {
+      displayValue = formatDuration(value ?? 0);
+    } else {
+      displayValue = value.toString();
+    }
+
     return Column(
       children: [
-        Text(value.toString(),
+        Text(displayValue,
             style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+                fontSize: title == "Duration" ? 14 : 16,
+                fontWeight: FontWeight.bold,
+                color: color)),
         const SizedBox(height: 4),
         Text(title,
             style: const TextStyle(fontSize: 11, color: Colors.black54)),
