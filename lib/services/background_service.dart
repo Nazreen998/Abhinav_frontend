@@ -1,5 +1,9 @@
+// ignore_for_file: unused_import
+
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_background_service_android/flutter_background_service_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +12,11 @@ import 'call_log_service.dart';
 import 'auth_service.dart';
 
 Future<void> initializeBackgroundService() async {
+
+  // 👉 Windows / Web skip
+  if (!Platform.isAndroid && !Platform.isIOS) {
+    return;
+  }
 
   final service = FlutterBackgroundService();
 
@@ -32,13 +41,11 @@ void onStart(ServiceInstance service) {
     final prefs = await SharedPreferences.getInstance();
 
     final token = prefs.getString("token");
-
     if(token == null) return;
 
     AuthService.token = token;
 
     final raw = prefs.getString("shops_cache");
-
     if(raw == null) return;
 
     final shops = jsonDecode(raw);

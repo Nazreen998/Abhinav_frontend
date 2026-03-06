@@ -16,7 +16,8 @@ class _DashboardPageState extends State<DashboardPage> {
   bool loading = true;
   Map<String, dynamic>? data;
 
-  DateTime startDate = DateTime.now().subtract(const Duration(days: 7));
+  DateTime startDate = DateTime.now().subtract(const Duration(days: 7)); 
+
   DateTime endDate = DateTime.now();
 
   static const Color darkBlue = Color(0xFF002D62);
@@ -362,7 +363,7 @@ class _DashboardPageState extends State<DashboardPage> {
     String displayValue;
 
     if (title == "Duration") {
-      displayValue = formatDuration(value ?? 0);
+      displayValue = formatDuration(value);
     } else {
       displayValue = value.toString();
     }

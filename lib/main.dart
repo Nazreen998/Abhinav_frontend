@@ -6,11 +6,18 @@ import 'screens/home_page.dart';
 import 'services/auth_service.dart';
 import 'screens/match_page.dart';
 import 'services/background_service.dart';
+import 'dart:io';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await AuthService.init();
-   await initializeBackgroundService();
+
+  // 👉 Android / iOS only background service run
+  if (Platform.isAndroid || Platform.isIOS) {
+    await initializeBackgroundService();
+  }
+
   runApp(const AbhinavApp());
 }
 
