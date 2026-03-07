@@ -125,7 +125,7 @@ class _DashboardPageState extends State<DashboardPage> {
       body: Stack(
         children: [
           Container(
-            height: 240,
+            height: MediaQuery.of(context).size.height * 0.30,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [Color(0xFF002D62), Color(0xFF005BBB)],
