@@ -31,7 +31,8 @@ class _AddShopPageState extends State<AddShopPage> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
   final TextEditingController primaryPhoneController = TextEditingController();
-  final TextEditingController secondaryPhoneController = TextEditingController();
+  final TextEditingController secondaryPhoneController =
+      TextEditingController();
   String? selectedShopType;
   String? selectedSegment;
   File? imageFile;
@@ -95,7 +96,11 @@ class _AddShopPageState extends State<AddShopPage> {
     }
 
     // MOBILE CAMERA
-    final picked = await ImagePicker().pickImage(source: ImageSource.camera);
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      imageQuality: 40,
+      maxWidth: 1024,
+    );
     if (picked != null) {
       imageFile = File(picked.path);
       base64Image = base64Encode(await imageFile!.readAsBytes());
@@ -131,7 +136,11 @@ class _AddShopPageState extends State<AddShopPage> {
       return;
     }
 
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 40,
+      maxWidth: 1024,
+    );
     if (picked != null) {
       imageFile = File(picked.path);
       base64Image = base64Encode(await imageFile!.readAsBytes());
@@ -191,8 +200,12 @@ class _AddShopPageState extends State<AddShopPage> {
     if (selectedSegment == null) return _error("Select segment");
     if (base64Image == null) return _error("Select a photo");
     if (lat == null || lng == null) return _error("Location not detected");
-    if (primaryPhoneController.text.isEmpty) {return _error("Enter primary phone");}
-    if (selectedShopType == null) { return _error("Select shop type");}
+    if (primaryPhoneController.text.isEmpty) {
+      return _error("Enter primary phone");
+    }
+    if (selectedShopType == null) {
+      return _error("Select shop type");
+    }
 
     // ================= TOKEN CHECK (🔥 MAIN FIX) =================
     if (AuthService.token == null) {
@@ -367,47 +380,48 @@ class _AddShopPageState extends State<AddShopPage> {
                             controller: addressController,
                             decoration: inputDecor("Address"),
                           ),
-const SizedBox(height: 18),
+                          const SizedBox(height: 18),
 
-TextField(
-  controller: primaryPhoneController,
-  keyboardType: TextInputType.phone,
-  decoration: inputDecor("Primary Phone"),
-),
+                          TextField(
+                            controller: primaryPhoneController,
+                            keyboardType: TextInputType.phone,
+                            decoration: inputDecor("Primary Phone"),
+                          ),
 
-const SizedBox(height: 18),
+                          const SizedBox(height: 18),
 
-TextField(
-  controller: secondaryPhoneController,
-  keyboardType: TextInputType.phone,
-  decoration: inputDecor("Secondary Phone (Optional)"),
-),
+                          TextField(
+                            controller: secondaryPhoneController,
+                            keyboardType: TextInputType.phone,
+                            decoration:
+                                inputDecor("Secondary Phone (Optional)"),
+                          ),
 
-const SizedBox(height: 18),
+                          const SizedBox(height: 18),
 
-DropdownButtonFormField<String>(
-  value: selectedShopType,
-  decoration: inputDecor("Shop Type"),
-  items: const [
-    DropdownMenuItem(
-      value: "office",
-      child: Text("Office"),
-    ),
-    DropdownMenuItem(
-      value: "warehouse",
-      child: Text("Warehouse"),
-    ),
-    DropdownMenuItem(
-      value: "godown",
-      child: Text("Godown"),
-    ),
-  ],
-  onChanged: (value) {
-    setState(() {
-      selectedShopType = value;
-    });
-  },
-),
+                          DropdownButtonFormField<String>(
+                            value: selectedShopType,
+                            decoration: inputDecor("Shop Type"),
+                            items: const [
+                              DropdownMenuItem(
+                                value: "office",
+                                child: Text("Office"),
+                              ),
+                              DropdownMenuItem(
+                                value: "warehouse",
+                                child: Text("Warehouse"),
+                              ),
+                              DropdownMenuItem(
+                                value: "godown",
+                                child: Text("Godown"),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                selectedShopType = value;
+                              });
+                            },
+                          ),
 // ✅ ACTION SECTION CARD (Makes buttons not feel alone)
                           const SizedBox(height: 18),
 

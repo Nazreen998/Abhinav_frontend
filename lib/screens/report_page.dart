@@ -16,7 +16,7 @@ class _DashboardPageState extends State<DashboardPage> {
   bool loading = true;
   Map<String, dynamic>? data;
 
-  DateTime startDate = DateTime.now().subtract(const Duration(days: 7)); 
+  DateTime startDate = DateTime.now().subtract(const Duration(days: 7));
 
   DateTime endDate = DateTime.now();
 
@@ -59,6 +59,20 @@ class _DashboardPageState extends State<DashboardPage> {
     } else {
       return "${secs}s";
     }
+  }
+
+  String formatTime(String time) {
+    final dt = DateTime.parse(time).toLocal();
+
+    int hour = dt.hour;
+    final minute = dt.minute.toString().padLeft(2, '0');
+
+    String period = hour >= 12 ? "PM" : "AM";
+
+    hour = hour % 12;
+    if (hour == 0) hour = 12;
+
+    return "$hour:$minute $period";
   }
 
   Future<void> pickStartDate() async {
@@ -336,9 +350,40 @@ class _DashboardPageState extends State<DashboardPage> {
                         style: const TextStyle(color: Colors.white)),
                   ),
                   const SizedBox(width: 10),
-                  Text(rep["name"],
+                  Expanded(
+                    child: Text(
+                      rep["name"],
                       style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.bold)),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (rep["inTime"] != null)
+                        Text(
+                          "In ${formatTime(rep["inTime"])}",
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.green,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      if (rep["inTime"] != null && rep["outTime"] != null)
+                        const Text("  |  ", style: TextStyle(fontSize: 11)),
+                      if (rep["outTime"] != null)
+                        Text(
+                          "Out ${formatTime(rep["outTime"])}",
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.red,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                    ],
+                  )
                 ],
               ),
               const SizedBox(height: 8),
