@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print, deprecated_member_use, unused_local_variable
+// ignore_for_file: avoid_print, deprecated_member_use, unused_local_variable, use_build_context_synchronously, prefer_const_constructors
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
