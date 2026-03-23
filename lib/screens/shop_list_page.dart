@@ -187,24 +187,38 @@ class _ShopListPageState extends State<ShopListPage>
 
     final List res = await ApiService.getShops();
 
+    print("TOTAL SHOPS FROM API: ${res.length}");
+    print(res);
+
     final approved = res.where((shop) {
+      print("SHOP STATUS => ${shop["status"]}");
+      print("SHOP SEGMENT => ${shop["segment"]}");
+      print("USER SEGMENT => $segment");
+
       return shop["status"] == "approved" && shop["isDeleted"] != true;
     }).toList();
+
+    print("APPROVED SHOPS COUNT: ${approved.length}");
 
     if (role == "master") {
       filtered = approved;
     } else {
       filtered = approved.where((shop) {
         final shopSeg = (shop["segment"] ?? "").toString().toLowerCase();
+        print("COMPARE => $shopSeg vs $segment");
         return shopSeg == segment;
       }).toList();
     }
 
+    print("FINAL FILTERED COUNT: ${filtered.length}");
+
     shops = filtered;
 
+    if (!mounted) return;
+
+    controller.reset();
     controller.forward();
 
-    if (!mounted) return;
     setState(() => loading = false);
   }
 

@@ -33,6 +33,8 @@ class _AddShopPageState extends State<AddShopPage> {
   final TextEditingController primaryPhoneController = TextEditingController();
   final TextEditingController secondaryPhoneController =
       TextEditingController();
+  // String gstType = "non_gst"; // default
+  // final TextEditingController gstController = TextEditingController();
   String? selectedShopType;
   String? selectedSegment;
   File? imageFile;
@@ -82,29 +84,49 @@ class _AddShopPageState extends State<AddShopPage> {
   Future _pickFromCamera() async {
     if (kIsWeb) {
       bool hasCam = await WebCameraHelper.hasWebCamera();
+
       if (!hasCam) {
         _error("No Camera Detected");
         return;
       }
 
-      WebCameraHelper.pickFromCamera((base64) {
+      WebCameraHelper.pickFromCamera((base64) async {
+        if (base64 == null || base64.isEmpty) {
+          _error("Camera capture failed");
+          return;
+        }
+
+        if (!mounted) return;
+
         setState(() => base64Image = base64);
+
+        await Future.delayed(const Duration(milliseconds: 300));
+
         getLocation();
       });
 
       return;
     }
 
-    // MOBILE CAMERA
     final picked = await ImagePicker().pickImage(
       source: ImageSource.camera,
-      imageQuality: 40,
-      maxWidth: 1024,
+      imageQuality: 25,
+      maxWidth: 800,
     );
+
     if (picked != null) {
-      imageFile = File(picked.path);
-      base64Image = base64Encode(await imageFile!.readAsBytes());
-      setState(() {});
+      final file = File(picked.path);
+      final bytes = await file.readAsBytes();
+
+      if (!mounted) return;
+
+      setState(() {
+        imageFile = file;
+        base64Image = base64Encode(bytes);
+      });
+
+      await Future.delayed(const Duration(milliseconds: 200));
+
       getLocation();
     }
   }
@@ -131,6 +153,7 @@ class _AddShopPageState extends State<AddShopPage> {
         imageFile = File(result.files.single.path!);
         base64Image = base64Encode(await imageFile!.readAsBytes());
         setState(() {});
+        await Future.delayed(const Duration(milliseconds: 200));
         getLocation();
       }
       return;
@@ -138,8 +161,8 @@ class _AddShopPageState extends State<AddShopPage> {
 
     final picked = await ImagePicker().pickImage(
       source: ImageSource.gallery,
-      imageQuality: 40,
-      maxWidth: 1024,
+      imageQuality: 25,
+      maxWidth: 800,
     );
     if (picked != null) {
       imageFile = File(picked.path);
@@ -162,6 +185,7 @@ class _AddShopPageState extends State<AddShopPage> {
     }
 
     final pos = await LocationHelper.getLocation();
+    if (!mounted) return;
     if (pos == null) {
       _error("Enable location permission");
       return;
@@ -223,6 +247,8 @@ class _AddShopPageState extends State<AddShopPage> {
       "primaryPhone": primaryPhoneController.text.trim(),
       "secondaryPhone": secondaryPhoneController.text.trim(),
       "shopType": selectedShopType,
+      // "gstType": gstType,
+      // "gstNumber": gstController.text,
     };
 
     setState(() => loading = true);
@@ -259,11 +285,19 @@ class _AddShopPageState extends State<AddShopPage> {
         _success("Shop submitted for approval");
 
         // ✅ Reset form instead of pop (avoid black screen)
+        // gstController.clear();
         nameController.clear();
         addressController.clear();
-        selectedSegment == null;
+        primaryPhoneController.clear();
+        secondaryPhoneController.clear();
+
+        selectedSegment = null;
+        selectedShopType = null;
+
         base64Image = null;
         imageFile = null;
+        PaintingBinding.instance.imageCache.clear();
+        PaintingBinding.instance.imageCache.clearLiveImages();
         lat = null;
         lng = null;
 
@@ -291,6 +325,43 @@ class _AddShopPageState extends State<AddShopPage> {
       backgroundColor: Colors.green,
       behavior: SnackBarBehavior.floating,
     ));
+  }
+
+  // Future fetchGSTDetails() async {
+  //   if (gstController.text.length < 15) {
+  //     _error("Enter valid GST number");
+  //     return;
+  //   }
+
+  //   try {
+  //     final url =
+  //         Uri.parse("https://gst-api.example.com/gstin/${gstController.text}");
+
+  //     final res = await http.get(url);
+
+  //     if (res.statusCode == 200) {
+  //       final data = jsonDecode(res.body);
+
+  //       setState(() {
+  //         nameController.text = data["legal_name"] ?? "";
+  //         addressController.text = data["address"] ?? "";
+  //       });
+  //     } else {
+  //       _error("GST lookup failed");
+  //     }
+  //   } catch (e) {
+  //     _error("GST API error");
+  //   }
+  // }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    addressController.dispose();
+    primaryPhoneController.dispose();
+    secondaryPhoneController.dispose();
+    // gstController.dispose();
+    super.dispose();
   }
 
   // ==========================================
@@ -369,9 +440,55 @@ class _AddShopPageState extends State<AddShopPage> {
                       ),
                       child: ListView(
                         children: [
+                          // const SizedBox(height: 10),
+
+                          // Row(
+                          //   children: [
+                          //     Expanded(
+                          //       child: RadioListTile(
+                          //         value: "gst",
+                          //         groupValue: gstType,
+                          //         title: const Text("GST"),
+                          //         onChanged: (value) {
+                          //           setState(() {
+                          //             gstType = value!;
+                          //           });
+                          //         },
+                          //       ),
+                          //     ),
+                          //     Expanded(
+                          //       child: RadioListTile(
+                          //         value: "non_gst",
+                          //         groupValue: gstType,
+                          //         title: const Text("Non GST"),
+                          //         onChanged: (value) {
+                          //           setState(() {
+                          //             gstType = value!;
+                          //           });
+                          //         },
+                          //       ),
+                          //     ),
+                          //   ],
+                          // ),
+                          // if (gstType == "gst") ...[
+                          //   const SizedBox(height: 10),
+                          //   TextField(
+                          //     controller: gstController,
+                          //     decoration: inputDecor("Enter GST Number"),
+                          //   ),
+                          //   const SizedBox(height: 10),
+                          //   SizedBox(
+                          //     width: double.infinity,
+                          //     child: ElevatedButton(
+                          //       onPressed: fetchGSTDetails,
+                          //       child: const Text("Fetch GST Details"),
+                          //     ),
+                          //   ),
+                          // ],
                           // ✅ INPUTS
                           TextField(
                             controller: nameController,
+                            // enabled: gstType != "gst",
                             decoration: inputDecor("Shop Name"),
                           ),
                           const SizedBox(height: 18),
@@ -485,6 +602,8 @@ class _AddShopPageState extends State<AddShopPage> {
                                   borderRadius: BorderRadius.circular(16),
                                   child: Image.memory(
                                     base64Decode(base64Image!),
+                                    cacheWidth: 400,
+                                    gaplessPlayback: true,
                                     height: 170,
                                     width: double.infinity,
                                     fit: BoxFit.cover,
