@@ -33,8 +33,8 @@ class _AddShopPageState extends State<AddShopPage> {
   final TextEditingController primaryPhoneController = TextEditingController();
   final TextEditingController secondaryPhoneController =
       TextEditingController();
-  // String gstType = "non_gst"; // default
-  // final TextEditingController gstController = TextEditingController();
+  String gstType = "non_gst"; // default
+  final TextEditingController gstController = TextEditingController();
   String? selectedShopType;
   String? selectedSegment;
   File? imageFile;
@@ -247,8 +247,8 @@ class _AddShopPageState extends State<AddShopPage> {
       "primaryPhone": primaryPhoneController.text.trim(),
       "secondaryPhone": secondaryPhoneController.text.trim(),
       "shopType": selectedShopType,
-      // "gstType": gstType,
-      // "gstNumber": gstController.text,
+      "gstType": gstType,
+      "gstNumber": gstController.text,
     };
 
     setState(() => loading = true);
@@ -285,7 +285,7 @@ class _AddShopPageState extends State<AddShopPage> {
         _success("Shop submitted for approval");
 
         // ✅ Reset form instead of pop (avoid black screen)
-        // gstController.clear();
+        gstController.clear();
         nameController.clear();
         addressController.clear();
         primaryPhoneController.clear();
@@ -327,32 +327,32 @@ class _AddShopPageState extends State<AddShopPage> {
     ));
   }
 
-  // Future fetchGSTDetails() async {
-  //   if (gstController.text.length < 15) {
-  //     _error("Enter valid GST number");
-  //     return;
-  //   }
+  Future fetchGSTDetails() async {
+    if (gstController.text.length < 15) {
+      _error("Enter valid GST number");
+      return;
+    }
 
-  //   try {
-  //     final url =
-  //         Uri.parse("https://gst-api.example.com/gstin/${gstController.text}");
+    try {
+      final url =
+          Uri.parse("https://gst-api.example.com/gstin/${gstController.text}");
 
-  //     final res = await http.get(url);
+      final res = await http.get(url);
 
-  //     if (res.statusCode == 200) {
-  //       final data = jsonDecode(res.body);
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
 
-  //       setState(() {
-  //         nameController.text = data["legal_name"] ?? "";
-  //         addressController.text = data["address"] ?? "";
-  //       });
-  //     } else {
-  //       _error("GST lookup failed");
-  //     }
-  //   } catch (e) {
-  //     _error("GST API error");
-  //   }
-  // }
+        setState(() {
+          nameController.text = data["legal_name"] ?? "";
+          addressController.text = data["address"] ?? "";
+        });
+      } else {
+        _error("GST lookup failed");
+      }
+    } catch (e) {
+      _error("GST API error");
+    }
+  }
 
   @override
   void dispose() {
@@ -360,7 +360,7 @@ class _AddShopPageState extends State<AddShopPage> {
     addressController.dispose();
     primaryPhoneController.dispose();
     secondaryPhoneController.dispose();
-    // gstController.dispose();
+    gstController.dispose();
     super.dispose();
   }
 
@@ -440,55 +440,55 @@ class _AddShopPageState extends State<AddShopPage> {
                       ),
                       child: ListView(
                         children: [
-                          // const SizedBox(height: 10),
+                          const SizedBox(height: 10),
 
-                          // Row(
-                          //   children: [
-                          //     Expanded(
-                          //       child: RadioListTile(
-                          //         value: "gst",
-                          //         groupValue: gstType,
-                          //         title: const Text("GST"),
-                          //         onChanged: (value) {
-                          //           setState(() {
-                          //             gstType = value!;
-                          //           });
-                          //         },
-                          //       ),
-                          //     ),
-                          //     Expanded(
-                          //       child: RadioListTile(
-                          //         value: "non_gst",
-                          //         groupValue: gstType,
-                          //         title: const Text("Non GST"),
-                          //         onChanged: (value) {
-                          //           setState(() {
-                          //             gstType = value!;
-                          //           });
-                          //         },
-                          //       ),
-                          //     ),
-                          //   ],
-                          // ),
-                          // if (gstType == "gst") ...[
-                          //   const SizedBox(height: 10),
-                          //   TextField(
-                          //     controller: gstController,
-                          //     decoration: inputDecor("Enter GST Number"),
-                          //   ),
-                          //   const SizedBox(height: 10),
-                          //   SizedBox(
-                          //     width: double.infinity,
-                          //     child: ElevatedButton(
-                          //       onPressed: fetchGSTDetails,
-                          //       child: const Text("Fetch GST Details"),
-                          //     ),
-                          //   ),
-                          // ],
+                          Row(
+                            children: [
+                              Expanded(
+                                child: RadioListTile(
+                                  value: "gst",
+                                  groupValue: gstType,
+                                  title: const Text("GST"),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      gstType = value!;
+                                    });
+                                  },
+                                ),
+                              ),
+                              Expanded(
+                                child: RadioListTile(
+                                  value: "non_gst",
+                                  groupValue: gstType,
+                                  title: const Text("Non GST"),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      gstType = value!;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (gstType == "gst") ...[
+                            const SizedBox(height: 10),
+                            TextField(
+                              controller: gstController,
+                              decoration: inputDecor("Enter GST Number"),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: fetchGSTDetails,
+                                child: const Text("Fetch GST Details"),
+                              ),
+                            ),
+                          ],
                           // ✅ INPUTS
                           TextField(
                             controller: nameController,
-                            // enabled: gstType != "gst",
+                            enabled: gstType != "gst",
                             decoration: inputDecor("Shop Name"),
                           ),
                           const SizedBox(height: 18),
