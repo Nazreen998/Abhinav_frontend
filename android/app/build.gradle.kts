@@ -21,19 +21,17 @@ android {
 
     defaultConfig {
         applicationId = "com.example.abhinav_tracking"
-
-        minSdk = flutter.minSdkVersion               // ✅ CORRECT SYNTAX
-        targetSdk = 36           // ✅ CORRECT
+        minSdk = flutter.minSdkVersion
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
     buildTypes {
         release {
-            // Use debug signing for now
-            signingConfig = signingConfigs.getByName("debug")  // ✅ CORRECT
-            isMinifyEnabled = false                            // ✅ CORRECT
-            isShrinkResources = false                          // ✅ CORRECT
+            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

@@ -11,16 +11,18 @@ public class CallReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
 
+        if (intent == null || intent.getAction() == null) {
+            return;
+        }
+
         String state = intent.getStringExtra(TelephonyManager.EXTRA_STATE);
 
         Log.d("CALL_RECEIVER", "Receiver triggered");
 
         if (TelephonyManager.EXTRA_STATE_IDLE.equals(state)) {
-
             Log.d("CALL_RECEIVER", "Call ended detected");
 
             Intent serviceIntent = new Intent(context, CallLogService.class);
-
             context.startService(serviceIntent);
         }
     }

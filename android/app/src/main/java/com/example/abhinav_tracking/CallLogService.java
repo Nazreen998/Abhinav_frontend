@@ -1,11 +1,15 @@
 package com.example.abhinav_tracking;
 
+import android.Manifest;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.IBinder;
 import android.provider.CallLog;
 import android.util.Log;
+
+import androidx.core.content.ContextCompat;
 
 import org.json.JSONObject;
 
@@ -23,65 +27,74 @@ public class CallLogService extends Service {
 
         Log.d("CALL_LOG_SERVICE", "Service started");
 
-        Cursor cursor = getContentResolver().query(
-                CallLog.Calls.CONTENT_URI,
-                null,
-                null,
-                null,
-                CallLog.Calls.DATE + " DESC"
-        );
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALL_LOG)
+                != PackageManager.PERMISSION_GRANTED) {
+            Log.e("CALL_LOG_SERVICE", "READ_CALL_LOG permission not granted");
+            stopSelf();
+            return START_NOT_STICKY;
+        }
 
-        if (cursor != null && cursor.moveToFirst()) {
+        Cursor cursor = null;
 
-            String number = cursor.getString(
-                    cursor.getColumnIndexOrThrow(CallLog.Calls.NUMBER));
+        try {
+            cursor = getContentResolver().query(
+                    CallLog.Calls.CONTENT_URI,
+                    null,
+                    null,
+                    null,
+                    CallLog.Calls.DATE + " DESC"
+            );
 
-            int duration = cursor.getInt(
-                    cursor.getColumnIndexOrThrow(CallLog.Calls.DURATION));
+            if (cursor != null && cursor.moveToFirst()) {
 
-            long timestamp = cursor.getLong(
-                    cursor.getColumnIndexOrThrow(CallLog.Calls.DATE));
+                String number = cursor.getString(
+                        cursor.getColumnIndexOrThrow(CallLog.Calls.NUMBER));
 
-            Log.d("CALL_LOG_SERVICE", "Number: " + number);
-            Log.d("CALL_LOG_SERVICE", "Duration: " + duration);
-            Log.d("CALL_LOG_SERVICE", "Timestamp: " + timestamp);
+                int duration = cursor.getInt(
+                        cursor.getColumnIndexOrThrow(CallLog.Calls.DURATION));
 
-            // ❌ Skip duration 0
-            if (duration == 0) {
-                cursor.close();
-                stopSelf();
-                return START_NOT_STICKY;
+                long timestamp = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(CallLog.Calls.DATE));
+
+                Log.d("CALL_LOG_SERVICE", "Number: " + number);
+                Log.d("CALL_LOG_SERVICE", "Duration: " + duration);
+                Log.d("CALL_LOG_SERVICE", "Timestamp: " + timestamp);
+
+                if (duration == 0) {
+                    stopSelf();
+                    return START_NOT_STICKY;
+                }
+
+                if (timestamp == lastSavedTimestamp) {
+                    Log.d("CALL_LOG_SERVICE", "Duplicate call skipped");
+                    stopSelf();
+                    return START_NOT_STICKY;
+                }
+
+                Calendar cal = Calendar.getInstance();
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
+
+                long todayStart = cal.getTimeInMillis();
+
+                if (timestamp < todayStart) {
+                    Log.d("CALL_LOG_SERVICE", "Old call ignored");
+                    stopSelf();
+                    return START_NOT_STICKY;
+                }
+
+                lastSavedTimestamp = timestamp;
+                sendCallToServer(number, duration);
             }
 
-            // ❌ Skip duplicates
-            if (timestamp == lastSavedTimestamp) {
-                Log.d("CALL_LOG_SERVICE", "Duplicate call skipped");
+        } catch (Exception e) {
+            Log.e("CALL_LOG_SERVICE", "ERROR: " + e.getMessage(), e);
+        } finally {
+            if (cursor != null) {
                 cursor.close();
-                stopSelf();
-                return START_NOT_STICKY;
             }
-
-            // ✔ Check today's call
-            Calendar cal = Calendar.getInstance();
-            cal.set(Calendar.HOUR_OF_DAY, 0);
-            cal.set(Calendar.MINUTE, 0);
-            cal.set(Calendar.SECOND, 0);
-            cal.set(Calendar.MILLISECOND, 0);
-
-            long todayStart = cal.getTimeInMillis();
-
-            if (timestamp < todayStart) {
-                Log.d("CALL_LOG_SERVICE", "Old call ignored");
-                cursor.close();
-                stopSelf();
-                return START_NOT_STICKY;
-            }
-
-            lastSavedTimestamp = timestamp;
-
-            sendCallToServer(number, duration);
-
-            cursor.close();
         }
 
         stopSelf();
@@ -89,15 +102,11 @@ public class CallLogService extends Service {
     }
 
     private void sendCallToServer(String number, int duration) {
-
         new Thread(() -> {
-
             try {
-
                 URL url = new URL("https://abhinav-backend.onrender.com/api/shops/calls");
 
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json");
                 conn.setDoOutput(true);
@@ -112,15 +121,13 @@ public class CallLogService extends Service {
                 os.close();
 
                 int responseCode = conn.getResponseCode();
-
                 Log.d("CALL_LOG_SERVICE", "API Response: " + responseCode);
 
                 conn.disconnect();
 
             } catch (Exception e) {
-                Log.e("CALL_LOG_SERVICE", "API ERROR: " + e.getMessage());
+                Log.e("CALL_LOG_SERVICE", "API ERROR: " + e.getMessage(), e);
             }
-
         }).start();
     }
 

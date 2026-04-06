@@ -1,24 +1,46 @@
 // ignore_for_file: prefer_const_constructors, deprecated_member_use, unused_import
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import 'screens/login_page.dart';
 import 'screens/home_page.dart';
 import 'services/auth_service.dart';
 import 'screens/match_page.dart';
 import 'services/background_service.dart';
-import 'dart:io';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await AuthService.init();
 
-  // 👉 Android / iOS only background service run
   if (Platform.isAndroid || Platform.isIOS) {
-    await initializeBackgroundService();
+    await requestRequiredPermissions();
+
+    final locationGranted = await Permission.location.isGranted;
+    final phoneGranted = await Permission.phone.isGranted;
+
+    // Foreground service is for LOCATION
+    // So start it only when location permission is granted
+    if (locationGranted) {
+      await initializeBackgroundService();
+    }
+
+    // phoneGranted is still useful for call logs / native receiver
+    debugPrint("Location granted: $locationGranted");
+    debugPrint("Phone granted: $phoneGranted");
   }
 
   runApp(const AbhinavApp());
+}
+
+Future<void> requestRequiredPermissions() async {
+  await [
+    Permission.location,
+    Permission.phone,
+  ].request();
 }
 
 class AbhinavApp extends StatefulWidget {
@@ -95,7 +117,6 @@ class SplashScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 🔵 App Logo (Replace with your asset if needed)
               Container(
                 height: 110,
                 width: 110,
@@ -109,9 +130,7 @@ class SplashScreen extends StatelessWidget {
                   color: Colors.white,
                 ),
               ),
-
               const SizedBox(height: 30),
-
               const Text(
                 "ABHINAV TRACKING",
                 textAlign: TextAlign.center,
@@ -122,9 +141,7 @@ class SplashScreen extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               const SizedBox(height: 8),
-
               const Text(
                 "Smart Field Monitoring",
                 style: TextStyle(
@@ -132,9 +149,7 @@ class SplashScreen extends StatelessWidget {
                   fontSize: 14,
                 ),
               ),
-
               const SizedBox(height: 30),
-
               const CircularProgressIndicator(
                 color: Colors.white,
                 strokeWidth: 2,
