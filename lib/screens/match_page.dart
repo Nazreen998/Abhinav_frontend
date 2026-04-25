@@ -61,18 +61,29 @@ class _MatchPageState extends State<MatchPage> {
     userLat = pos.latitude;
     userLng = pos.longitude;
 
-    double shopLat = double.tryParse(widget.shop["lat"].toString()) ?? 0.0;
-    double shopLng = double.tryParse(widget.shop["lng"].toString()) ?? 0.0;
+    double shopLat = double.tryParse(
+  (widget.shop["lat"]?.toString() ?? "0").trim().replaceAll(" ", "")
+) ?? 0.0;
+double shopLng = double.tryParse(
+  (widget.shop["lng"]?.toString() ?? "0").trim().replaceAll(" ", "")
+) ?? 0.0;
 
     distanceMeters = calcDistance(userLat!, userLng!, shopLat, shopLng);
     bool isMatch = distanceMeters! <= 50;
     print("Distance sending: $distanceMeters");
     // 🔥 FINAL PAYLOAD (NO EXTRA FIELDS)
     final payload = {
-      "shop_id": widget.shop["shop_id"], // ✅ ONLY shop_id
-      "shop_name": widget.shop["shop_name"],
-      "result": isMatch ? "match" : "mismatch",
-      "distance": distanceMeters,
+      // ✅ CSV shop pk from la shop_id extract pannunga
+  "shop_id": widget.shop["pk"]?.toString().replaceAll("SHOP#", "") 
+             ?? widget.shop["shop_id"] 
+             ?? "",
+  "shop_name": widget.shop["shopName"] ?? widget.shop["shop_name"] ?? "",
+  "result": isMatch ? "match" : "mismatch",
+  "distance": distanceMeters,
+  "userLat": userLat,
+  "userLng": userLng,
+  "shopLat": shopLat,
+  "shopLng": shopLng,
     };
 
     await visitService.visitShop(payload);
@@ -176,7 +187,7 @@ class _MatchPageState extends State<MatchPage> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  s["shop_name"] ?? "",
+                                  s["shopName"] ?? s["shop_name"] ?? "",
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
@@ -197,7 +208,7 @@ class _MatchPageState extends State<MatchPage> {
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
-                                  s["address"] ?? "",
+                                  s["address"] ?? s["shopAddress"] ?? "",
                                   style: const TextStyle(
                                     fontSize: 14,
                                     color: Colors.black54,
@@ -225,7 +236,7 @@ class _MatchPageState extends State<MatchPage> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    "Lat: ${double.parse(s["lat"].toString()).toStringAsFixed(9)}",
+                                   "Lat: ${(double.tryParse(s["lat"]?.toString().trim() ?? "0") ?? 0.0).toStringAsFixed(6)}",
                                     style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -236,7 +247,7 @@ class _MatchPageState extends State<MatchPage> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
-                                    "Lng: ${double.parse(s["lng"].toString()).toStringAsFixed(9)}",
+                                    "Lng: ${(double.tryParse(s["lng"]?.toString().trim() ?? "0") ?? 0.0).toStringAsFixed(6)}",
                                     style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,

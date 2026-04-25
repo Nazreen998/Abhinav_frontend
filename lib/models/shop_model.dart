@@ -31,8 +31,13 @@ class ShopModel {
       shopName:
           json["shop_name"] ?? json["shopName"] ?? "",
       address: json["address"] ?? "",
-      lat: double.tryParse((json["lat"] ?? 0).toString()) ?? 0,
-      lng: double.tryParse((json["lng"] ?? 0).toString()) ?? 0,
+      // ✅ CHANGE TO
+lat: double.tryParse(
+  (json["lat"]?.toString() ?? "0").trim().replaceAll(",", ".").replaceAll(" ", "")
+) ?? 0,
+lng: double.tryParse(
+  (json["lng"]?.toString() ?? "0").trim().replaceAll(",", ".").replaceAll(" ", "")
+) ?? 0,
       segment: (json["segment"] ?? "").toString().toLowerCase(),
     );
   }

@@ -182,46 +182,46 @@ class _ShopListPageState extends State<ShopListPage>
   // LOAD SHOPS (FIXED)
   // ------------------------------------------------------
   Future<void> loadShops() async {
-    if (!mounted) return;
-    setState(() => loading = true);
+  if (!mounted) return;
+  setState(() => loading = true);
 
-    final List res = await ApiService.getShops();
+  final List res = await ApiService.getShops();
 
-    print("TOTAL SHOPS FROM API: ${res.length}");
-    print(res);
+  print("TOTAL SHOPS FROM API: ${res.length}");
 
+  List result = [];
+
+  if (role == "driver") {
+    // ✅ DRIVER - filter illama ALL shops show
+    result = res.where((shop) {
+      return shop["isDeleted"] != true;
+    }).toList();
+  } else {
+    // ✅ Others - approved + segment filter (existing logic)
     final approved = res.where((shop) {
-      print("SHOP STATUS => ${shop["status"]}");
-      print("SHOP SEGMENT => ${shop["segment"]}");
-      print("USER SEGMENT => $segment");
-
       return shop["status"] == "approved" && shop["isDeleted"] != true;
     }).toList();
 
-    print("APPROVED SHOPS COUNT: ${approved.length}");
-
     if (role == "master") {
-      filtered = approved;
+      result = approved;
     } else {
-      filtered = approved.where((shop) {
+      result = approved.where((shop) {
         final shopSeg = (shop["segment"] ?? "").toString().toLowerCase();
-        print("COMPARE => $shopSeg vs $segment");
         return shopSeg == segment;
       }).toList();
     }
-
-    print("FINAL FILTERED COUNT: ${filtered.length}");
-
-    shops = filtered;
-
-    if (!mounted) return;
-
-    controller.reset();
-    controller.forward();
-
-    setState(() => loading = false);
   }
 
+  print("FINAL COUNT: ${result.length}");
+
+  shops = result;
+  filtered = result;
+
+  if (!mounted) return;
+  controller.reset();
+  controller.forward();
+  setState(() => loading = false);
+}
   // ------------------------------------------------------
   // SEARCH
   // ------------------------------------------------------
@@ -393,8 +393,14 @@ class _ShopListPageState extends State<ShopListPage>
   // SHOP CARD
   // ------------------------------------------------------
   Widget buildShopCard(Map<String, dynamic> shop) {
-    final double lat = double.tryParse(shop["lat"]?.toString() ?? "0") ?? 0;
-    final double lng = double.tryParse(shop["lng"]?.toString() ?? "0") ?? 0;
+    // ✅ CHANGE TO - spaces + commas remove pannunga
+final double lat = double.tryParse(
+  (shop["lat"]?.toString() ?? "0").trim().replaceAll(",", ".").replaceAll(" ", "")
+) ?? 0;
+final double lng = double.tryParse(
+  (shop["lng"]?.toString() ?? "0").trim().replaceAll(",", ".").replaceAll(" ", "")
+) ?? 0;
+
     final seg = (shop["segment"] ?? "").toString().toUpperCase();
 
     final String imageUrl = (shop["shopImage"] ?? "").toString();
@@ -575,79 +581,87 @@ class _ShopListPageState extends State<ShopListPage>
           const SizedBox(height: 16),
 
           // 🔹 SALESMAN BUTTONS
-          if (role == "salesman" || role == "manager") ...[
-            Row(
-              children: [
-                // MAPS
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => openMaps(lat, lng),
-                    icon: const Icon(Icons.map_outlined, size: 18),
-                    label: const Text("Maps"),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF005BBB),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-                ),
+          // ❌ CURRENT - only salesman/manager ku buttons
+if (role == "salesman" || role == "manager") ...[
+  Row(
+    children: [
+      // Maps, Call, Match buttons
+    ],
+  ),
+],
 
-                const SizedBox(width: 8),
-
-                // CALL BUTTON
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => makeCall(shop),
-                    icon: const Icon(Icons.call, size: 18, color: Colors.white),
-                    label: const Text(
-                      "Call",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 8),
-
-                // MATCH
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => MatchPage(shop: shop),
-                        ),
-                      );
-                      await loadShops();
-                    },
-                    icon: const Icon(Icons.verified,
-                        size: 18, color: Colors.amber),
-                    label: const Text(
-                      "Match",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+// ✅ CHANGE TO - driver ku also buttons
+if (role == "salesman" || role == "manager" || role == "driver") ...[
+  Row(
+    children: [
+      // MAPS
+      Expanded(
+        child: OutlinedButton.icon(
+          onPressed: () => openMaps(lat, lng),
+          icon: const Icon(Icons.map_outlined, size: 18),
+          label: const Text("Maps"),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFF005BBB),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-          ],
+          ),
+        ),
+      ),
 
+      const SizedBox(width: 8),
+
+      // CALL
+      Expanded(
+        child: ElevatedButton.icon(
+          onPressed: () => makeCall(shop),
+          icon: const Icon(Icons.call, size: 18, color: Colors.white),
+          label: const Text(
+            "Call",
+            style: TextStyle(color: Colors.white),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orange,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        ),
+      ),
+
+      const SizedBox(width: 8),
+
+      // MATCH
+      Expanded(
+        child: ElevatedButton.icon(
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => MatchPage(shop: shop),
+              ),
+            );
+            await loadShops();
+          },
+          icon: const Icon(Icons.verified, size: 18, color: Colors.amber),
+          label: const Text(
+            "Match",
+            style: TextStyle(color: Colors.white),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        ),
+      ),
+    ],
+  ),
+],
           // 🔹 MASTER / MANAGER FOOTER
           // 🔹 MASTER / MANAGER FOOTER (Enhanced UI)
           if (role == "master" || role == "manager") ...[
