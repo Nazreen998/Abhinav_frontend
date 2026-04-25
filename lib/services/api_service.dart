@@ -258,7 +258,7 @@ class ApiService {
   }
 
 // ================= HISTORY LOGS =================
-  static Future<List<dynamic>> getLogs() async {
+  static Future<dynamic> getLogs() async {
     try {
       final res = await http.get(
         Uri.parse("$baseUrl/visit/list"),
@@ -277,7 +277,7 @@ class ApiService {
       final body = jsonDecode(res.body);
 
       // 🔥 BACKEND RETURNS "visits"
-      return body["visits"] ?? [];
+      return body;
     } catch (e) {
       print("❌ GET LOGS ERROR: $e");
       return [];

@@ -50,15 +50,24 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
     print("👤 USER SEGMENT => $userSegment");
 
     // ******** GET FROM VisitLog API ******** //
-    List<dynamic> raw = await ApiService.getLogs();
+    final rawResponse = await ApiService.getLogs(); // ← List இல்லாம Map வரும்
 
-    print("✅ RAW LOG COUNT => ${raw.length}");
-    if (raw.isNotEmpty) {
-      print("✅ RAW FIRST ITEM => ${raw[0]}");
+    final List<dynamic> rawVisits = rawResponse["visits"] ?? [];
+    final List<dynamic> zohoSales = rawResponse["zoho_sales"] ?? [];
+
+// zoho_sales-ஐ visitId வச்சு map பண்ணு
+    final Map<String, dynamic> zohoMap = {};
+    for (var z in zohoSales) {
+      zohoMap[z["shopName"]] = z["sales"];
     }
 
-    // ******** MAP TO APP FORMAT (USING VISITLOG) ******** //
-    List<dynamic> all = raw.map((l) {
+    print("✅ RAW LOG COUNT => ${rawVisits.length}");
+    if (rawVisits.isNotEmpty) {
+      print("✅ RAW FIRST ITEM => ${rawVisits[0]}");
+    }
+
+// ******** MAP TO APP FORMAT (USING VISITLOG) ******** //
+    List<dynamic> all = rawVisits.map((l) {
       DateTime dt;
       bool isCall = (l["durationSec"] ?? 0) > 0;
 
@@ -67,6 +76,10 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
       } catch (e) {
         dt = DateTime.now();
       }
+
+      // zoho_sales match பண்ணு
+      final zoho = zohoMap[l["shop_name"]];
+
       return {
         "pk": l["pk"],
         "sk": l["sk"],
@@ -85,6 +98,14 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
         "duration": (l["durationSec"] != null)
             ? (l["durationSec"] as num).toDouble()
             : 0.0,
+        // ✅ zoho_sales attach
+        "zoho_sales": zoho != null
+            ? {
+                "total_sales": zoho["total_sales"],
+                "invoice_count": zoho["invoice_count"],
+                "invoices": (zoho["invoices"] as List? ?? []),
+              }
+            : null,
       };
     }).toList();
 
@@ -606,6 +627,79 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: Colors.blue,
+                        ),
+                      ),
+                    ],
+                    // CALL DURATION block-க்கு கீழே add பண்ணுங்க
+                    if (log["zoho_sales"] != null) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.green.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // HEADER
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  "🧾 Zoho Sales",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                                Text(
+                                  "₹${log["zoho_sales"]["total_sales"]}",
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(color: Colors.green, thickness: 0.5),
+                            // EACH INVOICE
+                            ...List.generate(
+                              ((log["zoho_sales"]["invoices"] ?? []) as List)
+                                  .length,
+                              (i) {
+                                final inv = log["zoho_sales"]["invoices"][i];
+                                return Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 3),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        "Invoice ${i + 1}  ${inv["invoice_date"] ?? inv["date"] ?? ""}",
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                      Text(
+                                        "₹${inv["total"]}",
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     ],
