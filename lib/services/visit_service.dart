@@ -15,7 +15,7 @@ class VisitService {
   // UPLOAD PHOTO (MULTIPART) ✅ FINAL
   // --------------------------------------------------
   Future<String?> uploadPhoto(File file) async {
-  final uri = Uri.parse("$baseUrl/visit/uploadPhoto");
+  final uri = Uri.parse("$baseUrl/visits/uploadPhoto");
 
   final request = http.MultipartRequest("POST", uri);
   request.headers["Authorization"] =
@@ -46,7 +46,7 @@ class VisitService {
   // --------------------------------------------------
   Future<bool> visitShop(Map<String, dynamic> payload) async {
   final res = await http.post(
-    Uri.parse("$baseUrl/visit/save"),
+    Uri.parse("$baseUrl/visits/save"),
     headers: {
       "Content-Type": "application/json",
       "Authorization": "Bearer ${AuthService.token}",
