@@ -261,7 +261,7 @@ class ApiService {
   static Future<dynamic> getLogs() async {
     try {
       final res = await http.get(
-        Uri.parse("$baseUrl/visit/list"),
+        Uri.parse("$baseUrl/visits/list"),
         headers: {
           "Authorization": "Bearer ${auth.AuthService.token}",
         },
