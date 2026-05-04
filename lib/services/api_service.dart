@@ -376,4 +376,26 @@ class ApiService {
       return null;
     }
   }
+
+  static Future<Map<String, dynamic>?> getAttendanceReport(
+      String startDate, String endDate) async {
+    try {
+      final uri = Uri.https(
+        "abhinav-backend.onrender.com",
+        "/api/attendance/report",
+        {
+          "startDate": startDate,
+          "endDate": endDate,
+        },
+      );
+
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode != 200) return null;
+      final data = jsonDecode(response.body);
+      return data["ok"] == true ? data : null;
+    } catch (e) {
+      print("Attendance Report Error => $e");
+      return null;
+    }
+  }
 }
