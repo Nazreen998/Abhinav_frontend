@@ -376,4 +376,59 @@ class ApiService {
       return null;
     }
   }
-}
+  // --------------------------------------------------------
+  // ZOHO SALES ORDERS
+  // --------------------------------------------------------
+  static Future<Map<String, dynamic>> getSalesOrders({
+    String? status,
+    String? search,
+    int page = 1,
+    int limit = 50,
+  }) async {
+    try {
+      final queryParams = {
+        "page": page.toString(),
+        "limit": limit.toString(),
+        if (status != null && status != "all") "status": status,
+        if (search != null && search.isNotEmpty) "search": search,
+      };
+
+      final uri = Uri.parse("$baseUrl/zoho/salesorders")
+          .replace(queryParameters: queryParams);
+
+      print("📦 SALES ORDER URL => $uri");
+
+      final res = await http.get(uri, headers: headers);
+
+      print("📦 SALES ORDER STATUS => ${res.statusCode}");
+      print("📦 SALES ORDER BODY => ${res.body}");
+
+      if (res.statusCode != 200) return {"success": false, "orders": []};
+
+      return jsonDecode(res.body);
+    } catch (e) {
+      print("❌ SALES ORDER ERROR => $e");
+      return {"success": false, "orders": []};
+    }
+  }
+
+  // --------------------------------------------------------
+  // ZOHO SALES ORDERS SUMMARY
+  // --------------------------------------------------------
+  static Future<Map<String, dynamic>> getSalesOrdersSummary() async {
+    try {
+      final res = await http.get(
+        Uri.parse("$baseUrl/zoho/salesorders-summary"),
+        headers: headers,
+      );
+
+      if (res.statusCode != 200) return {};
+      return jsonDecode(res.body);
+    } catch (e) {
+      print("❌ SALES SUMMARY ERROR => $e");
+      return {};
+    }
+  }
+
+} // ← இது ApiService class closing brace
+
