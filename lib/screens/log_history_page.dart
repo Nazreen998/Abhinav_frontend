@@ -631,7 +631,9 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                       ),
                     ],
                     // CALL DURATION block-க்கு கீழே add பண்ணுங்க
-                    if (log["zoho_sales"] != null) ...[
+                    if (log["zoho_sales"] != null &&
+                        widget.user["role"].toString().toLowerCase() ==
+                            "master") ...[
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.all(12),

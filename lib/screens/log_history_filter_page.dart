@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'log_history_page.dart';
+import 'attendance_bottom_sheet.dart';
+import 'add_location_page.dart';
 
 class LogHistoryFilterPage extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -37,6 +39,17 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
     } else {
       segmentOptions = ["All", "FMCG", "PIPES"];
     }
+  }
+
+  // ----------------- ATTENDANCE SHEET -----------------
+  void _showAttendanceSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => AttendanceBottomSheet(user: widget.user),
+    );
   }
 
   // ----------------- DATE PICKERS -----------------
@@ -255,6 +268,9 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
                               ),
                             ),
                           ),
+                          const Divider(height: 24, color: Color(0xFFF0F0F0)),
+
+                          _bottomActions(),
                         ],
                       ),
                     ),
@@ -291,6 +307,70 @@ class _LogHistoryFilterPageState extends State<LogHistoryFilterPage> {
       padding: const EdgeInsets.symmetric(vertical: 14),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
+      ),
+    );
+  }
+  // ================= UI BUILD =====================
+
+// ----------------- BOTTOM SHEET BUTTONS -----------------
+  Widget _bottomActions() {
+    final role = widget.user["role"].toString().toLowerCase();
+
+    if (role == "master") {
+      // ✅ MASTER - Location Add button
+      return Align(
+        alignment: Alignment.centerRight,
+        child: TextButton.icon(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AddLocationPage(user: widget.user),
+              ),
+            );
+          },
+          icon: const Icon(Icons.add_location_alt,
+              size: 20, color: Color(0xFF002D62)),
+          label: const Text(
+            "Add Location",
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF002D62),
+            ),
+          ),
+          style: TextButton.styleFrom(
+            backgroundColor: const Color(0xFFE8F0FA),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          ),
+        ),
+      );
+    }
+
+    // ✅ SALESMAN / MANAGER - Attendance button
+    return Align(
+      alignment: Alignment.centerRight,
+      child: TextButton.icon(
+        onPressed: _showAttendanceSheet,
+        icon: const Icon(Icons.fingerprint, size: 20, color: Color(0xFF002D62)),
+        label: const Text(
+          "Attendance",
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF002D62),
+          ),
+        ),
+        style: TextButton.styleFrom(
+          backgroundColor: const Color(0xFFE8F0FA),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        ),
       ),
     );
   }
