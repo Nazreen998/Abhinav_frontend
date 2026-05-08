@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import '../screens/log_history_filter_page.dart';
 import '../screens/shop_list_page.dart';
+import '../screens/sales_orders_page.dart'; // ← top add 
+
 
 class DashboardPage extends StatelessWidget {
   final Map<String, dynamic> user;
@@ -73,7 +75,22 @@ class DashboardPage extends StatelessWidget {
                 );
               },
             ),
+            // existing tiles கீழே இதை add பண்ணுங்க:
+const SizedBox(height: 15),
 
+if (isMaster() || isManager())
+  _tile(
+    icon: Icons.receipt_long,
+    title: "Sales Orders",
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const SalesOrdersPage(),
+        ),
+      );
+    },
+  ),
             const SizedBox(height: 15),
 
             _tile(
