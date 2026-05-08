@@ -394,6 +394,26 @@ class ApiService {
     }
   }
   // --------------------------------------------------------
+  // ZOHO SHOPS OUTSTANDING
+  // --------------------------------------------------------
+  static Future<Map<String, dynamic>> getShopsOutstanding() async {
+    try {
+      final res = await http.get(
+        Uri.parse("$baseUrl/zoho/shops-outstanding"),
+        headers: headers,
+      );
+
+      print("💰 OUTSTANDING STATUS => ${res.statusCode}");
+      print("💰 OUTSTANDING BODY => ${res.body}");
+
+      if (res.statusCode != 200) return {"success": false, "shops": []};
+      return jsonDecode(res.body);
+    } catch (e) {
+      print("❌ OUTSTANDING ERROR => $e");
+      return {"success": false, "shops": []};
+    }
+  }
+  // --------------------------------------------------------
   // ATTENDANCE REPORT
   // --------------------------------------------------------
   static Future<Map<String, dynamic>?> getAttendanceReport(

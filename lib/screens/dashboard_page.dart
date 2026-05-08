@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../screens/log_history_filter_page.dart';
 import '../screens/shop_list_page.dart';
 import '../screens/sales_orders_page.dart'; // ← top add 
-
+import '../screens/shops_outstanding_page.dart';
 
 class DashboardPage extends StatelessWidget {
   final Map<String, dynamic> user;
@@ -75,7 +75,21 @@ class DashboardPage extends StatelessWidget {
                 );
               },
             ),
-            // existing tiles கீழே இதை add பண்ணுங்க:
+const SizedBox(height: 15),
+
+if (isMaster() || isManager())
+  _tile(
+    icon: Icons.account_balance_wallet,
+    title: "Shop Outstanding",
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const ShopsOutstandingPage(),
+        ),
+      );
+    },
+  ),            // existing tiles கீழே இதை add பண்ணுங்க:
 const SizedBox(height: 15),
 
 if (isMaster() || isManager())
