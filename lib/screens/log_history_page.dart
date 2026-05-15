@@ -631,7 +631,9 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                       ),
                     ],
                     // CALL DURATION block-க்கு கீழே add பண்ணுங்க
+                    // ✅ இப்படி மாத்து — mismatch-க்கு காட்டாது
                     if (log["zoho_sales"] != null &&
+                        log["result"] == true && // ← MATCH மட்டும்
                         widget.user["role"].toString().toLowerCase() ==
                             "master") ...[
                       const SizedBox(height: 8),

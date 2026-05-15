@@ -327,33 +327,6 @@ class _AddShopPageState extends State<AddShopPage> {
     ));
   }
 
-  Future fetchGSTDetails() async {
-    if (gstController.text.length < 15) {
-      _error("Enter valid GST number");
-      return;
-    }
-
-    try {
-      final url =
-          Uri.parse("https://gst-api.example.com/gstin/${gstController.text}");
-
-      final res = await http.get(url);
-
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-
-        setState(() {
-          nameController.text = data["legal_name"] ?? "";
-          addressController.text = data["address"] ?? "";
-        });
-      } else {
-        _error("GST lookup failed");
-      }
-    } catch (e) {
-      _error("GST API error");
-    }
-  }
-
   @override
   void dispose() {
     nameController.dispose();
@@ -476,19 +449,10 @@ class _AddShopPageState extends State<AddShopPage> {
                               controller: gstController,
                               decoration: inputDecor("Enter GST Number"),
                             ),
-                            const SizedBox(height: 10),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: fetchGSTDetails,
-                                child: const Text("Fetch GST Details"),
-                              ),
-                            ),
                           ],
                           // ✅ INPUTS
                           TextField(
                             controller: nameController,
-                            enabled: gstType != "gst",
                             decoration: inputDecor("Shop Name"),
                           ),
                           const SizedBox(height: 18),

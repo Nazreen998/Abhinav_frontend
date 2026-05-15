@@ -98,16 +98,24 @@ class ApiService {
   }
 
   static Future<bool> updateShop(Map data) async {
-    final res = await http.put(
-      Uri.parse("$baseUrl/shops/update/${data["shop_id"]}"),
-      headers: headers,
-      body: jsonEncode({
-        "shop_name": data["shop_name"],
-        "address": data["address"],
-        "segment": data["segment"],
-      }),
-    );
-    return jsonDecode(res.body)["success"] == true;
+    try {
+      final res = await http.put(
+        Uri.parse("$baseUrl/shops/update/${data["shop_id"]}"),
+        headers: headers,
+        body: jsonEncode({
+          "shop_name": data["shop_name"],
+          "address": data["address"],
+          "segment": data["segment"],
+          "primaryPhone": data["primaryPhone"] ?? "",
+          "secondaryPhone": data["secondaryPhone"] ?? "",
+          "gstNumber": data["gstNumber"] ?? "",
+        }),
+      );
+
+      return jsonDecode(res.body)["success"] == true;
+    } catch (e) {
+      return false;
+    }
   }
 
   static Future<bool> deleteShop(String id) async {
@@ -246,7 +254,7 @@ class ApiService {
   static Future<dynamic> getLogs() async {
     try {
       final res = await http.get(
-        Uri.parse("$baseUrl/visit/list"),
+        Uri.parse("$baseUrl/visits/list"),
         headers: {
           "Authorization": "Bearer ${auth.AuthService.token}",
         },
@@ -306,7 +314,7 @@ class ApiService {
   static Future<bool> deleteVisit(String pk, String sk) async {
     try {
       final response = await http.delete(
-        Uri.parse("$baseUrl/visit/delete"),
+        Uri.parse("$baseUrl/visits/delete"),
         headers: headers,
         body: jsonEncode({"pk": pk, "sk": sk}),
       );
@@ -393,6 +401,7 @@ class ApiService {
       return {};
     }
   }
+
   // --------------------------------------------------------
   // ZOHO SHOPS OUTSTANDING
   // --------------------------------------------------------
@@ -413,6 +422,7 @@ class ApiService {
       return {"success": false, "shops": []};
     }
   }
+
   // --------------------------------------------------------
   // ATTENDANCE REPORT
   // --------------------------------------------------------
@@ -444,5 +454,4 @@ class ApiService {
       return null;
     }
   }
-
 } // ← ApiService class ends

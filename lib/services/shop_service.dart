@@ -33,8 +33,8 @@ class ShopService {
 
     final data = jsonDecode(res.body);
     final list = data["shops"] ?? [];
-  // SAVE SHOPS IN PREFS
-  await AuthService.saveShopsToPrefs(list);
+    // SAVE SHOPS IN PREFS
+    await AuthService.saveShopsToPrefs(list);
     return list.map<ShopModel>((e) => ShopModel.fromJson(e)).toList();
   }
 
@@ -81,6 +81,6 @@ class ShopService {
       },
     );
 
-  return res.statusCode == 200;
-}
+    return res.statusCode == 200;
+  }
 }
